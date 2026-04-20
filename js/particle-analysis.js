@@ -397,31 +397,117 @@ function drawParticleOverlay(particles) {
   particles.forEach(particle => {
     if (!particle.pixels.length) return;
 
-    const centroid = calculateParticleCentroid(particle.pixels);
+    const contourPoints = extractBoundaryPoints(particle.pixels);
 
-    const bounds = calculateParticleBounds(particle.pixels);
+    if (!contourPoints.length) return;
 
-    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-    rect.setAttribute('x', bounds.minX);
-    rect.setAttribute('y', bounds.minY);
-    rect.setAttribute('width', bounds.maxX - bounds.minX);
-    rect.setAttribute('height', bounds.maxY - bounds.minY);
-    rect.setAttribute('fill', 'none');
-    rect.setAttribute('stroke', '#38bdf8');
-    rect.setAttribute('stroke-width', '1');
+    const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+
+    polygon.setAttribute(
+      'points',
+      contourPoints.map(point => `${point.x},${point.y}`).join(' ')
+    );
+
+    polygon.setAttribute('fill', 'none');
+    polygon.setAttribute('stroke', '#38bdf8');
+    polygon.setAttribute('stroke-width', '1');
 
     const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    text.setAttribute('x', centroid.x);
-    text.setAttribute('y', centroid.y);
+    text.setAttribute('x', particle.centroidX);
+    text.setAttribute('y', particle.centroidY);
     text.setAttribute('fill', '#38bdf8');
     text.setAttribute('font-size', '10');
     text.setAttribute('text-anchor', 'middle');
     text.setAttribute('dominant-baseline', 'middle');
     text.textContent = particle.id;
 
-    overlaySvg.appendChild(rect);
+    overlaySvg.appendChild(polygon);
     overlaySvg.appendChild(text);
   });
+}
+
+function extractBoundaryPoints(pixels) {
+  const pixelSet = new Set(
+    pixels.map(pixel => `${pixel.x},${pixel.y}`)
+  );
+
+  const boundary = [];
+
+  pixels.forEach(pixel => {
+    const neighbors = [
+      [pixel.x - 1, pixel.y],
+      [pixel.x + 1, pixel.y],
+      [pixel.x, pixel.y - 1],
+      [pixel.x, pixel.y + 1]
+    ];
+
+    const isBoundary = neighbors.some(([nx, ny]) => {
+      return !pixelSet.has(`${nx},${ny}`);
+    });
+
+    if (isBoundary) {
+      boundary.push({
+        x: pixel.x,
+        y: pixel.y
+      });
+    }
+  });
+
+  if (boundary.length < 3) {
+    return boundary;
+  }
+
+  const centroid = calculateParticleCentroidFromBoundary(boundary);
+
+  boundary.sort((a, b) => {
+    const angleA = Math.atan2(a.y - centroid.y, a.x - centroid.x);
+    const angleB = Math.atan2(b.y - centroid.y, b.x - centroid.x);
+
+    return angleA - angleB;
+  });
+
+  return smoothBoundary(boundary, 2);
+}
+
+function calculateParticleCentroidFromBoundary(points) {
+  let sumX = 0;
+  let sumY = 0;
+
+  points.forEach(point => {
+    sumX += point.x;
+    sumY += point.y;
+  });
+
+  return {
+    x: sumX / points.length,
+    y: sumY / points.length
+  };
+}
+
+function smoothBoundary(points, iterations = 1) {
+  let smoothed = [...points];
+
+  for (let iteration = 0; iteration < iterations; iteration++) {
+    const newPoints = [];
+
+    for (let i = 0; i < smoothed.length; i++) {
+      const prev = smoothed[(i - 1 + smoothed.length) % smoothed.length];
+      const current = smoothed[i];
+      const next = smoothed[(i + 1) % smoothed.length];
+
+      const smoothX = (prev.x + current.x + next.x) / 3;
+      const smoothY = (prev.y + current.y + next.y) / 3;
+
+      newPoints.push({
+        x: Number(smoothX.toFixed(2)),
+        y: Number(smoothY.toFixed(2))
+      });
+    }
+
+    smoothed = newPoints;
+  }
+
+  return smoothed;
 }
 
 function populateResultsTable(particles) {
