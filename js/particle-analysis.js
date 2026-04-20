@@ -216,38 +216,64 @@ function initializeRunAnalysisButton() {
   });
 }
 
+// Replace the existing runParticleAnalysis() function in js/particle-analysis.js
+
 function runParticleAnalysis() {
   const settings = getCurrentSettings();
 
   console.log('Running particle analysis with settings:', settings);
 
-  // Draw original image into overlay canvas
+  // Prepare overlay canvas
   overlayCanvas.width = uploadedImage.width;
   overlayCanvas.height = uploadedImage.height;
 
   overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
   overlayCtx.drawImage(uploadedImage, 0, 0);
 
-  // Process selected channel preview
+  // Render selected channel preview
   renderSelectedChannelPreview(settings.channelMode);
 
-  // Placeholder threshold preview
-  renderThresholdPreview(settings.channelMode);
+  // Run detection pipeline using channel canvas
+  const detectionResult = runDetectionPipeline(channelCanvas, settings);
 
-  // Placeholder summary update
-  document.getElementById('particleCount').textContent = '0';
-  document.getElementById('totalParticleArea').textContent = '0 px²';
+  // Render binary threshold preview
+  renderBinaryMaskToCanvas(
+    detectionResult.binaryMask,
+    channelCanvas.width,
+    channelCanvas.height,
+    thresholdCanvas
+  );
 
-  // Placeholder table reset
-  resetResultsTable();
+  // Update threshold summary label
+  document.getElementById('thresholdMethodLabel').textContent =
+    `Otsu (${detectionResult.thresholdValue})`;
 
-  // Future integration
-  // detection.js will later handle:
-  // - Otsu threshold
-  // - Morphological opening
-  // - Connected components
-  // - Contour extraction
-  // - Feature extraction
+  // Basic filtering using particle size
+  const filteredParticles = detectionResult.particles.filter(particle => {
+    const area = particle.pixels.length;
+
+    return (
+      area >= settings.minParticleSize &&
+      area <= settings.maxParticleSize
+    );
+  });
+
+  // Update summary
+  const totalArea = filteredParticles.reduce((sum, particle) => {
+    return sum + particle.pixels.length;
+  }, 0);
+
+  document.getElementById('particleCount').textContent =
+    filteredParticles.length;
+
+  document.getElementById('totalParticleArea').textContent =
+    `${totalArea} px²`;
+
+  // Draw particle overlay
+  drawParticleOverlay(filteredParticles);
+
+  // Populate table
+  populateResultsTable(filteredParticles);
 }
 
 // ==============================
@@ -357,7 +383,124 @@ function resetResultsTable() {
     </tr>
   `;
 }
+function drawParticleOverlay(particles) {
+  const overlaySvg = document.getElementById('overlaySvg');
 
+  if (!overlaySvg || !uploadedImage) return;
+
+  overlaySvg.innerHTML = '';
+
+  overlaySvg.setAttribute('width', uploadedImage.width);
+  overlaySvg.setAttribute('height', uploadedImage.height);
+  overlaySvg.setAttribute('viewBox', `0 0 ${uploadedImage.width} ${uploadedImage.height}`);
+
+  particles.forEach(particle => {
+    if (!particle.pixels.length) return;
+
+    const centroid = calculateParticleCentroid(particle.pixels);
+
+    const bounds = calculateParticleBounds(particle.pixels);
+
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('x', bounds.minX);
+    rect.setAttribute('y', bounds.minY);
+    rect.setAttribute('width', bounds.maxX - bounds.minX);
+    rect.setAttribute('height', bounds.maxY - bounds.minY);
+    rect.setAttribute('fill', 'none');
+    rect.setAttribute('stroke', '#38bdf8');
+    rect.setAttribute('stroke-width', '1');
+
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('x', centroid.x);
+    text.setAttribute('y', centroid.y);
+    text.setAttribute('fill', '#38bdf8');
+    text.setAttribute('font-size', '10');
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('dominant-baseline', 'middle');
+    text.textContent = particle.id;
+
+    overlaySvg.appendChild(rect);
+    overlaySvg.appendChild(text);
+  });
+}
+
+function populateResultsTable(particles) {
+  const resultsTableBody = document.getElementById('resultsTableBody');
+
+  if (!resultsTableBody) return;
+
+  if (!particles.length) {
+    resetResultsTable();
+    return;
+  }
+
+  resultsTableBody.innerHTML = '';
+
+  particles.forEach(particle => {
+    const area = particle.pixels.length;
+    const centroid = calculateParticleCentroid(particle.pixels);
+    const bounds = calculateParticleBounds(particle.pixels);
+
+    const width = bounds.maxX - bounds.minX + 1;
+    const height = bounds.maxY - bounds.minY + 1;
+    const aspectRatio = height === 0 ? 0 : (width / height).toFixed(2);
+
+    const row = document.createElement('tr');
+
+    row.innerHTML = `
+      <td>${particle.id}</td>
+      <td>${area}</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+      <td>${aspectRatio}</td>
+      <td>-</td>
+      <td>${centroid.x.toFixed(1)}</td>
+      <td>${centroid.y.toFixed(1)}</td>
+      <td>${isParticleTouchingEdge(bounds) ? 'Yes' : 'No'}</td>
+    `;
+
+    resultsTableBody.appendChild(row);
+  });
+}
+
+function calculateParticleCentroid(pixels) {
+  let sumX = 0;
+  let sumY = 0;
+
+  pixels.forEach(pixel => {
+    sumX += pixel.x;
+    sumY += pixel.y;
+  });
+
+  return {
+    x: sumX / pixels.length,
+    y: sumY / pixels.length
+  };
+}
+
+function calculateParticleBounds(pixels) {
+  const xValues = pixels.map(pixel => pixel.x);
+  const yValues = pixels.map(pixel => pixel.y);
+
+  return {
+    minX: Math.min(...xValues),
+    maxX: Math.max(...xValues),
+    minY: Math.min(...yValues),
+    maxY: Math.max(...yValues)
+  };
+}
+
+function isParticleTouchingEdge(bounds) {
+  if (!uploadedImage) return false;
+
+  return (
+    bounds.minX <= 0 ||
+    bounds.minY <= 0 ||
+    bounds.maxX >= uploadedImage.width - 1 ||
+    bounds.maxY >= uploadedImage.height - 1
+  );
+}
 // ==============================
 // HELPERS
 // ==============================
