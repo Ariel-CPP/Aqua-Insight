@@ -262,7 +262,8 @@
 .preview-canvas-container {
   position: relative;
   width: 100%;
-  min-height: 280px;
+  height: 320px;
+  min-height: 320px;
   max-height: 420px;
   overflow: hidden;
   border-radius: 14px;
@@ -274,6 +275,10 @@
 
 .preview-canvas-container canvas,
 .preview-canvas-container svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
   max-width: 100%;
   max-height: 100%;
 }
@@ -443,9 +448,11 @@
 #thresholdCanvas {
   display: block;
   width: 100%;
-  height: auto;
+  height: 100%;
+  min-height: 280px;
   background-color: #000000;
   object-fit: contain;
+  image-rendering: pixelated;
 }
 
 .preview-panel canvas {
