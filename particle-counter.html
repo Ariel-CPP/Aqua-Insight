@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Particle Counter | Aqua Insight</title>
+
+  <!-- Main CSS -->
+  <link rel="stylesheet" href="../css/style.css" />
+  <link rel="stylesheet" href="../css/particle-counter.css" />
+
+  <!-- Google Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="main-header">
+    <div class="header-left">
+      <div class="logo-group">
+        <h1 class="app-title">Aqua Insight</h1>
+        <span class="version-badge">Version 0.1</span>
+      </div>
+    </div>
+
+    <nav class="main-nav">
+      <ul>
+        <li><a href="../index.html" class="nav-link">Home</a></li>
+
+        <li class="dropdown">
+          <button class="dropdown-button">
+            Features
+            <span class="dropdown-arrow">▼</span>
+          </button>
+
+          <div class="dropdown-menu">
+            <a href="particle-counter.html">Particle Counter</a>
+          </div>
+        </li>
+
+        <li><a href="contact.html" class="nav-link">Contact Us</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <!-- Main Layout -->
+  <main class="feature-layout">
+
+    <!-- Sidebar -->
+    <aside class="feature-sidebar">
+      <div class="sidebar-card">
+        <h3 class="sidebar-title">Particle Counter</h3>
+
+        <nav class="sidebar-menu">
+          <button class="sidebar-button active" data-mode="single">
+            Single Analysis
+          </button>
+
+          <button class="sidebar-button" data-mode="batch">
+            Batch Analysis
+          </button>
+        </nav>
+      </div>
+
+      <div class="sidebar-card">
+        <h4 class="sidebar-section-title">Analysis Settings</h4>
+
+        <div class="settings-group">
+          <label for="channelMode">Channel Mode</label>
+          <select id="channelMode">
+            <option value="grayscale">Grayscale</option>
+            <option value="red">Red Channel</option>
+            <option value="green">Green Channel</option>
+            <option value="blue">Blue Channel</option>
+          </select>
+        </div>
+
+        <div class="settings-group">
+          <label for="thresholdMode">Threshold Mode</label>
+          <select id="thresholdMode">
+            <option value="otsu">Otsu Automatic</option>
+          </select>
+        </div>
+
+        <div class="settings-row">
+          <div class="settings-group">
+            <label for="minParticleSize">Min Size</label>
+            <input type="number" id="minParticleSize" value="0" min="0" />
+          </div>
+
+          <div class="settings-group">
+            <label for="maxParticleSize">Max Size</label>
+            <input type="number" id="maxParticleSize" value="999999" min="0" />
+          </div>
+        </div>
+
+        <div class="settings-row">
+          <div class="settings-group">
+            <label for="circularityMin">Circularity Min</label>
+            <input type="number" id="circularityMin" value="0.00" min="0" max="1" step="0.01" />
+          </div>
+
+          <div class="settings-group">
+            <label for="circularityMax">Circularity Max</label>
+            <input type="number" id="circularityMax" value="1.00" min="0" max="1" step="0.01" />
+          </div>
+        </div>
+
+        <div class="checkbox-group">
+          <input type="checkbox" id="invertThreshold" />
+          <label for="invertThreshold">Invert Threshold</label>
+        </div>
+
+        <div class="checkbox-group">
+          <input type="checkbox" id="excludeEdgeParticles" />
+          <label for="excludeEdgeParticles">Exclude Edge Particles</label>
+        </div>
+
+        <button class="analyze-button" id="runAnalysisButton">
+          Run Analysis
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <section class="feature-content">
+
+      <!-- Upload Section -->
+      <div class="content-card">
+        <div class="card-header">
+          <h2>Image Upload</h2>
+        </div>
+
+        <div class="upload-area" id="uploadArea">
+          <input type="file" id="imageUpload" accept="image/*" hidden />
+
+          <button class="upload-button" id="uploadButton">
+            Upload Image
+          </button>
+
+          <p class="upload-description">
+            Supported image formats: JPG, PNG, BMP, TIFF
+          </p>
+        </div>
+      </div>
+
+      <!-- Preview Grid -->
+      <div class="content-card">
+        <div class="card-header">
+          <h2>Analysis Preview</h2>
+
+          <div class="preview-controls">
+            <button class="preview-control-button" id="zoomInButton">+</button>
+            <button class="preview-control-button" id="zoomOutButton">−</button>
+            <button class="preview-control-button" id="resetZoomButton">Reset</button>
+          </div>
+        </div>
+
+        <div class="preview-grid">
+
+          <div class="preview-panel">
+            <h3>Original Image</h3>
+            <div class="preview-canvas-container">
+              <canvas id="originalCanvas"></canvas>
+            </div>
+          </div>
+
+          <div class="preview-panel">
+            <h3>Selected Channel</h3>
+            <div class="preview-canvas-container">
+              <canvas id="channelCanvas"></canvas>
+            </div>
+          </div>
+
+          <div class="preview-panel">
+            <h3>Binary Threshold</h3>
+            <div class="preview-canvas-container">
+              <canvas id="thresholdCanvas"></canvas>
+            </div>
+          </div>
+
+          <div class="preview-panel">
+            <h3>Final Overlay</h3>
+            <div class="preview-canvas-container overlay-container">
+              <canvas id="overlayCanvas"></canvas>
+              <svg id="overlaySvg"></svg>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Summary Section -->
+      <div class="content-card">
+        <div class="card-header">
+          <h2>Analysis Summary</h2>
+        </div>
+
+        <div class="summary-grid">
+          <div class="summary-item">
+            <span class="summary-label">Detected Particles</span>
+            <span class="summary-value" id="particleCount">0</span>
+          </div>
+
+          <div class="summary-item">
+            <span class="summary-label">Total Particle Area</span>
+            <span class="summary-value" id="totalParticleArea">0 px²</span>
+          </div>
+
+          <div class="summary-item">
+            <span class="summary-label">Threshold Method</span>
+            <span class="summary-value" id="thresholdMethodLabel">Otsu</span>
+          </div>
+
+          <div class="summary-item">
+            <span class="summary-label">Channel Mode</span>
+            <span class="summary-value" id="channelModeLabel">Grayscale</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Results Table -->
+      <div class="content-card">
+        <div class="card-header">
+          <h2>Particle Results</h2>
+
+          <button class="export-button" id="exportResultsButton">
+            Export XLS
+          </button>
+        </div>
+
+        <div class="table-wrapper">
+          <table class="results-table" id="resultsTable">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Area</th>
+                <th>Perimeter</th>
+                <th>Circularity</th>
+                <th>Feret Diameter</th>
+                <th>Aspect Ratio</th>
+                <th>Mean RGB</th>
+                <th>Centroid X</th>
+                <th>Centroid Y</th>
+                <th>Touches Edge</th>
+              </tr>
+            </thead>
+
+            <tbody id="resultsTableBody">
+              <tr>
+                <td colspan="10" class="empty-table-message">
+                  No analysis results available.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <!-- SheetJS -->
+  <script src="../vendor/xlsx/xlsx.full.min.js"></script>
+
+  <!-- Main Scripts -->
+  <script src="../js/main.js"></script>
+  <script src="../js/particle-analysis.js"></script>
+  <script src="../js/detection.js"></script>
+  <script src="../js/export.js"></script>
+  <script src="../js/batch.js"></script>
+  <script src="../js/zoom-pan.js"></script>
+</body>
+</html>
