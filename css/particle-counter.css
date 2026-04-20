@@ -444,6 +444,10 @@
   display: block;
   width: 100%;
   height: auto;
-  background: #000000;
+  background-color: #000000;
+  object-fit: contain;
+}
+
+.preview-panel canvas {
   image-rendering: pixelated;
 }
