@@ -409,3 +409,18 @@
     grid-template-columns: 1fr;
   }
 }
+/* Add this section at the bottom of css/particle-counter.css */
+
+.preview-canvas-container {
+  cursor: grab;
+}
+
+.preview-canvas-container.dragging {
+  cursor: grabbing;
+}
+
+.preview-canvas-container canvas,
+.preview-canvas-container svg {
+  transition: transform 0.15s ease;
+  will-change: transform;
+}
