@@ -88,54 +88,95 @@ function extractChannelData(imageData, channelMode) {
 // OTSU THRESHOLD
 // ==============================
 
-function calculateOtsuThreshold(grayscale) {
+function calculateMeanThreshold(grayscale) {
+  const total = grayscale.reduce((sum, value) => sum + value, 0);
+  return Math.round(total / grayscale.length);
+}
+
+function calculateTriangleThreshold(grayscale) {
   const histogram = new Array(256).fill(0);
 
-  for (let i = 0; i < grayscale.length; i++) {
-    histogram[grayscale[i]]++;
-  }
+  grayscale.forEach(value => {
+    histogram[value]++;
+  });
 
-  const total = grayscale.length;
-
-  let sum = 0;
-
-  for (let i = 0; i < 256; i++) {
-    sum += i * histogram[i];
-  }
-
-  let sumBackground = 0;
-  let weightBackground = 0;
-  let weightForeground = 0;
-
-  let maxVariance = 0;
-  let threshold = 0;
+  let left = 0;
+  let right = 255;
+  let peak = 0;
 
   for (let i = 0; i < 256; i++) {
-    weightBackground += histogram[i];
+    if (histogram[i] > histogram[peak]) {
+      peak = i;
+    }
 
-    if (weightBackground === 0) continue;
+    if (histogram[i] > 0 && left === 0) {
+      left = i;
+    }
 
-    weightForeground = total - weightBackground;
+    if (histogram[i] > 0) {
+      right = i;
+    }
+  }
 
-    if (weightForeground === 0) break;
+  let maxDistance = -1;
+  let threshold = peak;
 
-    sumBackground += i * histogram[i];
+  for (let i = left; i <= right; i++) {
+    const distance = Math.abs(
+      ((right - left) * (peak - i)) -
+      ((peak - left) * (right - i))
+    );
 
-    const meanBackground = sumBackground / weightBackground;
-    const meanForeground = (sum - sumBackground) / weightForeground;
-
-    const betweenClassVariance =
-      weightBackground *
-      weightForeground *
-      Math.pow(meanBackground - meanForeground, 2);
-
-    if (betweenClassVariance > maxVariance) {
-      maxVariance = betweenClassVariance;
+    if (distance > maxDistance) {
+      maxDistance = distance;
       threshold = i;
     }
   }
 
   return threshold;
+}
+
+function calculateMinimumErrorThreshold(grayscale) {
+  const histogram = new Array(256).fill(0);
+
+  grayscale.forEach(value => {
+    histogram[value]++;
+  });
+
+  let total = grayscale.length;
+  let bestThreshold = 128;
+  let minimumError = Infinity;
+
+  for (let threshold = 1; threshold < 255; threshold++) {
+    let backgroundCount = 0;
+    let foregroundCount = 0;
+    let backgroundSum = 0;
+    let foregroundSum = 0;
+
+    for (let i = 0; i <= threshold; i++) {
+      backgroundCount += histogram[i];
+      backgroundSum += histogram[i] * i;
+    }
+
+    for (let i = threshold + 1; i < 256; i++) {
+      foregroundCount += histogram[i];
+      foregroundSum += histogram[i] * i;
+    }
+
+    if (backgroundCount === 0 || foregroundCount === 0) continue;
+
+    const backgroundMean = backgroundSum / backgroundCount;
+    const foregroundMean = foregroundSum / foregroundCount;
+
+    const error = Math.abs(backgroundMean - foregroundMean);
+
+    if (error < minimumError) {
+      minimumError = error;
+      bestThreshold = threshold;
+    }
+  }
+
+  return bestThreshold;
 }
 
 // ==============================
