@@ -41,13 +41,17 @@ function initializeUpload() {
     imageUpload.click();
   });
 
-  imageUpload.addEventListener('change', (event) => {
-    const file = event.target.files[0];
+imageUpload.addEventListener('change', (event) => {
+  const files = Array.from(event.target.files);
 
-    if (!file) return;
+  if (!files.length) return;
 
-    handleImageFile(file);
-  });
+  if (currentAnalysisMode === 'batch') {
+    handleBatchFiles(files);
+  } else {
+    handleImageFile(files[0]);
+  }
+});
 
   uploadArea.addEventListener('dragover', (event) => {
     event.preventDefault();
@@ -235,20 +239,55 @@ function initializeRunAnalysisButton() {
   if (!runAnalysisButton) return;
 
   runAnalysisButton.addEventListener('click', () => {
+    if (currentAnalysisMode === 'batch') {
+      runBatchAnalysis();
+      return;
+    }
+
     if (!uploadedImage) {
       alert('Please upload an image before running analysis.');
       return;
     }
+
+    runParticleAnalysis();
   });
 }
 
 function runParticleAnalysis() {
+  if (!uploadedImage) return;
+
+  const settings = getCurrentSettings();
+
+  // Render selected channel first
+  renderSelectedChannelPreview(settings.channelMode);
+
+  // Run detection pipeline
+  const detectionResult = runDetectionPipeline(channelCanvas, settings);
+
+  // Render threshold preview
+  renderThresholdPreview(
+    detectionResult.binaryMask,
+    channelCanvas.width,
+    channelCanvas.height
+  );
+
+  // Draw original image into overlay canvas
+  overlayCanvas.width = uploadedImage.width;
+  overlayCanvas.height = uploadedImage.height;
+
+  overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+  overlayCtx.drawImage(uploadedImage, 0, 0);
+
   // Extract particle properties
   const extractedParticles = detectionResult.particles.map(particle => {
     const centroid = calculateParticleCentroid(particle.pixels);
     const bounds = calculateParticleBounds(particle.pixels);
     const perimeter = calculateParticlePerimeterSimple(particle.pixels);
     const meanRGB = calculateParticleMeanRGB(particle.pixels);
+
+    const circularity = perimeter === 0
+      ? 0
+      : (4 * Math.PI * particle.pixels.length) / (perimeter * perimeter);
 
     return {
       ...particle,
@@ -257,16 +296,27 @@ function runParticleAnalysis() {
       centroidY: centroid.y,
       bounds,
       perimeter,
+      circularity,
       meanRGB
     };
   });
 
-  // Filter particles
+  // Apply filtering
   const filteredParticles = extractedParticles.filter(particle => {
-    return (
+    const validArea =
       particle.area >= settings.minParticleSize &&
-      particle.area <= settings.maxParticleSize
-    );
+      particle.area <= settings.maxParticleSize;
+
+    const validCircularity =
+      particle.circularity >= settings.circularityMin &&
+      particle.circularity <= settings.circularityMax;
+
+    const validEdge =
+      settings.excludeEdgeParticles
+        ? !isParticleTouchingEdge(particle.bounds)
+        : true;
+
+    return validArea && validCircularity && validEdge;
   });
 
   // Summary values
@@ -280,7 +330,7 @@ function runParticleAnalysis() {
     ? 0
     : ((totalArea / imageArea) * 100).toFixed(2);
 
-  // Safe summary update
+  // Update summary
   const particleCountElement = document.getElementById('particleCount');
   const totalParticleAreaElement = document.getElementById('totalParticleArea');
   const coverageAreaElement = document.getElementById('coverageArea');
