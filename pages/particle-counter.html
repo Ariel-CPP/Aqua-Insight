@@ -77,12 +77,47 @@
           </select>
         </div>
 
-        <div class="settings-group">
-          <label for="thresholdMode">Threshold Mode</label>
-          <select id="thresholdMode">
-            <option value="otsu">Otsu Automatic</option>
-          </select>
-        </div>
+       <div class="settings-group">
+  <label for="thresholdMode">Threshold Mode</label>
+
+  <div class="threshold-select-wrapper">
+    <select id="thresholdMode">
+      <option value="otsu" data-description="Automatically finds the threshold that maximizes separation between background and foreground intensity distributions. Best for images with bimodal histograms.">
+        Otsu Automatic
+      </option>
+
+      <option value="mean" data-description="Uses the average pixel intensity of the image as the threshold value. Useful for evenly illuminated images with moderate contrast.">
+        Mean Intensity
+      </option>
+
+      <option value="triangle" data-description="Uses the triangle method to estimate threshold based on histogram shape. Useful for images with skewed intensity distributions.">
+        Triangle
+      </option>
+
+      <option value="minerror" data-description="Uses minimum error thresholding based on statistical separation between foreground and background. Suitable for noisy images.">
+        Minimum Error
+      </option>
+
+      <option value="manual" data-description="Allows manual threshold adjustment using a user-defined value. Useful when automatic methods fail.">
+        Manual Threshold
+      </option>
+    </select>
+
+    <div class="threshold-tooltip" id="thresholdTooltip">
+      Select a threshold mode to view its description.
+    </div>
+  </div>
+</div>
+
+<div class="settings-group" id="manualThresholdGroup" style="display: none;">
+  <label for="manualThresholdValue">Manual Threshold Value</label>
+  <input type="number" id="manualThresholdValue" value="128" min="0" max="255" />
+</div>
+
+<div class="checkbox-group">
+  <input type="checkbox" id="ignoreBackgroundParticles" />
+  <label for="ignoreBackgroundParticles">Ignore Background Region</label>
+</div>
 
         <div class="settings-row">
           <div class="settings-group">
@@ -205,8 +240,8 @@
           </div>
 
           <div class="summary-item">
-            <span class="summary-label">Total Particle Area</span>
-            <span class="summary-value" id="totalParticleArea">0 px²</span>
+            <span class="summary-label">Coverage Area</span>
+            <span class="summary-value" id="coverageArea">0%</span>
           </div>
 
           <div class="summary-item">
