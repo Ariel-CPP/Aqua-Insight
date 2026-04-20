@@ -273,8 +273,16 @@ function runParticleAnalysis() {
   );
 
   // Update threshold summary label
-  document.getElementById('thresholdMethodLabel').textContent =
-    `Otsu (${detectionResult.thresholdValue})`;
+ const thresholdLabelMap = {
+  otsu: 'Otsu',
+  mean: 'Mean',
+  triangle: 'Triangle',
+  minerror: 'Minimum Error',
+  manual: 'Manual'
+};
+
+document.getElementById('thresholdMethodLabel').textContent =
+  `${thresholdLabelMap[settings.thresholdMode]} (${detectionResult.thresholdValue})`;
 
   // Basic filtering using particle size
   const filteredParticles = detectionResult.particles.filter(particle => {
@@ -288,7 +296,7 @@ function runParticleAnalysis() {
 
   // Update summary
  const totalArea = filteredParticles.reduce((sum, particle) => {
-  return sum + particle.area;
+  return sum + particle.pixels.length;
 }, 0);
 
 const imageArea = uploadedImage.width * uploadedImage.height;
