@@ -223,6 +223,7 @@ if (thresholdModeSelect) {
 
   updateThresholdUI();
 }
+}
 
 // ==============================
 // RUN ANALYSIS BUTTON
@@ -307,9 +308,8 @@ document.getElementById('coverageArea').textContent =
 
   // Populate table
   populateResultsTable(filteredParticles);
-}
-
-storeAnalysisResults(filteredParticles, {
+  
+  storeAnalysisResults(filteredParticles, {
   filename: uploadedImageName,
   analysisMode: currentAnalysisMode,
   thresholdMode: settings.thresholdMode,
@@ -324,6 +324,7 @@ storeAnalysisResults(filteredParticles, {
   detectedParticleCount: filteredParticles.length,
   totalParticleArea: totalArea
 });
+}
 
 // ==============================
 // CHANNEL PREVIEW
