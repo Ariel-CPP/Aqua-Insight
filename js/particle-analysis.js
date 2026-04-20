@@ -400,18 +400,29 @@ function renderThresholdPreview(binaryMask, width, height) {
   thresholdCanvas.width = width;
   thresholdCanvas.height = height;
 
+  // Clear existing content
+  thresholdCtx.clearRect(0, 0, width, height);
+
+  // Create blank image data
   const imageData = thresholdCtx.createImageData(width, height);
+  const data = imageData.data;
 
   for (let i = 0; i < binaryMask.length; i++) {
+    const pixelIndex = i * 4;
     const value = binaryMask[i] === 1 ? 255 : 0;
 
-    imageData.data[i * 4] = value;
-    imageData.data[i * 4 + 1] = value;
-    imageData.data[i * 4 + 2] = value;
-    imageData.data[i * 4 + 3] = 255;
+    data[pixelIndex] = value;
+    data[pixelIndex + 1] = value;
+    data[pixelIndex + 2] = value;
+    data[pixelIndex + 3] = 255;
   }
 
   thresholdCtx.putImageData(imageData, 0, 0);
+
+  // Force visible scaling inside preview panel
+  thresholdCanvas.style.width = '100%';
+  thresholdCanvas.style.height = 'auto';
+  thresholdCanvas.style.display = 'block';
 }
 
 // ==============================
