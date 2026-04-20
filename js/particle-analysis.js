@@ -41,17 +41,17 @@ function initializeUpload() {
     imageUpload.click();
   });
 
-imageUpload.addEventListener('change', (event) => {
-  const files = Array.from(event.target.files);
+  imageUpload.addEventListener('change', (event) => {
+    const files = Array.from(event.target.files);
 
-  if (!files.length) return;
+    if (!files.length) return;
 
-  if (currentAnalysisMode === 'batch') {
-    handleBatchFiles(files);
-  } else {
-    handleImageFile(files[0]);
-  }
-});
+    if (currentAnalysisMode === 'batch') {
+      handleBatchFiles(files);
+    } else {
+      handleImageFile(files[0]);
+    }
+  });
 
   uploadArea.addEventListener('dragover', (event) => {
     event.preventDefault();
@@ -66,11 +66,15 @@ imageUpload.addEventListener('change', (event) => {
     event.preventDefault();
     uploadArea.classList.remove('dragover');
 
-    const file = event.dataTransfer.files[0];
+    const files = Array.from(event.dataTransfer.files);
 
-    if (!file) return;
+    if (!files.length) return;
 
-    handleImageFile(file);
+    if (currentAnalysisMode === 'batch') {
+      handleBatchFiles(files);
+    } else {
+      handleImageFile(files[0]);
+    }
   });
 }
 
@@ -258,20 +262,20 @@ function runParticleAnalysis() {
 
   const settings = getCurrentSettings();
 
-  // Render selected channel first
+  // Render selected channel preview first
   renderSelectedChannelPreview(settings.channelMode);
 
   // Run detection pipeline
   const detectionResult = runDetectionPipeline(channelCanvas, settings);
 
-  // Render threshold preview
+  // Render binary threshold preview
   renderThresholdPreview(
     detectionResult.binaryMask,
     channelCanvas.width,
     channelCanvas.height
   );
 
-  // Draw original image into overlay canvas
+  // Prepare overlay canvas
   overlayCanvas.width = uploadedImage.width;
   overlayCanvas.height = uploadedImage.height;
 
@@ -301,7 +305,7 @@ function runParticleAnalysis() {
     };
   });
 
-  // Apply filtering
+  // Apply filters
   const filteredParticles = extractedParticles.filter(particle => {
     const validArea =
       particle.area >= settings.minParticleSize &&
@@ -319,21 +323,14 @@ function runParticleAnalysis() {
     return validArea && validCircularity && validEdge;
   });
 
-  // Summary values
+  // Calculate summary
   const totalArea = filteredParticles.reduce((sum, particle) => {
     return sum + particle.area;
   }, 0);
 
-  const imageArea = uploadedImage.width * uploadedImage.height;
-
-  const coveragePercentage = imageArea === 0
-    ? 0
-    : ((totalArea / imageArea) * 100).toFixed(2);
-
   // Update summary
   const particleCountElement = document.getElementById('particleCount');
   const totalParticleAreaElement = document.getElementById('totalParticleArea');
-  const coverageAreaElement = document.getElementById('coverageArea');
   const thresholdMethodLabelElement = document.getElementById('thresholdMethodLabel');
 
   if (particleCountElement) {
@@ -344,22 +341,16 @@ function runParticleAnalysis() {
     totalParticleAreaElement.textContent = `${totalArea} px²`;
   }
 
-  if (coverageAreaElement) {
-    coverageAreaElement.textContent = `${coveragePercentage}%`;
-  }
-
   if (thresholdMethodLabelElement) {
     thresholdMethodLabelElement.textContent =
       `${settings.thresholdMode} (${detectionResult.thresholdValue})`;
   }
 
-  // Draw overlay
+  // Draw overlay and populate table
   drawParticleOverlay(filteredParticles);
-
-  // Populate table
   populateResultsTable(filteredParticles);
 
-  // Save export data
+  // Store export results
   storeAnalysisResults(filteredParticles, {
     filename: uploadedImageName,
     analysisMode: currentAnalysisMode,
