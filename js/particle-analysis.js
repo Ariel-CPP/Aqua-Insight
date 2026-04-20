@@ -261,6 +261,14 @@ function runParticleAnalysis() {
 
   // Run detection pipeline using channel canvas
   const detectionResult = runDetectionPipeline(channelCanvas, settings);
+  console.log('Detection Result:', detectionResult);
+console.log('Binary Mask Length:', detectionResult.binaryMask?.length);
+console.log('Canvas Width:', channelCanvas.width);
+console.log('Canvas Height:', channelCanvas.height);
+console.log(
+  'Binary Foreground Pixels:',
+  detectionResult.binaryMask.filter(pixel => pixel === 1).length
+);
 
 // Render binary threshold preview
 renderThresholdPreview(
@@ -399,6 +407,11 @@ function renderSelectedChannelPreview(channelMode) {
 function renderThresholdPreview(binaryMask, width, height) {
   if (!thresholdCanvas || !thresholdCtx) return;
 
+  console.log('Rendering threshold preview...');
+  console.log('Width:', width);
+  console.log('Height:', height);
+  console.log('Binary Mask:', binaryMask);
+
   thresholdCanvas.width = width;
   thresholdCanvas.height = height;
 
@@ -408,8 +421,9 @@ function renderThresholdPreview(binaryMask, width, height) {
   const data = imageData.data;
 
   for (let i = 0; i < binaryMask.length; i++) {
-    const value = binaryMask[i] === 1 ? 255 : 0;
     const pixelIndex = i * 4;
+
+    const value = binaryMask[i] === 1 ? 255 : 0;
 
     data[pixelIndex] = value;
     data[pixelIndex + 1] = value;
@@ -419,10 +433,13 @@ function renderThresholdPreview(binaryMask, width, height) {
 
   thresholdCtx.putImageData(imageData, 0, 0);
 
-  // Important: force canvas sizing after rendering
   thresholdCanvas.style.display = 'block';
   thresholdCanvas.style.width = '100%';
-  thresholdCanvas.style.height = 'auto';
+  thresholdCanvas.style.height = '100%';
+  thresholdCanvas.style.objectFit = 'contain';
+  thresholdCanvas.style.backgroundColor = '#000000';
+
+  console.log('Threshold preview rendered.');
 }
 
 // ==============================
