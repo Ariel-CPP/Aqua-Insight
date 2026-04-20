@@ -12,15 +12,30 @@ function runDetectionPipeline(sourceCanvas, settings) {
   const imageData = ctx.getImageData(0, 0, width, height);
   const grayscale = extractChannelData(imageData, settings.channelMode);
 
-  const thresholdValue = calculateOtsuThreshold(grayscale);
+ let thresholdValue = 128;
 
-  let binaryMask = applyThreshold(
-    grayscale,
-    width,
-    height,
-    thresholdValue,
-    settings.invertThreshold
-  );
+switch (settings.thresholdMode) {
+  case 'mean':
+    thresholdValue = calculateMeanThreshold(grayscale);
+    break;
+
+  case 'triangle':
+    thresholdValue = calculateTriangleThreshold(grayscale);
+    break;
+
+  case 'minerror':
+    thresholdValue = calculateMinimumErrorThreshold(grayscale);
+    break;
+
+  case 'manual':
+    thresholdValue = settings.manualThresholdValue;
+    break;
+
+  case 'otsu':
+  default:
+    thresholdValue = calculateOtsuThreshold(grayscale);
+    break;
+}
 
   binaryMask = morphologicalOpening(binaryMask, width, height);
 
