@@ -286,15 +286,21 @@ function runParticleAnalysis() {
   });
 
   // Update summary
-  const totalArea = filteredParticles.reduce((sum, particle) => {
-    return sum + particle.pixels.length;
-  }, 0);
+ const totalArea = filteredParticles.reduce((sum, particle) => {
+  return sum + particle.area;
+}, 0);
 
-  document.getElementById('particleCount').textContent =
-    filteredParticles.length;
+const imageArea = uploadedImage.width * uploadedImage.height;
 
-  document.getElementById('totalParticleArea').textContent =
-    `${totalArea} px²`;
+const coveragePercentage = imageArea === 0
+  ? 0
+  : ((totalArea / imageArea) * 100).toFixed(2);
+
+document.getElementById('particleCount').textContent =
+  filteredParticles.length;
+
+document.getElementById('coverageArea').textContent =
+  `${coveragePercentage}%`;
 
   // Draw particle overlay
   drawParticleOverlay(filteredParticles);
