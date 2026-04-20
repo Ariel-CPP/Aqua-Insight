@@ -300,6 +300,22 @@ const extractedParticles = detectionResult.particles.map(particle => {
   };
 });
 
+// Pastikan hanya ada SATU deklarasi const extractedParticles.
+// Hapus deklarasi extractedParticles yang lama.
+
+
+// ==============================
+// 2. GANTI AKHIR renderThresholdPreview()
+// ==============================
+
+thresholdCtx.putImageData(imageData, 0, 0);
+
+thresholdCanvas.style.display = 'block';
+thresholdCanvas.style.width = '100%';
+thresholdCanvas.style.height = '100%';
+
+fitCanvasToContainer(thresholdCanvas);
+
 // Filter particles
 const filteredParticles = extractedParticles.filter(particle => {
   return (
