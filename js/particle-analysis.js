@@ -239,94 +239,39 @@ function initializeRunAnalysisButton() {
       alert('Please upload an image before running analysis.');
       return;
     }
-
-    runParticleAnalysis();
   });
 }
 
 function runParticleAnalysis() {
-  const settings = getCurrentSettings();
+  // Extract particle properties
+  const extractedParticles = detectionResult.particles.map(particle => {
+    const centroid = calculateParticleCentroid(particle.pixels);
+    const bounds = calculateParticleBounds(particle.pixels);
+    const perimeter = calculateParticlePerimeterSimple(particle.pixels);
+    const meanRGB = calculateParticleMeanRGB(particle.pixels);
 
-  if (!uploadedImage) {
-    alert('Please upload an image before running analysis.');
-    return;
-  }
+    return {
+      ...particle,
+      area: particle.pixels.length,
+      centroidX: centroid.x,
+      centroidY: centroid.y,
+      bounds,
+      perimeter,
+      meanRGB
+    };
+  });
 
-  // Prepare overlay canvas
-  overlayCanvas.width = uploadedImage.width;
-  overlayCanvas.height = uploadedImage.height;
-
-  overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
-  overlayCtx.drawImage(uploadedImage, 0, 0);
-
-  // Render selected channel preview
-  renderSelectedChannelPreview(settings.channelMode);
-  fitCanvasToContainer(thresholdCanvas);
-  
-  // Run detection pipeline
-  const detectionResult = runDetectionPipeline(channelCanvas, settings);
-
-  if (!detectionResult) {
-    console.error('Detection pipeline failed.');
-    return;
-  }
-
-  // Render binary threshold preview
-  renderThresholdPreview(
-    detectionResult.binaryMask,
-    channelCanvas.width,
-    channelCanvas.height
-  );
-  
-fitCanvasToContainer(thresholdCanvas);
-fitCanvasToContainer(originalCanvas);
-fitCanvasToContainer(overlayCanvas);
-
-// Extract particle properties first
-const extractedParticles = detectionResult.particles.map(particle => {
-  const centroid = calculateParticleCentroid(particle.pixels);
-  const bounds = calculateParticleBounds(particle.pixels);
-  const perimeter = calculateParticlePerimeterSimple(particle.pixels);
-  const meanRGB = calculateParticleMeanRGB(particle.pixels);
-
-  return {
-    ...particle,
-    area: particle.pixels.length,
-    centroidX: centroid.x,
-    centroidY: centroid.y,
-    bounds,
-    perimeter,
-    meanRGB
-  };
-});
-
-// Pastikan hanya ada SATU deklarasi const extractedParticles.
-// Hapus deklarasi extractedParticles yang lama.
-
-
-// ==============================
-// 2. GANTI AKHIR renderThresholdPreview()
-// ==============================
-
-thresholdCtx.putImageData(imageData, 0, 0);
-
-thresholdCanvas.style.display = 'block';
-thresholdCanvas.style.width = '100%';
-thresholdCanvas.style.height = '100%';
-
-fitCanvasToContainer(thresholdCanvas);
-
-// Filter particles
-const filteredParticles = extractedParticles.filter(particle => {
-  return (
-    particle.area >= settings.minParticleSize &&
-    particle.area <= settings.maxParticleSize
-  );
-});
+  // Filter particles
+  const filteredParticles = extractedParticles.filter(particle => {
+    return (
+      particle.area >= settings.minParticleSize &&
+      particle.area <= settings.maxParticleSize
+    );
+  });
 
   // Summary values
   const totalArea = filteredParticles.reduce((sum, particle) => {
-    return sum + particle.pixels.length;
+    return sum + particle.area;
   }, 0);
 
   const imageArea = uploadedImage.width * uploadedImage.height;
