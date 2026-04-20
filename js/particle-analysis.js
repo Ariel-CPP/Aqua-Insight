@@ -247,7 +247,10 @@ function initializeRunAnalysisButton() {
 function runParticleAnalysis() {
   const settings = getCurrentSettings();
 
-  console.log('Running particle analysis with settings:', settings);
+  if (!uploadedImage) {
+    alert('Please upload an image before running analysis.');
+    return;
+  }
 
   // Prepare overlay canvas
   overlayCanvas.width = uploadedImage.width;
@@ -259,39 +262,24 @@ function runParticleAnalysis() {
   // Render selected channel preview
   renderSelectedChannelPreview(settings.channelMode);
 
-  // Run detection pipeline using channel canvas
+  // Run detection pipeline
   const detectionResult = runDetectionPipeline(channelCanvas, settings);
-  console.log('Detection Result:', detectionResult);
-console.log('Binary Mask Length:', detectionResult.binaryMask?.length);
-console.log('Canvas Width:', channelCanvas.width);
-console.log('Canvas Height:', channelCanvas.height);
-console.log(
-  'Binary Foreground Pixels:',
-  detectionResult.binaryMask.filter(pixel => pixel === 1).length
-);
 
-// Render binary threshold preview
-renderThresholdPreview(
-  detectionResult.binaryMask,
-  channelCanvas.width,
-  channelCanvas.height
-);
-  
-fitCanvasToContainer(thresholdCanvas);
-  
-  // Update threshold summary label
- const thresholdLabelMap = {
-  otsu: 'Otsu',
-  mean: 'Mean',
-  triangle: 'Triangle',
-  minerror: 'Minimum Error',
-  manual: 'Manual'
-};
+  if (!detectionResult) {
+    console.error('Detection pipeline failed.');
+    return;
+  }
 
-document.getElementById('thresholdMethodLabel').textContent =
-  `${thresholdLabelMap[settings.thresholdMode]} (${detectionResult.thresholdValue})`;
+  // Render binary threshold preview
+  renderThresholdPreview(
+    detectionResult.binaryMask,
+    channelCanvas.width,
+    channelCanvas.height
+  );
 
-  // Basic filtering using particle size
+  fitCanvasToContainer(thresholdCanvas);
+
+  // Filter particles
   const filteredParticles = detectionResult.particles.filter(particle => {
     const area = particle.pixels.length;
 
@@ -301,29 +289,47 @@ document.getElementById('thresholdMethodLabel').textContent =
     );
   });
 
-  // Update summary
-const totalArea = filteredParticles.reduce((sum, particle) => {
-  return sum + particle.pixels.length;
-}, 0);
+  // Summary values
+  const totalArea = filteredParticles.reduce((sum, particle) => {
+    return sum + particle.pixels.length;
+  }, 0);
 
-const imageArea = uploadedImage.width * uploadedImage.height;
+  const imageArea = uploadedImage.width * uploadedImage.height;
 
-const coveragePercentage = imageArea === 0
-  ? 0
-  : ((totalArea / imageArea) * 100).toFixed(2);
+  const coveragePercentage = imageArea === 0
+    ? 0
+    : ((totalArea / imageArea) * 100).toFixed(2);
 
-document.getElementById('particleCount').textContent =
-  filteredParticles.length;
+  // Safe summary update
+  const particleCountElement = document.getElementById('particleCount');
+  const totalParticleAreaElement = document.getElementById('totalParticleArea');
+  const coverageAreaElement = document.getElementById('coverageArea');
+  const thresholdMethodLabelElement = document.getElementById('thresholdMethodLabel');
 
-document.getElementById('coverageArea').textContent =
-  `${coveragePercentage}%`;
+  if (particleCountElement) {
+    particleCountElement.textContent = filteredParticles.length;
+  }
 
-  // Draw particle overlay
+  if (totalParticleAreaElement) {
+    totalParticleAreaElement.textContent = `${totalArea} px²`;
+  }
+
+  if (coverageAreaElement) {
+    coverageAreaElement.textContent = `${coveragePercentage}%`;
+  }
+
+  if (thresholdMethodLabelElement) {
+    thresholdMethodLabelElement.textContent =
+      `${settings.thresholdMode} (${detectionResult.thresholdValue})`;
+  }
+
+  // Draw overlay
   drawParticleOverlay(filteredParticles);
 
- // Populate table
+  // Populate table
   populateResultsTable(filteredParticles);
 
+  // Save export data
   storeAnalysisResults(filteredParticles, {
     filename: uploadedImageName,
     analysisMode: currentAnalysisMode,
@@ -339,6 +345,8 @@ document.getElementById('coverageArea').textContent =
     detectedParticleCount: filteredParticles.length,
     totalParticleArea: totalArea
   });
+
+  console.log('Analysis completed successfully.');
 }
 
 // ==============================
@@ -407,23 +415,15 @@ function renderSelectedChannelPreview(channelMode) {
 function renderThresholdPreview(binaryMask, width, height) {
   if (!thresholdCanvas || !thresholdCtx) return;
 
-  console.log('Rendering threshold preview...');
-  console.log('Width:', width);
-  console.log('Height:', height);
-  console.log('Binary Mask:', binaryMask);
-
   thresholdCanvas.width = width;
   thresholdCanvas.height = height;
-
-  thresholdCtx.clearRect(0, 0, width, height);
 
   const imageData = thresholdCtx.createImageData(width, height);
   const data = imageData.data;
 
   for (let i = 0; i < binaryMask.length; i++) {
-    const pixelIndex = i * 4;
-
     const value = binaryMask[i] === 1 ? 255 : 0;
+    const pixelIndex = i * 4;
 
     data[pixelIndex] = value;
     data[pixelIndex + 1] = value;
@@ -436,10 +436,6 @@ function renderThresholdPreview(binaryMask, width, height) {
   thresholdCanvas.style.display = 'block';
   thresholdCanvas.style.width = '100%';
   thresholdCanvas.style.height = '100%';
-  thresholdCanvas.style.objectFit = 'contain';
-  thresholdCanvas.style.backgroundColor = '#000000';
-
-  console.log('Threshold preview rendered.');
 }
 
 // ==============================
@@ -610,7 +606,13 @@ function populateResultsTable(particles) {
   if (!resultsTableBody) return;
 
   if (!particles.length) {
-    resetResultsTable();
+    resultsTableBody.innerHTML = `
+      <tr>
+        <td colspan="6" class="empty-table-message">
+          No particles detected.
+        </td>
+      </tr>
+    `;
     return;
   }
 
@@ -621,9 +623,6 @@ function populateResultsTable(particles) {
   particles.forEach(particle => {
     const areaPixels = particle.pixels.length;
     const areaPercentage = ((areaPixels / imageArea) * 100).toFixed(2);
-
-    const centroid = calculateParticleCentroid(particle.pixels);
-    const bounds = calculateParticleBounds(particle.pixels);
 
     const perimeter = calculateParticlePerimeterSimple(particle.pixels);
 
