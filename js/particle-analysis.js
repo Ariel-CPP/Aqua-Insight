@@ -281,22 +281,6 @@ function runParticleAnalysis() {
   manual: 'Manual'
 };
 
-const thresholdLabelMap = {
-  otsu: 'Otsu',
-  mean: 'Mean',
-  triangle: 'Triangle',
-  minerror: 'Minimum Error',
-  manual: 'Manual'
-};
-
-const thresholdLabelMap = {
-  otsu: 'Otsu',
-  mean: 'Mean',
-  triangle: 'Triangle',
-  minerror: 'Minimum Error',
-  manual: 'Manual'
-};
-
 document.getElementById('thresholdMethodLabel').textContent =
   `${thresholdLabelMap[settings.thresholdMode]} (${detectionResult.thresholdValue})`;
 
