@@ -424,3 +424,19 @@
   transition: transform 0.15s ease;
   will-change: transform;
 }
+.threshold-select-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.threshold-tooltip {
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 12px;
+  padding: 12px 14px;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
