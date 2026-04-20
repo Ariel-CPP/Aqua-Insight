@@ -276,6 +276,22 @@ function runParticleAnalysis() {
   populateResultsTable(filteredParticles);
 }
 
+storeAnalysisResults(filteredParticles, {
+  filename: uploadedImageName,
+  analysisMode: currentAnalysisMode,
+  thresholdMode: settings.thresholdMode,
+  thresholdValue: detectionResult.thresholdValue,
+  channelMode: settings.channelMode,
+  invertThreshold: settings.invertThreshold,
+  excludeEdgeParticles: settings.excludeEdgeParticles,
+  minParticleSize: settings.minParticleSize,
+  maxParticleSize: settings.maxParticleSize,
+  circularityMin: settings.circularityMin,
+  circularityMax: settings.circularityMax,
+  detectedParticleCount: filteredParticles.length,
+  totalParticleArea: totalArea
+});
+
 // ==============================
 // CHANNEL PREVIEW
 // ==============================
