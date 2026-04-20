@@ -578,30 +578,35 @@ function populateResultsTable(particles) {
     return;
   }
 
+  const imageArea = uploadedImage.width * uploadedImage.height;
+
   resultsTableBody.innerHTML = '';
 
   particles.forEach(particle => {
-    const area = particle.pixels.length;
+    const areaPixels = particle.pixels.length;
+    const areaPercentage = ((areaPixels / imageArea) * 100).toFixed(2);
+
     const centroid = calculateParticleCentroid(particle.pixels);
     const bounds = calculateParticleBounds(particle.pixels);
 
-    const width = bounds.maxX - bounds.minX + 1;
-    const height = bounds.maxY - bounds.minY + 1;
-    const aspectRatio = height === 0 ? 0 : (width / height).toFixed(2);
+    const perimeter = calculateParticlePerimeterSimple(particle.pixels);
+
+    const circularity = perimeter === 0
+      ? 0
+      : ((4 * Math.PI * areaPixels) / (perimeter * perimeter)).toFixed(3);
+
+    const meanRGB = calculateParticleMeanRGB(particle.pixels);
+    const meanGray = calculateParticleMeanGrayscale(meanRGB);
 
     const row = document.createElement('tr');
 
     row.innerHTML = `
       <td>${particle.id}</td>
-      <td>${area}</td>
-      <td>-</td>
-      <td>-</td>
-      <td>-</td>
-      <td>${aspectRatio}</td>
-      <td>-</td>
-      <td>${centroid.x.toFixed(1)}</td>
-      <td>${centroid.y.toFixed(1)}</td>
-      <td>${isParticleTouchingEdge(bounds) ? 'Yes' : 'No'}</td>
+      <td>${areaPixels}</td>
+      <td>${areaPercentage}%</td>
+      <td>${circularity}</td>
+      <td>${meanGray}</td>
+      <td>${meanRGB}</td>
     `;
 
     resultsTableBody.appendChild(row);
@@ -634,7 +639,73 @@ function calculateParticleBounds(pixels) {
     maxY: Math.max(...yValues)
   };
 }
+function calculateParticlePerimeterSimple(pixels) {
+  const pixelSet = new Set(
+    pixels.map(pixel => `${pixel.x},${pixel.y}`)
+  );
 
+  let perimeter = 0;
+
+  pixels.forEach(pixel => {
+    const neighbors = [
+      [pixel.x - 1, pixel.y],
+      [pixel.x + 1, pixel.y],
+      [pixel.x, pixel.y - 1],
+      [pixel.x, pixel.y + 1]
+    ];
+
+    neighbors.forEach(([nx, ny]) => {
+      if (!pixelSet.has(`${nx},${ny}`)) {
+        perimeter++;
+      }
+    });
+  });
+
+  return perimeter;
+}
+
+function calculateParticleMeanRGB(pixels) {
+  if (!originalCtx) return '(0, 0, 0)';
+
+  const imageData = originalCtx.getImageData(
+    0,
+    0,
+    originalCanvas.width,
+    originalCanvas.height
+  );
+
+  let totalR = 0;
+  let totalG = 0;
+  let totalB = 0;
+
+  pixels.forEach(pixel => {
+    const index = (pixel.y * originalCanvas.width + pixel.x) * 4;
+
+    totalR += imageData.data[index];
+    totalG += imageData.data[index + 1];
+    totalB += imageData.data[index + 2];
+  });
+
+  const count = pixels.length;
+
+  const meanR = Math.round(totalR / count);
+  const meanG = Math.round(totalG / count);
+  const meanB = Math.round(totalB / count);
+
+  return `(${meanR}, ${meanG}, ${meanB})`;
+}
+
+function calculateParticleMeanGrayscale(meanRGBString) {
+  const values = meanRGBString
+    .replace('(', '')
+    .replace(')', '')
+    .split(',')
+    .map(value => Number(value.trim()));
+
+  const [r, g, b] = values;
+
+  return Math.round((r + g + b) / 3);
+}
 function isParticleTouchingEdge(bounds) {
   if (!uploadedImage) return false;
 
