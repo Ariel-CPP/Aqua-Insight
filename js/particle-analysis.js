@@ -277,17 +277,32 @@ function runParticleAnalysis() {
     channelCanvas.height
   );
 
-  fitCanvasToContainer(thresholdCanvas);
+fitCanvasToContainer(originalCanvas);
+fitCanvasToContainer(overlayCanvas);
 
-  // Filter particles
-  const filteredParticles = detectionResult.particles.filter(particle => {
-    const area = particle.pixels.length;
+// Extract particle features first
+const extractedParticles = detectionResult.particles.map(particle => {
+  const centroid = calculateParticleCentroid(particle.pixels);
+  const bounds = calculateParticleBounds(particle.pixels);
 
-    return (
-      area >= settings.minParticleSize &&
-      area <= settings.maxParticleSize
-    );
-  });
+  return {
+    ...particle,
+    area: particle.pixels.length,
+    centroidX: centroid.x,
+    centroidY: centroid.y,
+    bounds,
+    perimeter: calculateParticlePerimeterSimple(particle.pixels),
+    meanRGB: calculateParticleMeanRGB(particle.pixels)
+  };
+});
+
+// Filter particles
+const filteredParticles = extractedParticles.filter(particle => {
+  return (
+    particle.area >= settings.minParticleSize &&
+    particle.area <= settings.maxParticleSize
+  );
+});
 
   // Summary values
   const totalArea = filteredParticles.reduce((sum, particle) => {
@@ -436,6 +451,8 @@ function renderThresholdPreview(binaryMask, width, height) {
   thresholdCanvas.style.display = 'block';
   thresholdCanvas.style.width = '100%';
   thresholdCanvas.style.height = '100%';
+
+  fitCanvasToContainer(channelCanvas);
 }
 
 // ==============================
@@ -608,7 +625,7 @@ function populateResultsTable(particles) {
   if (!particles.length) {
     resultsTableBody.innerHTML = `
       <tr>
-        <td colspan="6" class="empty-table-message">
+        <td colspan="10" class="empty-table-message">
           No particles detected.
         </td>
       </tr>
@@ -616,32 +633,26 @@ function populateResultsTable(particles) {
     return;
   }
 
-  const imageArea = uploadedImage.width * uploadedImage.height;
-
   resultsTableBody.innerHTML = '';
 
   particles.forEach(particle => {
-    const areaPixels = particle.pixels.length;
-    const areaPercentage = ((areaPixels / imageArea) * 100).toFixed(2);
-
-    const perimeter = calculateParticlePerimeterSimple(particle.pixels);
-
-    const circularity = perimeter === 0
+    const circularity = particle.perimeter === 0
       ? 0
-      : ((4 * Math.PI * areaPixels) / (perimeter * perimeter)).toFixed(3);
-
-    const meanRGB = calculateParticleMeanRGB(particle.pixels);
-    const meanGray = calculateParticleMeanGrayscale(meanRGB);
+      : ((4 * Math.PI * particle.area) / (particle.perimeter * particle.perimeter)).toFixed(3);
 
     const row = document.createElement('tr');
 
     row.innerHTML = `
       <td>${particle.id}</td>
-      <td>${areaPixels}</td>
-      <td>${areaPercentage}%</td>
+      <td>${particle.area}</td>
+      <td>${particle.perimeter}</td>
       <td>${circularity}</td>
-      <td>${meanGray}</td>
-      <td>${meanRGB}</td>
+      <td>-</td>
+      <td>-</td>
+      <td>${particle.meanRGB}</td>
+      <td>${particle.centroidX.toFixed(1)}</td>
+      <td>${particle.centroidY.toFixed(1)}</td>
+      <td>${isParticleTouchingEdge(particle.bounds) ? 'Yes' : 'No'}</td>
     `;
 
     resultsTableBody.appendChild(row);
