@@ -417,3 +417,19 @@ body {
     font-size: 1.3rem;
   }
 }
+/* =========================
+   DROPDOWN OPEN STATE
+========================= */
+
+.dropdown.dropdown-open .dropdown-menu {
+  display: flex;
+}
+
+.dropdown.dropdown-open .dropdown-button {
+  color: var(--accent-primary);
+}
+
+.dropdown-menu a.active-dropdown-link {
+  background: var(--accent-soft);
+  color: var(--accent-primary);
+}
