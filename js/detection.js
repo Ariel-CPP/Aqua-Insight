@@ -298,3 +298,121 @@ function renderBinaryMaskToCanvas(binaryMask, width, height, canvas) {
 
   ctx.putImageData(imageData, 0, 0);
 }
+function drawParticleOverlay(particles) {
+  const overlaySvg = document.getElementById('overlaySvg');
+
+  if (!overlaySvg || !uploadedImage) return;
+
+  overlaySvg.innerHTML = '';
+
+  overlaySvg.setAttribute('width', uploadedImage.width);
+  overlaySvg.setAttribute('height', uploadedImage.height);
+  overlaySvg.setAttribute('viewBox', `0 0 ${uploadedImage.width} ${uploadedImage.height}`);
+
+  particles.forEach(particle => {
+    if (!particle.pixels.length) return;
+
+    const centroid = calculateParticleCentroid(particle.pixels);
+
+    const bounds = calculateParticleBounds(particle.pixels);
+
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('x', bounds.minX);
+    rect.setAttribute('y', bounds.minY);
+    rect.setAttribute('width', bounds.maxX - bounds.minX);
+    rect.setAttribute('height', bounds.maxY - bounds.minY);
+    rect.setAttribute('fill', 'none');
+    rect.setAttribute('stroke', '#38bdf8');
+    rect.setAttribute('stroke-width', '1');
+
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('x', centroid.x);
+    text.setAttribute('y', centroid.y);
+    text.setAttribute('fill', '#38bdf8');
+    text.setAttribute('font-size', '10');
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('dominant-baseline', 'middle');
+    text.textContent = particle.id;
+
+    overlaySvg.appendChild(rect);
+    overlaySvg.appendChild(text);
+  });
+}
+
+function populateResultsTable(particles) {
+  const resultsTableBody = document.getElementById('resultsTableBody');
+
+  if (!resultsTableBody) return;
+
+  if (!particles.length) {
+    resetResultsTable();
+    return;
+  }
+
+  resultsTableBody.innerHTML = '';
+
+  particles.forEach(particle => {
+    const area = particle.pixels.length;
+    const centroid = calculateParticleCentroid(particle.pixels);
+    const bounds = calculateParticleBounds(particle.pixels);
+
+    const width = bounds.maxX - bounds.minX + 1;
+    const height = bounds.maxY - bounds.minY + 1;
+    const aspectRatio = height === 0 ? 0 : (width / height).toFixed(2);
+
+    const row = document.createElement('tr');
+
+    row.innerHTML = `
+      <td>${particle.id}</td>
+      <td>${area}</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+      <td>${aspectRatio}</td>
+      <td>-</td>
+      <td>${centroid.x.toFixed(1)}</td>
+      <td>${centroid.y.toFixed(1)}</td>
+      <td>${isParticleTouchingEdge(bounds) ? 'Yes' : 'No'}</td>
+    `;
+
+    resultsTableBody.appendChild(row);
+  });
+}
+
+function calculateParticleCentroid(pixels) {
+  let sumX = 0;
+  let sumY = 0;
+
+  pixels.forEach(pixel => {
+    sumX += pixel.x;
+    sumY += pixel.y;
+  });
+
+  return {
+    x: sumX / pixels.length,
+    y: sumY / pixels.length
+  };
+}
+
+function calculateParticleBounds(pixels) {
+  const xValues = pixels.map(pixel => pixel.x);
+  const yValues = pixels.map(pixel => pixel.y);
+
+  return {
+    minX: Math.min(...xValues),
+    maxX: Math.max(...xValues),
+    minY: Math.min(...yValues),
+    maxY: Math.max(...yValues)
+  };
+}
+
+function isParticleTouchingEdge(bounds) {
+  if (!uploadedImage) return false;
+
+  return (
+    bounds.minX <= 0 ||
+    bounds.minY <= 0 ||
+    bounds.maxX >= uploadedImage.width - 1 ||
+    bounds.maxY >= uploadedImage.height - 1
+  );
+}
