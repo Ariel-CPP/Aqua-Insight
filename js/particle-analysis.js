@@ -244,8 +244,6 @@ function initializeRunAnalysisButton() {
   });
 }
 
-// Replace the existing runParticleAnalysis() function in js/particle-analysis.js
-
 function runParticleAnalysis() {
   const settings = getCurrentSettings();
 
@@ -264,13 +262,12 @@ function runParticleAnalysis() {
   // Run detection pipeline using channel canvas
   const detectionResult = runDetectionPipeline(channelCanvas, settings);
 
-  // Render binary threshold preview
-  renderBinaryMaskToCanvas(
-    detectionResult.binaryMask,
-    channelCanvas.width,
-    channelCanvas.height,
-    thresholdCanvas
-  );
+// Render binary threshold preview
+renderThresholdPreview(
+  detectionResult.binaryMask,
+  channelCanvas.width,
+  channelCanvas.height
+);
 
   // Update threshold summary label
  const thresholdLabelMap = {
@@ -397,13 +394,24 @@ function renderSelectedChannelPreview(channelMode) {
   channelCtx.putImageData(imageData, 0, 0);
 }
 
-function renderThresholdPreview(channelMode) {
-  if (!uploadedImage || !thresholdCanvas || !thresholdCtx) return;
+function renderThresholdPreview(binaryMask, width, height) {
+  if (!thresholdCanvas || !thresholdCtx) return;
 
-  thresholdCanvas.width = uploadedImage.width;
-  thresholdCanvas.height = uploadedImage.height;
+  thresholdCanvas.width = width;
+  thresholdCanvas.height = height;
 
-  thresholdCtx.drawImage(channelCanvas, 0, 0);
+  const imageData = thresholdCtx.createImageData(width, height);
+
+  for (let i = 0; i < binaryMask.length; i++) {
+    const value = binaryMask[i] === 1 ? 255 : 0;
+
+    imageData.data[i * 4] = value;
+    imageData.data[i * 4 + 1] = value;
+    imageData.data[i * 4 + 2] = value;
+    imageData.data[i * 4 + 3] = 255;
+  }
+
+  thresholdCtx.putImageData(imageData, 0, 0);
 }
 
 // ==============================
