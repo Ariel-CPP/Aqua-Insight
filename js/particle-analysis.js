@@ -281,6 +281,14 @@ function runParticleAnalysis() {
   manual: 'Manual'
 };
 
+const thresholdLabelMap = {
+  otsu: 'Otsu',
+  mean: 'Mean',
+  triangle: 'Triangle',
+  minerror: 'Minimum Error',
+  manual: 'Manual'
+};
+
 document.getElementById('thresholdMethodLabel').textContent =
   `${thresholdLabelMap[settings.thresholdMode]} (${detectionResult.thresholdValue})`;
 
@@ -295,7 +303,7 @@ document.getElementById('thresholdMethodLabel').textContent =
   });
 
   // Update summary
- const totalArea = filteredParticles.reduce((sum, particle) => {
+const totalArea = filteredParticles.reduce((sum, particle) => {
   return sum + particle.pixels.length;
 }, 0);
 
