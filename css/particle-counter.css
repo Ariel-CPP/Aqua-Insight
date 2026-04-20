@@ -440,3 +440,10 @@
   font-size: 0.82rem;
   line-height: 1.5;
 }
+#thresholdCanvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: #000000;
+  image-rendering: pixelated;
+}
