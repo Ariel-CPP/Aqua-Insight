@@ -261,7 +261,8 @@ function runParticleAnalysis() {
 
   // Render selected channel preview
   renderSelectedChannelPreview(settings.channelMode);
-
+  fitCanvasToContainer(channelCanvas);
+  
   // Run detection pipeline
   const detectionResult = runDetectionPipeline(channelCanvas, settings);
 
@@ -276,7 +277,8 @@ function runParticleAnalysis() {
     channelCanvas.width,
     channelCanvas.height
   );
-
+  
+fitCanvasToContainer(thresholdCanvas);
 fitCanvasToContainer(originalCanvas);
 fitCanvasToContainer(overlayCanvas);
 
@@ -293,6 +295,24 @@ const extractedParticles = detectionResult.particles.map(particle => {
     bounds,
     perimeter: calculateParticlePerimeterSimple(particle.pixels),
     meanRGB: calculateParticleMeanRGB(particle.pixels)
+  };
+});
+
+// Extract particle properties first
+const extractedParticles = detectionResult.particles.map(particle => {
+  const centroid = calculateParticleCentroid(particle.pixels);
+  const bounds = calculateParticleBounds(particle.pixels);
+  const perimeter = calculateParticlePerimeterSimple(particle.pixels);
+  const meanRGB = calculateParticleMeanRGB(particle.pixels);
+
+  return {
+    ...particle,
+    area: particle.pixels.length,
+    centroidX: centroid.x,
+    centroidY: centroid.y,
+    bounds,
+    perimeter,
+    meanRGB
   };
 });
 
