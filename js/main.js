@@ -93,18 +93,20 @@ function initializeActiveLinks() {
 // ==============================
 
 function initializeLocalStorage() {
-  const defaultSettings = {
-    theme: 'dark',
-    lastFeature: 'particle-counter',
-    channelMode: 'grayscale',
-    thresholdMode: 'otsu',
-    invertThreshold: false,
-    excludeEdgeParticles: false,
-    minParticleSize: 0,
-    maxParticleSize: 999999,
-    circularityMin: 0.0,
-    circularityMax: 1.0
-  };
+ const defaultSettings = {
+  theme: 'dark',
+  lastFeature: 'particle-counter',
+  channelMode: 'grayscale',
+  thresholdMode: 'otsu',
+  manualThresholdValue: 128,
+  invertThreshold: false,
+  excludeEdgeParticles: false,
+  ignoreBackgroundParticles: true,
+  minParticleSize: 0,
+  maxParticleSize: 999999,
+  circularityMin: 0.00,
+  circularityMax: 1.00
+};
 
   const existingSettings = localStorage.getItem('aquaInsightSettings');
 
