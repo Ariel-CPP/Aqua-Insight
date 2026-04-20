@@ -159,15 +159,17 @@ function initializeModeButtons() {
 
 function initializeSettingsPersistence() {
   const settingIds = [
-    'channelMode',
-    'thresholdMode',
-    'minParticleSize',
-    'maxParticleSize',
-    'circularityMin',
-    'circularityMax',
-    'invertThreshold',
-    'excludeEdgeParticles'
-  ];
+  'channelMode',
+  'thresholdMode',
+  'manualThresholdValue',
+  'minParticleSize',
+  'maxParticleSize',
+  'circularityMin',
+  'circularityMax',
+  'invertThreshold',
+  'excludeEdgeParticles',
+  'ignoreBackgroundParticles'
+];
 
   settingIds.forEach(id => {
     const element = document.getElementById(id);
@@ -195,6 +197,31 @@ function initializeSettingsPersistence() {
   });
 
   updateSummaryLabels();
+
+  const thresholdModeSelect = document.getElementById('thresholdMode');
+const manualThresholdGroup = document.getElementById('manualThresholdGroup');
+const thresholdTooltip = document.getElementById('thresholdTooltip');
+
+if (thresholdModeSelect) {
+  const updateThresholdUI = () => {
+    const selectedOption = thresholdModeSelect.options[thresholdModeSelect.selectedIndex];
+    const thresholdMode = thresholdModeSelect.value;
+
+    if (thresholdTooltip) {
+      thresholdTooltip.textContent =
+        selectedOption.dataset.description || '';
+    }
+
+    if (manualThresholdGroup) {
+      manualThresholdGroup.style.display =
+        thresholdMode === 'manual' ? 'flex' : 'none';
+    }
+  };
+
+  thresholdModeSelect.addEventListener('change', updateThresholdUI);
+  thresholdModeSelect.addEventListener('mouseover', updateThresholdUI);
+
+  updateThresholdUI();
 }
 
 // ==============================
@@ -611,12 +638,14 @@ function getCurrentSettings() {
   return {
     channelMode: document.getElementById('channelMode')?.value || 'grayscale',
     thresholdMode: document.getElementById('thresholdMode')?.value || 'otsu',
+    manualThresholdValue: Number(document.getElementById('manualThresholdValue')?.value || 128),
     minParticleSize: Number(document.getElementById('minParticleSize')?.value || 0),
     maxParticleSize: Number(document.getElementById('maxParticleSize')?.value || 999999),
     circularityMin: Number(document.getElementById('circularityMin')?.value || 0),
     circularityMax: Number(document.getElementById('circularityMax')?.value || 1),
     invertThreshold: document.getElementById('invertThreshold')?.checked || false,
-    excludeEdgeParticles: document.getElementById('excludeEdgeParticles')?.checked || false
+    excludeEdgeParticles: document.getElementById('excludeEdgeParticles')?.checked || false,
+    ignoreBackgroundParticles: document.getElementById('ignoreBackgroundParticles')?.checked || false
   };
 }
 
