@@ -790,6 +790,10 @@ function clearOverlaySvg() {
 function fitCanvasToContainer(canvas) {
   if (!canvas) return;
 
+  canvas.style.display = 'block';
   canvas.style.width = '100%';
-  canvas.style.height = 'auto';
+  canvas.style.height = '100%';
+  canvas.style.maxWidth = '100%';
+  canvas.style.maxHeight = '100%';
+  canvas.style.objectFit = 'contain';
 }
