@@ -268,7 +268,9 @@ renderThresholdPreview(
   channelCanvas.width,
   channelCanvas.height
 );
-
+  
+fitCanvasToContainer(thresholdCanvas);
+  
   // Update threshold summary label
  const thresholdLabelMap = {
   otsu: 'Otsu',
@@ -400,16 +402,14 @@ function renderThresholdPreview(binaryMask, width, height) {
   thresholdCanvas.width = width;
   thresholdCanvas.height = height;
 
-  // Clear existing content
   thresholdCtx.clearRect(0, 0, width, height);
 
-  // Create blank image data
   const imageData = thresholdCtx.createImageData(width, height);
   const data = imageData.data;
 
   for (let i = 0; i < binaryMask.length; i++) {
-    const pixelIndex = i * 4;
     const value = binaryMask[i] === 1 ? 255 : 0;
+    const pixelIndex = i * 4;
 
     data[pixelIndex] = value;
     data[pixelIndex + 1] = value;
@@ -419,10 +419,10 @@ function renderThresholdPreview(binaryMask, width, height) {
 
   thresholdCtx.putImageData(imageData, 0, 0);
 
-  // Force visible scaling inside preview panel
+  // Important: force canvas sizing after rendering
+  thresholdCanvas.style.display = 'block';
   thresholdCanvas.style.width = '100%';
   thresholdCanvas.style.height = 'auto';
-  thresholdCanvas.style.display = 'block';
 }
 
 // ==============================
