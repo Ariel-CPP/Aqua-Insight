@@ -1,0 +1,70 @@
+:root {
+  --bg-main: #07111f;
+  --bg-secondary: #0d1b2a;
+  --bg-card: #12263a;
+  --bg-hover: #18344f;
+
+  --border-color: rgba(120, 180, 255, 0.15);
+
+  --text-main: #f3f8ff;
+  --text-secondary: #a8bdd6;
+  --text-muted: #6f8ba8;
+
+  --primary: #2ea8ff;
+  --primary-dark: #157dd1;
+  --cyan: #49d6ff;
+  --green: #3ddc97;
+  --orange: #ffb84d;
+  --red: #ff6b6b;
+
+  --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.25);
+  --shadow-card: 0 8px 20px rgba(0, 0, 0, 0.18);
+
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
+
+  --transition: 0.2s ease;
+
+  --header-height: 76px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: linear-gradient(180deg, #07111f 0%, #091827 100%);
+  color: var(--text-main);
+  min-height: 100vh;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+}
+
+.main-header {
+  height: var(--header-height);
+  padding: 0 32px;
+  display: flex;
+}
