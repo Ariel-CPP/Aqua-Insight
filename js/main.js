@@ -226,9 +226,9 @@ function initializeThresholdDescriptions() {
   updateThresholdDescription();
 }
 
-```javascript
 // ==============================
-// IMAGE UPLOAD
+// IMAGE UPLOAD FIX
+// Replace initializeImageUpload()
 // ==============================
 
 function initializeImageUpload() {
@@ -244,21 +244,31 @@ function initializeImageUpload() {
     'uploadArea'
   );
 
-  if (uploadButton && imageUpload) {
+  if (!imageUpload) {
+    console.error('imageUpload input not found');
+    return;
+  }
+
+  if (uploadButton) {
     uploadButton.addEventListener('click', () => {
       imageUpload.click();
     });
-
-    imageUpload.addEventListener('change', event => {
-      const files = Array.from(event.target.files || []);
-
-      if (!files.length) {
-        return;
-      }
-
-      loadUploadedImages(files);
-    });
   }
+
+  imageUpload.addEventListener('change', event => {
+    const files = Array.from(event.target.files || []).filter(file => {
+      return file.type.startsWith('image/');
+    });
+
+    if (!files.length) {
+      alert('Please select at least one valid image file.');
+      return;
+    }
+
+    loadUploadedImages(files);
+
+    imageUpload.value = '';
+  });
 
   if (uploadArea) {
     uploadArea.addEventListener('dragover', event => {
@@ -272,7 +282,6 @@ function initializeImageUpload() {
 
     uploadArea.addEventListener('drop', event => {
       event.preventDefault();
-
       uploadArea.classList.remove('dragover');
 
       const files = Array.from(
@@ -282,58 +291,9 @@ function initializeImageUpload() {
       });
 
       if (!files.length) {
+        alert('Please drop valid image files only.');
         return;
       }
-
-      loadUploadedImages(files);
-    });
-  }
-}
-
-function loadUploadedImages(files) {
-  uploadedImages = [];
-  currentImageIndex = 0;
-  allAnalysisResults = [];
-
-  resetAnalysisUI();
-
-  let loadedCount = 0;
-
-  files.forEach((file, index) => {
-    const reader = new FileReader();
-
-    reader.onload = event => {
-      const image = new Image();
-
-      image.onload = () => {
-        uploadedImages.push({
-          id: index + 1,
-          name: file.name,
-          file,
-          image
-        });
-
-        loadedCount++;
-
-        if (loadedCount === files.length) {
-          uploadedImages.sort((a, b) => a.id - b.id);
-
-          renderCurrentImage();
-          updateActiveImageLabel();
-
-          if (
-            typeof resetViewForNewImage === 'function'
-          ) {
-            resetViewForNewImage();
-          }
-        }
-      };
-
-      image.src = event.target.result;
-    };
-
-    reader.readAsDataURL(file);
-  });
 }
 
 // ==============================
@@ -427,7 +387,7 @@ function updateActiveImageLabel() {
     `${currentImageIndex + 1} / ${uploadedImages.length} — ${current.name}`;
 }
 
-```javascript
+
 // ==============================
 // CURRENT IMAGE RENDER
 // ==============================
@@ -637,7 +597,7 @@ function runFullAnalysis() {
   renderStoredAnalysisForCurrentImage();
 }
 
-```javascript
+
 // ==============================
 // STORED RESULT RENDER
 // ==============================
@@ -828,7 +788,7 @@ function initializeBackgroundPicker() {
   }
 }
 
-```javascript
+
 // ==============================
 // SETTINGS PERSISTENCE
 // ==============================
