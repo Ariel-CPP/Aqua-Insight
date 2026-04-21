@@ -1,189 +1,83 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Aqua Insight</title>
+              <div class="feature-item active-feature-item">
+                <div>
+                  <h4>Particle Counter</h4>
+                  <p>
+                    Analyze particles using thresholding, color classification, connected component labeling, overlay rendering, and XLSX export.
+                  </p>
+                </div>
+                <a href="pages/particle-counter.html" class="primary-button">
+                  Open
+                </a>
+              </div>
+            </div>
+          </div>
 
-  <!-- Main CSS -->
-  <link rel="stylesheet" href="css/style.css" />
+          <div class="content-card">
+            <div class="card-header">
+              <h3>Development Features</h3>
+            </div>
 
-  <!-- Google Font -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-</head>
-<body>
+            <div class="feature-list compact-list">
+              <div class="feature-item"><span>Color Area Analysis</span><span class="status-badge development-badge">Development</span></div>
+              <div class="feature-item"><span>Cell Density Analysis</span><span class="status-badge development-badge">Development</span></div>
+              <div class="feature-item"><span>Morphometric Analysis</span><span class="status-badge development-badge">Development</span></div>
+              <div class="feature-item"><span>RGB Distribution Analysis</span><span class="status-badge development-badge">Development</span></div>
+              <div class="feature-item"><span>Colony Counter</span><span class="status-badge development-badge">Development</span></div>
+              <div class="feature-item"><span>Plankton Classification</span><span class="status-badge development-badge">Development</span></div>
+            </div>
+          </div>
+        </section>
 
-  <!-- Header -->
-  <header class="main-header">
-    <div class="header-left">
-      <div class="logo-group">
-        <h1 class="app-title">Aqua Insight</h1>
-        <span class="version-badge">Version 0.1</span>
-      </div>
+        <section class="content-card roadmap-card">
+          <div class="card-header">
+            <h3>System Roadmap</h3>
+          </div>
+
+          <div class="roadmap-list">
+            <div class="roadmap-item">
+              <div class="roadmap-step">01</div>
+              <div>
+                <h4>Particle Counter Foundation</h4>
+                <p>Upload, thresholding, overlay rendering, particle analysis, and export system.</p>
+              </div>
+            </div>
+
+            <div class="roadmap-item">
+              <div class="roadmap-step">02</div>
+              <div>
+                <h4>Advanced Histology Tools</h4>
+                <p>Color classification, hepatopancreas analysis, and tissue segmentation workflows.</p>
+              </div>
+            </div>
+
+            <div class="roadmap-item">
+              <div class="roadmap-step">03</div>
+              <div>
+                <h4>AI-Assisted Analysis</h4>
+                <p>Future support for object detection, classification, and automatic report generation.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="main-footer">
+        <p>Aqua Insight © 2026 - Modular Web-Based Scientific Image Analysis Platform</p>
+      </footer>
     </div>
+  </div>
 
-    <nav class="main-nav">
-      <ul>
-        <li><a href="index.html" class="nav-link active">Home</a></li>
+  <script>
+    const dropdownButtons = document.querySelectorAll('.nav-dropdown-btn');
 
-        <li class="dropdown">
-          <button class="dropdown-button">
-            Features
-            <span class="dropdown-arrow">▼</span>
-          </button>
-
-          <div class="dropdown-menu">
-            <a href="pages/particle-counter.html">Particle Counter</a>
-          </div>
-        </li>
-
-        <li><a href="pages/contact.html" class="nav-link">Contact Us</a></li>
-      </ul>
-    </nav>
-  </header>
-
-  <!-- Main Content -->
-  <main class="home-container">
-
-    <!-- Hero Section -->
-    <section class="hero-section">
-      <div class="hero-content">
-        <p class="hero-tag">Scientific Image Analysis Platform</p>
-        <h2>Welcome to Aqua Insight</h2>
-        <p class="hero-description">
-          Aqua Insight is a browser-based scientific image analysis platform designed
-          for practical laboratory workflows, aquaculture research, histology, particle
-          detection, morphometric analysis, and other image-based scientific applications.
-        </p>
-
-        <div class="hero-buttons">
-          <a href="pages/particle-counter.html" class="primary-button">
-            Open Particle Counter
-          </a>
-        </div>
-      </div>
-    </section>
-
-    <!-- About Section -->
-    <section class="content-section">
-      <div class="section-header">
-        <h3>What Aqua Insight Can Do</h3>
-      </div>
-
-      <div class="card-grid">
-        <div class="info-card">
-          <h4>Scientific Image Analysis</h4>
-          <p>
-            Analyze scientific images directly in the browser without requiring
-            software installation, backend processing, or external servers.
-          </p>
-        </div>
-
-        <div class="info-card">
-          <h4>Particle Counter Analysis</h4>
-          <p>
-            Detect, outline, label, measure, and export particle information
-            using thresholding, connected component labeling, contour detection,
-            and morphological filtering.
-          </p>
-        </div>
-
-        <div class="info-card">
-          <h4>Interactive Preview Workflow</h4>
-          <p>
-            Visualize each image processing stage including original image,
-            selected channel, threshold result, and final contour overlay.
-          </p>
-        </div>
-
-        <div class="info-card">
-          <h4>Batch Processing</h4>
-          <p>
-            Process multiple images simultaneously using shared parameters
-            and export combined or individual analysis results.
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <!-- Available Features -->
-    <section class="content-section">
-      <div class="section-header">
-        <h3>Currently Available Feature</h3>
-      </div>
-
-      <div class="feature-list">
-        <div class="feature-item active-feature">
-          <div class="feature-status available">Available</div>
-          <div class="feature-content">
-            <h4>Particle Counter</h4>
-            <p>
-              Analyze particle count, area, perimeter, circularity,
-              Feret diameter, aspect ratio, RGB statistics, centroid,
-              and image edge interaction.
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- On Development -->
-    <section class="content-section">
-      <div class="section-header">
-        <h3>On Development</h3>
-      </div>
-
-      <div class="feature-list">
-
-        <div class="feature-item disabled-feature">
-          <div class="feature-status development">On Development</div>
-          <div class="feature-content">
-            <h4>Area Estimated</h4>
-            <p>
-              Estimate object coverage and total occupied area inside an image.
-            </p>
-          </div>
-        </div>
-
-        <div class="feature-item disabled-feature">
-          <div class="feature-status development">On Development</div>
-          <div class="feature-content">
-            <h4>Color Coverage</h4>
-            <p>
-              Measure proportional coverage of selected colors within image regions.
-            </p>
-          </div>
-        </div>
-
-        <div class="feature-item disabled-feature">
-          <div class="feature-status development">On Development</div>
-          <div class="feature-content">
-            <h4>Image Model Analyzer</h4>
-            <p>
-              Advanced image interpretation module for future machine learning-based analysis.
-            </p>
-          </div>
-        </div>
-
-      </div>
-    </section>
-
-  </main>
-
-  <!-- Footer -->
-  <footer class="main-footer">
-    <div class="footer-content">
-      <p>Aqua Insight</p>
-      <p>Version 0.1</p>
-      <p>Animal Health Laboratory</p>
-      <p>Technology Division</p>
-      <p>Central Proteina Prima</p>
-    </div>
-  </footer>
-
-  <!-- Main JS -->
-  <script src="js/main.js"></script>
+    dropdownButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        const targetId = button.dataset.target;
+        const targetMenu = document.getElementById(targetId);
+        targetMenu.classList.toggle('open');
+      });
+    });
+  </script>
 </body>
 </html>
