@@ -22,6 +22,8 @@ let thresholdCtx = null;
 let overlayCanvas = null;
 let overlayCtx = null;
 
+let isUploadingFiles = false;
+
 // ==============================
 // INITIALIZATION
 // ==============================
@@ -190,8 +192,20 @@ function initializeImageUpload() {
   }
 
   if (uploadButton) {
-    uploadButton.addEventListener('click', () => {
+    uploadButton.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (isUploadingFiles) {
+        return;
+      }
+
+      isUploadingFiles = true;
       imageUpload.click();
+
+      setTimeout(() => {
+        isUploadingFiles = false;
+      }, 300);
     });
   }
 
@@ -201,7 +215,7 @@ function initializeImageUpload() {
     });
 
     if (!files.length) {
-      alert('Please select at least one valid image file.');
+      imageUpload.value = '';
       return;
     }
 
@@ -210,16 +224,33 @@ function initializeImageUpload() {
   });
 
   if (uploadArea) {
-    uploadArea.addEventListener('dragover', event => {
+    uploadArea.addEventListener('dragenter', event => {
       event.preventDefault();
+      event.stopPropagation();
       uploadArea.classList.add('dragover');
     });
- uploadArea.addEventListener('dragleave', () => {
-      uploadArea.classList.remove('dragover');
+
+    uploadArea.addEventListener('dragover', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      uploadArea.classList.add('dragover');
+    });
+        uploadArea.addEventListener('dragleave', event => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (
+        event.target === uploadArea ||
+        !uploadArea.contains(event.relatedTarget)
+      ) {
+        uploadArea.classList.remove('dragover');
+      }
     });
 
     uploadArea.addEventListener('drop', event => {
       event.preventDefault();
+      event.stopPropagation();
+
       uploadArea.classList.remove('dragover');
 
       const files = Array.from(
@@ -247,6 +278,14 @@ function loadUploadedImages(files) {
 
   let loadedCount = 0;
 
+  const loadingLabel = document.getElementById(
+    'activeImageLabel'
+  );
+
+  if (loadingLabel) {
+    loadingLabel.textContent = 'Loading images...';
+  }
+
   files.forEach((file, index) => {
     const reader = new FileReader();
 
@@ -263,6 +302,11 @@ function loadUploadedImages(files) {
 
         loadedCount++;
 
+        if (loadingLabel) {
+          loadingLabel.textContent =
+            `Loading ${loadedCount} / ${files.length}...`;
+        }
+
         if (loadedCount === files.length) {
           uploadedImages.sort((a, b) => a.id - b.id);
 
@@ -278,20 +322,14 @@ function loadUploadedImages(files) {
       };
 
       image.onerror = () => {
-        console.error(
-          'Failed to load image:',
-          file.name
-        );
+        console.error('Failed to load image:', file.name);
       };
 
       image.src = event.target.result;
     };
 
     reader.onerror = () => {
-      console.error(
-        'Failed to read file:',
-        file.name
-      );
+      console.error('Failed to read file:', file.name);
     };
 
     reader.readAsDataURL(file);
@@ -368,7 +406,6 @@ function renderImageByIndex() {
     resetViewForNewImage();
   }
 }
-
 function updateActiveImageLabel() {
   const label = document.getElementById(
     'activeImageLabel'
@@ -461,19 +498,40 @@ function renderBinaryPreview() {
 
   const settings = getCurrentSettings();
 
-  const tempCanvas = document.createElement(
-    'canvas'
-  );
-
+  const tempCanvas = document.createElement('canvas');
   const tempCtx = tempCanvas.getContext('2d');
 
   const currentImage =
     uploadedImages[currentImageIndex].image;
 
-  tempCanvas.width = currentImage.width;
-  tempCanvas.height = currentImage.height;
+  const maxPreviewSize = 1000;
 
-  tempCtx.drawImage(currentImage, 0, 0);
+  let previewWidth = currentImage.width;
+  let previewHeight = currentImage.height;
+
+  if (
+    previewWidth > maxPreviewSize ||
+    previewHeight > maxPreviewSize
+  ) {
+    const scale = Math.min(
+      maxPreviewSize / previewWidth,
+      maxPreviewSize / previewHeight
+    );
+
+    previewWidth = Math.round(previewWidth * scale);
+    previewHeight = Math.round(previewHeight * scale);
+  }
+
+  tempCanvas.width = previewWidth;
+  tempCanvas.height = previewHeight;
+
+  tempCtx.drawImage(
+    currentImage,
+    0,
+    0,
+    previewWidth,
+    previewHeight
+  );
 
   const result = runDetectionPipeline(
     tempCanvas,
@@ -513,23 +571,71 @@ function initializeAnalysisControls() {
     runFullAnalysis();
   });
 }
-
-function runFullAnalysis() {
+async function runFullAnalysis() {
   const settings = getCurrentSettings();
 
   allAnalysisResults = [];
 
-  uploadedImages.forEach((imageItem, index) => {
-    const tempCanvas = document.createElement(
-      'canvas'
-    );
+  const runButton = document.getElementById(
+    'runAnalysisButton'
+  );
 
+  const activeImageLabel = document.getElementById(
+    'activeImageLabel'
+  );
+
+  if (runButton) {
+    runButton.disabled = true;
+    runButton.textContent = 'Analyzing...';
+  }
+
+  for (
+    let index = 0;
+    index < uploadedImages.length;
+    index++
+  ) {
+    const imageItem = uploadedImages[index];
+
+    if (activeImageLabel) {
+      activeImageLabel.textContent =
+        `Analyzing ${index + 1} / ${uploadedImages.length} — ${imageItem.name}`;
+    }
+
+    await new Promise(resolve => {
+      setTimeout(resolve, 10);
+    });
+
+    const tempCanvas = document.createElement('canvas');
     const tempCtx = tempCanvas.getContext('2d');
 
-    tempCanvas.width = imageItem.image.width;
-    tempCanvas.height = imageItem.image.height;
+    const maxAnalysisSize = 1200;
 
-    tempCtx.drawImage(imageItem.image, 0, 0);
+    let targetWidth = imageItem.image.width;
+    let targetHeight = imageItem.image.height;
+
+    if (
+      targetWidth > maxAnalysisSize ||
+      targetHeight > maxAnalysisSize
+    ) {
+      const scale = Math.min(
+        maxAnalysisSize / targetWidth,
+        maxAnalysisSize / targetHeight
+      );
+
+      targetWidth = Math.round(targetWidth * scale);
+      targetHeight = Math.round(targetHeight * scale);
+    }
+
+    tempCanvas.width = targetWidth;
+    tempCanvas.height = targetHeight;
+
+    tempCtx.drawImage(
+      imageItem.image,
+      0,
+      0,
+      targetWidth,
+      targetHeight
+    );
 
     const detectionResult = runDetectionPipeline(
       tempCanvas,
@@ -539,36 +645,48 @@ function runFullAnalysis() {
       }
     );
 
-     const extractedParticles =
-      extractParticlesWithFeatures(
-        detectionResult.particles,
-        tempCanvas
-      );
+    let extractedParticles = extractParticlesWithFeatures(
+      detectionResult.particles,
+      tempCanvas
+    );
+
+    extractedParticles = extractedParticles.filter(
+      particle => particle.area >= 3
+    );
+
+    extractedParticles = extractedParticles.map(
+      particle => {
+        return {
+          ...particle,
+          pixels: undefined
+        };
+      }
+    );
 
     const filteredParticles = filterParticles(
       extractedParticles,
       settings
     );
 
-    const totalParticleArea =
-      filteredParticles.reduce(
-        (sum, particle) => {
-          return sum + particle.area;
-        },
-        0
-      );
+    const totalParticleArea = filteredParticles.reduce(
+      (sum, particle) => {
+        return sum + particle.area;
+      },
+      0
+    );
 
     const totalImagePixels =
       tempCanvas.width * tempCanvas.height;
 
     const coveragePercent =
       totalImagePixels > 0
-        ? (
-            (totalParticleArea /
-              totalImagePixels) *
-            100
-          ).toFixed(2)
-        : '0.00';
+        ? Number(
+            (
+              (totalParticleArea / totalImagePixels) *
+              100
+            ).toFixed(2)
+          )
+        : 0;
 
     allAnalysisResults.push({
       imageIndex: index,
@@ -584,7 +702,7 @@ function runFullAnalysis() {
       coveragePixels: totalParticleArea,
       coveragePercent
     });
-  });
+  }
 
   storeMultiAnalysisResults(
     allAnalysisResults,
@@ -596,8 +714,14 @@ function runFullAnalysis() {
   );
 
   renderStoredAnalysisForCurrentImage();
-}
 
+  if (runButton) {
+    runButton.disabled = false;
+    runButton.textContent = 'Run Analysis';
+  }
+
+  updateActiveImageLabel();
+}
 // ==============================
 // STORED RESULT RENDER
 // ==============================
@@ -682,7 +806,7 @@ function initializeBackgroundPicker() {
     'backgroundPixelValue'
   );
 
-   const marker = document.getElementById(
+  const marker = document.getElementById(
     'backgroundSelectionMarker'
   );
 
@@ -742,8 +866,7 @@ function initializeBackgroundPicker() {
       green: pixel[1],
       blue: pixel[2]
     };
-
-    if (indicator) {
+        if (indicator) {
       indicator.style.backgroundColor =
         `rgb(${pixel[0]}, ${pixel[1]}, ${pixel[2]})`;
     }
@@ -873,8 +996,7 @@ function saveCurrentSettings() {
       document.getElementById('useBackgroundPicker')?.checked ||
       false
   };
-
-  localStorage.setItem(
+    localStorage.setItem(
     'aquaInsightParticleCounterSettings',
     JSON.stringify(settings)
   );
@@ -989,7 +1111,7 @@ document.addEventListener('keydown', event => {
     renderImageByIndex();
   }
 
-   if (event.key === 'ArrowRight') {
+  if (event.key === 'ArrowRight') {
     event.preventDefault();
 
     currentImageIndex++;
@@ -1011,47 +1133,9 @@ document.addEventListener('keydown', event => {
 });
 
 // ==============================
-// FALLBACK DIRECT UPLOAD BINDING
+// GLOBAL ERROR HANDLER
 // ==============================
 
-window.addEventListener('load', () => {
-  const uploadButton = document.getElementById(
-    'uploadButton'
-  );
-
-  const imageUpload = document.getElementById(
-    'imageUpload'
-  );
-
-  if (!uploadButton) {
-    console.error('Upload button not found');
-    return;
-  }
-
-  if (!imageUpload) {
-    console.error('Image upload input not found');
-    return;
-  }
-
-  uploadButton.onclick = () => {
-    imageUpload.click();
-  };
-
-  imageUpload.onchange = event => {
-    const files = Array.from(
-      event.target.files || []
-    ).filter(file => {
-      return file.type.startsWith('image/');
-    });
-
-    if (!files.length) {
-      alert('Please select valid image files.');
-      return;
-    }
-
-    loadUploadedImages(files);
-    imageUpload.value = '';
-  };
+window.addEventListener('error', event => {
+  console.error('Global error:', event.error);
 });
-
-
