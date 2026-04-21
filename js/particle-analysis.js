@@ -29,7 +29,7 @@ function extractParticlesWithFeatures(
     );
 
     const feretDiameter = calculateFeretDiameter(
-      particle.pixels
+      particle
     );
 
     const aspectRatio = calculateAspectRatio(
@@ -49,7 +49,6 @@ function extractParticlesWithFeatures(
 
     return {
       id: index + 1,
-      pixels: particle.pixels,
       area,
       perimeter,
       circularity,
@@ -66,16 +65,22 @@ function extractParticlesWithFeatures(
       maxX: particle.maxX,
       maxY: particle.maxY,
       width: particle.width,
-      height: particle.height
+      height: particle.height,
+      pixels: particle.pixels
     };
   });
 }
 
 // ==============================
 // PARTICLE PERIMETER
+// Faster perimeter approximation
 // ==============================
 
 function calculateParticlePerimeter(pixels) {
+  if (!pixels || !pixels.length) {
+    return 0;
+  }
+
   const pointSet = new Set();
 
   pixels.forEach(pixel => {
@@ -85,18 +90,15 @@ function calculateParticlePerimeter(pixels) {
   let perimeter = 0;
 
   pixels.forEach(pixel => {
-    const neighbors = [
-      `${pixel.x - 1},${pixel.y}`,
-      `${pixel.x + 1},${pixel.y}`,
-      `${pixel.x},${pixel.y - 1}`,
-      `${pixel.x},${pixel.y + 1}`
-    ];
+    const left = `${pixel.x - 1},${pixel.y}`;
+    const right = `${pixel.x + 1},${pixel.y}`;
+    const top = `${pixel.x},${pixel.y - 1}`;
+    const bottom = `${pixel.x},${pixel.y + 1}`;
 
-    neighbors.forEach(neighbor => {
-      if (!pointSet.has(neighbor)) {
-        perimeter++;
-      }
-    });
+    if (!pointSet.has(left)) perimeter++;
+    if (!pointSet.has(right)) perimeter++;
+    if (!pointSet.has(top)) perimeter++;
+    if (!pointSet.has(bottom)) perimeter++;
   });
 
   return perimeter;
@@ -122,27 +124,20 @@ function calculateCircularity(
 
 // ==============================
 // FERET DIAMETER
+// Fast approximation using bounding box
 // ==============================
 
-function calculateFeretDiameter(pixels) {
-  let maxDistance = 0;
-
-  for (let i = 0; i < pixels.length; i++) {
-    for (let j = i + 1; j < pixels.length; j++) {
-      const dx = pixels[i].x - pixels[j].x;
-      const dy = pixels[i].y - pixels[j].y;
-
-      const distance = Math.sqrt(
-        dx * dx + dy * dy
-      );
-
-      if (distance > maxDistance) {
-        maxDistance = distance;
-      }
-    }
+function calculateFeretDiameter(particle) {
+  if (!particle) {
+    return 0;
   }
 
-  return maxDistance;
+  const width = particle.width || 0;
+  const height = particle.height || 0;
+
+  return Math.sqrt(
+    width * width + height * height
+  );
 }
 
 // ==============================
@@ -165,6 +160,13 @@ function calculateAspectRatio(
 // ==============================
 
 function calculateCentroid(pixels) {
+  if (!pixels || !pixels.length) {
+    return {
+      x: 0,
+      y: 0
+    };
+  }
+
   let sumX = 0;
   let sumY = 0;
 
@@ -220,9 +222,7 @@ function calculateRGBStatistics(
     if (green > maxGreen) maxGreen = green;
     if (blue > maxBlue) maxBlue = blue;
   });
-
-
-  const meanRed = Math.round(
+    const meanRed = Math.round(
     totalRed / pixels.length
   );
 
@@ -346,7 +346,7 @@ function formatParticleForExport(
   particleIndex
 ) {
   return {
-    particleId: particleIndex + 1,
+    particleId: particle.id || particleIndex + 1,
     area: particle.area,
     perimeter: Number(
       particle.perimeter.toFixed(2)
@@ -374,7 +374,6 @@ function formatParticleForExport(
       : 'No'
   };
 }
-
 // ==============================
 // PARTICLE REINDEXING
 // ==============================
@@ -414,7 +413,6 @@ function calculateBoundingBox(pixels) {
     height: maxY - minY + 1
   };
 }
-
 
 // ==============================
 // PARTICLE SHAPE CLASSIFICATION
@@ -497,7 +495,7 @@ function calculateCoverageMetrics(
 }
 
 // ==============================
-// PARTICLE DISTANCE MAP
+// PARTICLE NEAREST NEIGHBOR
 // ==============================
 
 function calculateNearestNeighborDistances(
@@ -512,10 +510,12 @@ function calculateNearestNeighborDistances(
       }
 
       const dx =
-        particle.centroidX - otherParticle.centroidX;
+        particle.centroidX -
+        otherParticle.centroidX;
 
       const dy =
-        particle.centroidY - otherParticle.centroidY;
+        particle.centroidY -
+        otherParticle.centroidY;
 
       const distance = Math.sqrt(
         dx * dx + dy * dy
@@ -533,49 +533,5 @@ function calculateNearestNeighborDistances(
           ? 0
           : Number(nearestDistance.toFixed(2))
     };
-  });
-}
-
-// ==============================
-// PARTICLE EDGE FRACTION
-// ==============================
-
-function calculateEdgeParticleFraction(particles) {
-  if (!particles.length) {
-    return 0;
-  }
-
-  const edgeParticles = particles.filter(
-    particle => particle.touchesEdge
-  ).length;
-
-  return Number(
-    ((edgeParticles / particles.length) * 100).toFixed(2)
-  );
-}
-
-// ==============================
-// PARTICLE FEATURE VALIDATION
-// ==============================
-
-function validateParticleFeatures(particle) {
-  return (
-    particle.area >= 0 &&
-    particle.perimeter >= 0 &&
-    particle.circularity >= 0 &&
-    particle.feretDiameter >= 0 &&
-    particle.aspectRatio >= 0 &&
-    !Number.isNaN(particle.centroidX) &&
-    !Number.isNaN(particle.centroidY)
-  );
-}
-
-// ==============================
-// PARTICLE DATA SANITIZER
-// ==============================
-
-function sanitizeParticleData(particles) {
-  return particles.filter(particle => {
-    return validateParticleFeatures(particle);
   });
 }
