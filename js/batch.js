@@ -29,16 +29,6 @@ function initializeBatchMode() {
     }
   });
 
-  const runAnalysisButton = document.getElementById('runAnalysisButton');
-
-  if (runAnalysisButton) {
-    runAnalysisButton.addEventListener('click', () => {
-      if (currentAnalysisMode === 'batch') {
-        runBatchAnalysis();
-      }
-    });
-  }
-}
 
 // ==============================
 // HANDLE BATCH FILES
@@ -93,7 +83,11 @@ async function runBatchAnalysis() {
   }
 
   document.getElementById('particleCount').textContent = totalParticles;
-  document.getElementById('totalParticleArea').textContent = `${totalArea} px²`;
+  const coverageAreaElement = document.getElementById('coverageArea');
+
+if (coverageAreaElement) {
+  coverageAreaElement.textContent = '-';
+}
 
   populateBatchResultsTable(batchResults);
 
