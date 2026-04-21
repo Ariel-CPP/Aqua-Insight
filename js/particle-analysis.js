@@ -221,7 +221,7 @@ function calculateRGBStatistics(
     if (blue > maxBlue) maxBlue = blue;
   });
 
-```javascript
+
   const meanRed = Math.round(
     totalRed / pixels.length
   );
@@ -415,7 +415,7 @@ function calculateBoundingBox(pixels) {
   };
 }
 
-```javascript
+
 // ==============================
 // PARTICLE SHAPE CLASSIFICATION
 // ==============================
