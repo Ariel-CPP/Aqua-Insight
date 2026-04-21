@@ -44,21 +44,10 @@ document.addEventListener('DOMContentLoaded', () => {
 // ==============================
 
 function initializeCanvasReferences() {
-  originalCanvas = document.getElementById(
-    'originalCanvas'
-  );
-
-  channelCanvas = document.getElementById(
-    'channelCanvas'
-  );
-
-  thresholdCanvas = document.getElementById(
-    'thresholdCanvas'
-  );
-
-  overlayCanvas = document.getElementById(
-    'overlayCanvas'
-  );
+  originalCanvas = document.getElementById('originalCanvas');
+  channelCanvas = document.getElementById('channelCanvas');
+  thresholdCanvas = document.getElementById('thresholdCanvas');
+  overlayCanvas = document.getElementById('overlayCanvas');
 
   if (originalCanvas) {
     originalCtx = originalCanvas.getContext('2d');
@@ -82,9 +71,7 @@ function initializeCanvasReferences() {
 // ==============================
 
 function initializeNavigation() {
-  const navLinks = document.querySelectorAll(
-    '.nav-link'
-  );
+  const navLinks = document.querySelectorAll('.nav-link');
 
   navLinks.forEach(link => {
     link.addEventListener('click', () => {
@@ -98,14 +85,10 @@ function initializeNavigation() {
 }
 
 function initializeDropdowns() {
-  const dropdowns = document.querySelectorAll(
-    '.dropdown'
-  );
+  const dropdowns = document.querySelectorAll('.dropdown');
 
   dropdowns.forEach(dropdown => {
-    const button = dropdown.querySelector(
-      '.dropdown-button'
-    );
+    const button = dropdown.querySelector('.dropdown-button');
 
     if (!button) {
       return;
@@ -113,9 +96,7 @@ function initializeDropdowns() {
 
     button.addEventListener('click', event => {
       event.stopPropagation();
-
       closeAllDropdowns();
-
       dropdown.classList.toggle('dropdown-open');
     });
   });
@@ -126,9 +107,7 @@ function initializeDropdowns() {
 }
 
 function closeAllDropdowns() {
-  const dropdowns = document.querySelectorAll(
-    '.dropdown'
-  );
+  const dropdowns = document.querySelectorAll('.dropdown');
 
   dropdowns.forEach(dropdown => {
     dropdown.classList.remove('dropdown-open');
@@ -136,16 +115,10 @@ function closeAllDropdowns() {
 }
 
 function initializeActiveLinks() {
-  const currentPath =
-    window.location.pathname.split('/').pop();
+  const currentPath = window.location.pathname.split('/').pop();
 
-  const navLinks = document.querySelectorAll(
-    '.nav-link'
-  );
-
-  const dropdownLinks = document.querySelectorAll(
-    '.dropdown-menu a'
-  );
+  const navLinks = document.querySelectorAll('.nav-link');
+  const dropdownLinks = document.querySelectorAll('.dropdown-menu a');
 
   navLinks.forEach(link => {
     const href = link.getAttribute('href');
@@ -154,10 +127,7 @@ function initializeActiveLinks() {
       href &&
       (
         href === currentPath ||
-        (
-          currentPath === '' &&
-          href.includes('index.html')
-        )
+        (currentPath === '' && href.includes('index.html'))
       )
     ) {
       link.classList.add('active');
@@ -167,10 +137,7 @@ function initializeActiveLinks() {
   dropdownLinks.forEach(link => {
     const href = link.getAttribute('href');
 
-    if (
-      href &&
-      href === currentPath
-    ) {
+    if (href && href === currentPath) {
       link.classList.add('active-dropdown-link');
     }
   });
@@ -181,68 +148,41 @@ function initializeActiveLinks() {
 // ==============================
 
 function initializeThresholdDescriptions() {
-  const thresholdMode = document.getElementById(
-    'thresholdMode'
-  );
-
-  const thresholdDescription = document.getElementById(
-    'thresholdDescription'
-  );
+  const thresholdMode = document.getElementById('thresholdMode');
+  const thresholdDescription = document.getElementById('thresholdDescription');
 
   if (!thresholdMode || !thresholdDescription) {
     return;
   }
 
   const descriptions = {
-    otsu:
-      'Automatically separates foreground and background by maximizing variance between intensity classes.',
-
-    mean:
-      'Uses the average image intensity as the threshold value.',
-
-    triangle:
-      'Uses the triangle method and is suitable for asymmetric histograms.',
-
-    minerror:
-      'Uses minimum error thresholding to find the best separation between foreground and background.',
-
-    manual:
-      'Uses the threshold value entered manually by the user.'
+    otsu: 'Automatically separates foreground and background by maximizing variance between intensity classes.',
+    mean: 'Uses the average image intensity as the threshold value.',
+    triangle: 'Uses the triangle method and is suitable for asymmetric histograms.',
+    minerror: 'Uses minimum error thresholding to find the best separation between foreground and background.',
+    manual: 'Uses the threshold value entered manually by the user.'
   };
 
   function updateThresholdDescription() {
     const mode = thresholdMode.value;
 
     thresholdDescription.textContent =
-      descriptions[mode] ||
-      'Select a threshold method.';
+      descriptions[mode] || 'Select a threshold method.';
   }
 
-  thresholdMode.addEventListener(
-    'change',
-    updateThresholdDescription
-  );
+  thresholdMode.addEventListener('change', updateThresholdDescription);
 
   updateThresholdDescription();
 }
 
 // ==============================
-// IMAGE UPLOAD FIX
-// Replace initializeImageUpload()
+// IMAGE UPLOAD
 // ==============================
 
 function initializeImageUpload() {
-  const uploadButton = document.getElementById(
-    'uploadButton'
-  );
-
-  const imageUpload = document.getElementById(
-    'imageUpload'
-  );
-
-  const uploadArea = document.getElementById(
-    'uploadArea'
-  );
+  const uploadButton = document.getElementById('uploadButton');
+  const imageUpload = document.getElementById('imageUpload');
+  const uploadArea = document.getElementById('uploadArea');
 
   if (!imageUpload) {
     console.error('imageUpload input not found');
@@ -266,7 +206,6 @@ function initializeImageUpload() {
     }
 
     loadUploadedImages(files);
-
     imageUpload.value = '';
   });
 
@@ -275,8 +214,7 @@ function initializeImageUpload() {
       event.preventDefault();
       uploadArea.classList.add('dragover');
     });
-
-    uploadArea.addEventListener('dragleave', () => {
+ uploadArea.addEventListener('dragleave', () => {
       uploadArea.classList.remove('dragover');
     });
 
@@ -294,6 +232,70 @@ function initializeImageUpload() {
         alert('Please drop valid image files only.');
         return;
       }
+
+      loadUploadedImages(files);
+    });
+  }
+}
+
+function loadUploadedImages(files) {
+  uploadedImages = [];
+  currentImageIndex = 0;
+  allAnalysisResults = [];
+
+  resetAnalysisUI();
+
+  let loadedCount = 0;
+
+  files.forEach((file, index) => {
+    const reader = new FileReader();
+
+    reader.onload = event => {
+      const image = new Image();
+
+      image.onload = () => {
+        uploadedImages.push({
+          id: index + 1,
+          name: file.name,
+          file,
+          image
+        });
+
+        loadedCount++;
+
+        if (loadedCount === files.length) {
+          uploadedImages.sort((a, b) => a.id - b.id);
+
+          renderCurrentImage();
+          updateActiveImageLabel();
+
+          if (
+            typeof resetViewForNewImage === 'function'
+          ) {
+            resetViewForNewImage();
+          }
+        }
+      };
+
+      image.onerror = () => {
+        console.error(
+          'Failed to load image:',
+          file.name
+        );
+      };
+
+      image.src = event.target.result;
+    };
+
+    reader.onerror = () => {
+      console.error(
+        'Failed to read file:',
+        file.name
+      );
+    };
+
+    reader.readAsDataURL(file);
+  });
 }
 
 // ==============================
@@ -386,7 +388,6 @@ function updateActiveImageLabel() {
   label.textContent =
     `${currentImageIndex + 1} / ${uploadedImages.length} — ${current.name}`;
 }
-
 
 // ==============================
 // CURRENT IMAGE RENDER
@@ -538,7 +539,7 @@ function runFullAnalysis() {
       }
     );
 
-    const extractedParticles =
+     const extractedParticles =
       extractParticlesWithFeatures(
         detectionResult.particles,
         tempCanvas
@@ -596,7 +597,6 @@ function runFullAnalysis() {
 
   renderStoredAnalysisForCurrentImage();
 }
-
 
 // ==============================
 // STORED RESULT RENDER
@@ -682,7 +682,7 @@ function initializeBackgroundPicker() {
     'backgroundPixelValue'
   );
 
-  const marker = document.getElementById(
+   const marker = document.getElementById(
     'backgroundSelectionMarker'
   );
 
@@ -787,7 +787,6 @@ function initializeBackgroundPicker() {
     });
   }
 }
-
 
 // ==============================
 // SETTINGS PERSISTENCE
@@ -894,26 +893,32 @@ function loadSavedSettings() {
 
   setInputValue('channelMode', settings.channelMode);
   setInputValue('thresholdMode', settings.thresholdMode);
+
   setInputValue(
     'manualThresholdValue',
     settings.manualThresholdValue
   );
+
   setInputValue(
     'minimumOverlayArea',
     settings.minimumOverlayArea
   );
+
   setInputValue(
     'minParticleSize',
     settings.minParticleSize
   );
+
   setInputValue(
     'maxParticleSize',
     settings.maxParticleSize
   );
+
   setInputValue(
     'circularityMin',
     settings.circularityMin
   );
+
   setInputValue(
     'circularityMax',
     settings.circularityMax
@@ -984,7 +989,7 @@ document.addEventListener('keydown', event => {
     renderImageByIndex();
   }
 
-  if (event.key === 'ArrowRight') {
+   if (event.key === 'ArrowRight') {
     event.preventDefault();
 
     currentImageIndex++;
@@ -1004,3 +1009,49 @@ document.addEventListener('keydown', event => {
     runFullAnalysis();
   }
 });
+
+// ==============================
+// FALLBACK DIRECT UPLOAD BINDING
+// ==============================
+
+window.addEventListener('load', () => {
+  const uploadButton = document.getElementById(
+    'uploadButton'
+  );
+
+  const imageUpload = document.getElementById(
+    'imageUpload'
+  );
+
+  if (!uploadButton) {
+    console.error('Upload button not found');
+    return;
+  }
+
+  if (!imageUpload) {
+    console.error('Image upload input not found');
+    return;
+  }
+
+  uploadButton.onclick = () => {
+    imageUpload.click();
+  };
+
+  imageUpload.onchange = event => {
+    const files = Array.from(
+      event.target.files || []
+    ).filter(file => {
+      return file.type.startsWith('image/');
+    });
+
+    if (!files.length) {
+      alert('Please select valid image files.');
+      return;
+    }
+
+    loadUploadedImages(files);
+    imageUpload.value = '';
+  };
+});
+
+
