@@ -1,78 +1,192 @@
 <!DOCTYPE html>
-    </section>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aqua Insight</title>
 
-    <section class="content-section">
-      <div class="section-header">
-        <h3>Currently Available Feature</h3>
-      </div>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
-      <div class="feature-list">
-        <div class="feature-item active-feature">
-          <div class="feature-status available">Available</div>
-          <div class="feature-content">
-            <h4>Particle Counter</h4>
-            <p>
-              Analyze particle count, coverage area, circularity, RGB intensity, overlay, classification, and XLSX export.
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
+  <link rel="stylesheet" href="css/global.css">
+</head>
+<body>
+  <div class="background-glow glow-left"></div>
+  <div class="background-glow glow-right"></div>
 
-    <section class="content-section">
-      <div class="section-header">
-        <h3>On Development</h3>
-      </div>
-
-      <div class="feature-list">
-        <div class="feature-item disabled-feature">
-          <div class="feature-status development">On Development</div>
-          <div class="feature-content">
-            <h4>Color Area Analysis</h4>
-            <p>
-              Measure and classify proportional area occupied by different color groups.
-            </p>
+  <div class="dashboard-layout">
+    <aside class="sidebar">
+      <div class="sidebar-top">
+        <div class="logo-card">
+          <div class="logo-icon">AI</div>
+          <div>
+            <h1>Aqua Insight</h1>
+            <p>Version 0.1</p>
           </div>
         </div>
 
-        <div class="feature-item disabled-feature">
-          <div class="feature-status development">On Development</div>
-          <div class="feature-content">
-            <h4>Cell Density Analysis</h4>
-            <p>
-              Estimate object density and regional occupancy across histology images.
-            </p>
-          </div>
-        </div>
+        <nav class="sidebar-nav">
+          <button class="nav-item active">
+            <span>🏠</span>
+            <span>Home</span>
+          </button>
 
-        <div class="feature-item disabled-feature">
-          <div class="feature-status development">On Development</div>
-          <div class="feature-content">
-            <h4>Histopathology Segmentation</h4>
-            <p>
-              Segment tissue structures and classify damaged or abnormal regions automatically.
-            </p>
+          <button class="nav-item" onclick="window.location.href='pages/particle-counter.html'">
+            <span>🧪</span>
+            <span>Particle Counter</span>
+          </button>
+
+          <button class="nav-item">
+            <span>🛠️</span>
+            <span>Development Features</span>
+          </button>
+
+          <button class="nav-item">
+            <span>📄</span>
+            <span>Documentation</span>
+          </button>
+
+          <button class="nav-item">
+            <span>⚙️</span>
+            <span>Settings</span>
+          </button>
+        </nav>
+      </div>
+
+      <div class="sidebar-bottom">
+        <div class="system-status-card">
+          <div class="status-dot"></div>
+          <div>
+            <h4>System Status</h4>
+            <p>Operational</p>
           </div>
         </div>
       </div>
-    </section>
-  </main>
+    </aside>
 
-  <footer class="main-footer">
-    <div class="footer-content">
-      <p>Aqua Insight</p>
-      <p>Version 0.1</p>
-      <p>Scientific Browser-Based Image Analysis Platform</p>
-    </div>
-  </footer>
+    <main class="main-content">
+      <header class="topbar">
+        <div>
+          <h2>Aqua Insight Dashboard</h2>
+          <p>Scientific image analysis platform for aquaculture and histology</p>
+        </div>
 
-  <script>
-    const featureDropdownBtn = document.getElementById('featureDropdownBtn');
-    const featureDropdownMenu = document.getElementById('featureDropdownMenu');
+        <div class="topbar-stats">
+          <div class="mini-stat-card">
+            <span class="mini-stat-label">Active Modules</span>
+            <strong>1</strong>
+          </div>
 
-    featureDropdownBtn.addEventListener('click', () => {
-      featureDropdownMenu.classList.toggle('show');
-    });
-  </script>
+          <div class="mini-stat-card">
+            <span class="mini-stat-label">Development</span>
+            <strong>5</strong>
+          </div>
+
+          <div class="mini-stat-card">
+            <span class="mini-stat-label">Version</span>
+            <strong>0.1</strong>
+          </div>
+        </div>
+      </header>
+
+      <section class="hero-section glass-card">
+        <div class="hero-text">
+          <span class="hero-badge">Aquaculture Imaging Platform</span>
+          <h1>Particle-Based Image Analysis for Aquaculture and Histology</h1>
+          <p>
+            Aqua Insight is a lightweight web-based scientific image analysis platform designed to identify,
+            classify, and quantify particles from histology, shrimp gut coloration, feed residues,
+            and microscopy images.
+          </p>
+
+          <div class="hero-actions">
+            <button class="primary-button" onclick="window.location.href='pages/particle-counter.html'">
+              Launch Particle Counter
+            </button>
+
+            <button class="secondary-button">
+              View Documentation
+            </button>
+          </div>
+        </div>
+
+        <div class="hero-summary-panel">
+          <div class="summary-card glass-inner-card">
+            <h3>Current Active Feature</h3>
+            <div class="feature-chip active-chip">Active</div>
+            <h2>Particle Counter</h2>
+            <p>
+              Detect, classify, and measure particles based on thresholding, color intensity,
+              morphology, and RGB analysis.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="content-grid">
+        <div class="glass-card section-card">
+          <div class="section-header">
+            <h3>Active Modules</h3>
+            <span class="section-badge">1 Active</span>
+          </div>
+
+          <div class="module-card active-module">
+            <div class="module-top">
+              <div>
+                <h4>Particle Counter</h4>
+                <p>Threshold-based image particle detection and classification</p>
+              </div>
+
+              <span class="feature-chip active-chip">Active</span>
+            </div>
+
+            <ul class="module-feature-list">
+              <li>Single and batch image analysis</li>
+              <li>Background exclusion</li>
+              <li>Automatic thresholding</li>
+              <li>Particle numbering and overlay export</li>
+              <li>XLSX export with particle metrics</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="glass-card section-card">
+          <div class="section-header">
+            <h3>Development Pipeline</h3>
+            <span class="section-badge">5 Planned</span>
+          </div>
+
+          <div class="development-list">
+            <div class="development-item">
+              <span>Color Distribution Mapping</span>
+              <span class="feature-chip development-chip">Development</span>
+            </div>
+
+            <div class="development-item">
+              <span>Area Heatmap</span>
+              <span class="feature-chip development-chip">Development</span>
+            </div>
+
+            <div class="development-item">
+              <span>Histology Segmentation</span>
+              <span class="feature-chip development-chip">Development</span>
+            </div>
+
+            <div class="development-item">
+              <span>Machine Learning Classification</span>
+              <span class="feature-chip development-chip">Development</span>
+            </div>
+
+            <div class="development-item">
+              <span>Cloud Dataset Storage</span>
+              <span class="feature-chip development-chip">Development</span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
 </body>
 </html>
+
