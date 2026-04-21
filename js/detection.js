@@ -1,4 +1,3 @@
-```javascript
 // ==============================
 // DETECTION ENGINE
 // Aqua Insight Version 0.1
