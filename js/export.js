@@ -195,7 +195,7 @@ function exportAllResultsToXLS() {
       ]);
     }
 
-```javascript
+
     const particleSheet = XLSX.utils.aoa_to_sheet(
       particleRows
     );
