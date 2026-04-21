@@ -37,6 +37,8 @@ function handleBatchFiles(files) {
   }
 
   batchFiles = validFiles;
+  batchResults = [];
+  currentBatchPreviewIndex = 0;
 
   const uploadDescription =
     document.querySelector('.upload-description');
@@ -46,12 +48,9 @@ function handleBatchFiles(files) {
       `${batchFiles.length} image(s) loaded for batch analysis`;
   }
 
-  currentBatchPreviewIndex = 0;
+  resetResultsTable();
+  clearOverlaySvg();
 }
-
-// ==============================
-// RUN BATCH ANALYSIS
-// ==============================
 
 async function runBatchAnalysis() {
   if (!batchFiles.length) {
@@ -69,54 +68,50 @@ async function runBatchAnalysis() {
   for (const file of batchFiles) {
     const image = await loadBatchImage(file);
 
-    const analysisResult = analyzeBatchImage(
+    const result = analyzeBatchImage(
       image,
       file.name,
       settings
     );
 
-    batchResults.push(analysisResult);
+    batchResults.push(result);
 
-    totalParticles += analysisResult.detectedParticleCount;
-    totalArea += analysisResult.totalParticleArea;
+    totalParticles += result.detectedParticleCount;
+    totalArea += result.totalParticleArea;
   }
 
   updateBatchSummary(totalParticles, totalArea);
   populateBatchResultsTable(batchResults);
 
-  currentBatchPreviewIndex = 0;
-  renderBatchPreviewImage();
+  if (batchResults.length > 0) {
+    currentBatchPreviewIndex = 0;
+    renderBatchPreviewImage();
+    highlightActiveBatchRow();
+  }
 
   alert(
-    `Batch analysis completed for ${batchFiles.length} image(s).`
+    `Batch analysis completed for ${batchResults.length} image(s).`
   );
 }
-
-// ==============================
-// LOAD IMAGE
-// ==============================
 
 function loadBatchImage(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
 
     reader.onload = event => {
-      const img = new Image();
+      const image = new Image();
 
-      img.onload = () => resolve(img);
-      img.onerror = reject;
+      image.onload = () => resolve(image);
+      image.onerror = error => reject(error);
 
-      img.src = event.target.result;
+      image.src = event.target.result;
     };
 
-    reader.onerror = reject;
+    reader.onerror = error => reject(error);
+
     reader.readAsDataURL(file);
   });
 }
-
-// ==============================
-// ANALYZE SINGLE IMAGE IN BATCH
-// ==============================
 
 function analyzeBatchImage(
   image,
@@ -131,16 +126,16 @@ function analyzeBatchImage(
 
   tempCtx.drawImage(image, 0, 0);
 
-  const imageData = tempCtx.getImageData(
-    0,
-    0,
-    tempCanvas.width,
-    tempCanvas.height
-  );
-
   const detectionResult = runDetectionPipeline(
     tempCanvas,
     settings
+  );
+
+  const imageData = tempCtx.getImageData(
+    0,
+    0,
+    image.width,
+    image.height
   );
 
   const extractedParticles =
@@ -148,8 +143,8 @@ function analyzeBatchImage(
       return extractParticleFeatures(
         particle,
         imageData,
-        tempCanvas.width,
-        tempCanvas.height
+        image.width,
+        image.height
       );
     });
 
@@ -181,21 +176,18 @@ function analyzeBatchImage(
 
   return {
     filename,
-    thresholdMode: settings.thresholdMode,
-    thresholdValue: detectionResult.thresholdValue,
-    detectedParticleCount: filteredParticles.length,
-    totalParticleArea,
-    imageWidth: image.width,
-    imageHeight: image.height,
     imageObject: image,
     binaryMask: detectionResult.binaryMask,
-    particles: filteredParticles
+    thresholdMode: settings.thresholdMode,
+    thresholdValue: detectionResult.thresholdValue,
+    channelMode: settings.channelMode,
+    imageWidth: image.width,
+    imageHeight: image.height,
+    particles: filteredParticles,
+    detectedParticleCount: filteredParticles.length,
+    totalParticleArea
   };
 }
-
-// ==============================
-// SUMMARY UPDATE
-// ==============================
 
 function updateBatchSummary(totalParticles, totalArea) {
   const particleCountElement =
@@ -204,29 +196,30 @@ function updateBatchSummary(totalParticles, totalArea) {
   const coverageAreaElement =
     document.getElementById('coverageArea');
 
-  const thresholdMethodLabelElement =
+  const thresholdMethodLabel =
     document.getElementById('thresholdMethodLabel');
+
+  const channelModeLabel =
+    document.getElementById('channelModeLabel');
 
   if (particleCountElement) {
     particleCountElement.textContent = totalParticles;
   }
 
   if (coverageAreaElement) {
-    coverageAreaElement.textContent = '-';
+    coverageAreaElement.textContent = totalArea.toLocaleString();
   }
 
-  if (
-    thresholdMethodLabelElement &&
-    batchResults.length > 0
-  ) {
-    thresholdMethodLabelElement.textContent =
-      `${batchResults[0].thresholdMode}`;
+  if (thresholdMethodLabel && batchResults.length > 0) {
+    thresholdMethodLabel.textContent =
+      `${batchResults[0].thresholdMode} (${batchResults[0].thresholdValue})`;
+  }
+
+  if (channelModeLabel && batchResults.length > 0) {
+    channelModeLabel.textContent =
+      batchResults[0].channelMode;
   }
 }
-// ==============================
-// TABLE DISPLAY
-// ==============================
-
 function populateBatchResultsTable(results) {
   const resultsTableBody =
     document.getElementById('resultsTableBody');
@@ -256,18 +249,17 @@ function populateBatchResultsTable(results) {
     }
 
     row.innerHTML = `
-      <td>${result.filename}</td>
+      <td>${index + 1}</td>
       <td>${result.detectedParticleCount}</td>
       <td>${result.totalParticleArea}</td>
       <td>${result.thresholdValue}</td>
-      <td colspan="6">
-        ${result.imageWidth} × ${result.imageHeight}px
-      </td>
+      <td>${result.imageWidth}</td>
+      <td>${result.imageHeight}</td>
+      <td colspan="4">${result.filename}</td>
     `;
 
     row.addEventListener('click', () => {
       currentBatchPreviewIndex = index;
-
       renderBatchPreviewImage();
       highlightActiveBatchRow();
     });
@@ -288,10 +280,91 @@ function highlightActiveBatchRow() {
   });
 }
 
-// ==============================
-// EXPORT BATCH RESULTS
-// ==============================
+function renderBatchPreviewImage() {
+  if (!batchResults.length) return;
 
+  const result = batchResults[currentBatchPreviewIndex];
+
+  if (!result || !result.imageObject) return;
+
+  const image = result.imageObject;
+
+  uploadedImage = image;
+  uploadedImageName = result.filename;
+
+  originalCanvas.width = image.width;
+  originalCanvas.height = image.height;
+  originalCtx.clearRect(0, 0, image.width, image.height);
+  originalCtx.drawImage(image, 0, 0);
+
+  renderSelectedChannelPreview(result.channelMode);
+
+  renderBinaryMaskToCanvas(
+    result.binaryMask,
+    image.width,
+    image.height,
+    thresholdCanvas
+  );
+
+  overlayCanvas.width = image.width;
+  overlayCanvas.height = image.height;
+
+  overlayCtx.clearRect(
+    0,
+    0,
+    overlayCanvas.width,
+    overlayCanvas.height
+  );
+
+  overlayCtx.drawImage(image, 0, 0);
+
+  clearOverlaySvg();
+  drawParticleOverlay(result.particles);
+
+  updateThresholdLabel(result.thresholdValue);
+
+  const particleCountElement =
+    document.getElementById('particleCount');
+
+  const coverageAreaElement =
+    document.getElementById('coverageArea');
+
+  if (particleCountElement) {
+    particleCountElement.textContent =
+      result.detectedParticleCount;
+  }
+
+  if (coverageAreaElement) {
+    const totalPixels =
+      result.imageWidth * result.imageHeight;
+
+    const coverage =
+      totalPixels > 0
+        ? (
+            (result.totalParticleArea / totalPixels) *
+            100
+          ).toFixed(2)
+        : '0.00';
+
+    coverageAreaElement.textContent = `${coverage}%`;
+  }
+
+  populateResultsTable(result.particles);
+
+  const uploadDescription =
+    document.querySelector('.upload-description');
+
+  if (uploadDescription) {
+    uploadDescription.textContent =
+      `Viewing image ${currentBatchPreviewIndex + 1} of ${batchResults.length}: ${result.filename}`;
+  }
+
+  highlightActiveBatchRow();
+
+  if (typeof resetZoomAndPan === 'function') {
+    resetZoomAndPan();
+  }
+}
 function exportBatchResultsToXLS() {
   if (!batchResults.length) {
     alert('No batch results available.');
@@ -302,6 +375,7 @@ function exportBatchResultsToXLS() {
 
   const summaryRows = [
     [
+      'Image No',
       'Filename',
       'Threshold Mode',
       'Threshold Value',
@@ -312,8 +386,9 @@ function exportBatchResultsToXLS() {
     ]
   ];
 
-  batchResults.forEach(result => {
+  batchResults.forEach((result, index) => {
     summaryRows.push([
+      index + 1,
       result.filename,
       result.thresholdMode,
       result.thresholdValue,
@@ -328,6 +403,7 @@ function exportBatchResultsToXLS() {
     XLSX.utils.aoa_to_sheet(summaryRows);
 
   summarySheet['!cols'] = [
+    { wch: 10 },
     { wch: 40 },
     { wch: 18 },
     { wch: 18 },
@@ -343,7 +419,7 @@ function exportBatchResultsToXLS() {
     'Batch Summary'
   );
 
-  batchResults.forEach(result => {
+  batchResults.forEach((result, index) => {
     const particleRows = [
       [
         'Particle ID',
@@ -378,13 +454,13 @@ function exportBatchResultsToXLS() {
       ]);
     });
 
-    let sheetName = result.filename
-      .replace(/\.[^/.]+$/, '')
-      .substring(0, 28);
+    let sheetName =
+      `${index + 1}_${result.filename}`
+        .replace(/\.[^/.]+$/, '')
+        .substring(0, 28);
 
     if (!sheetName.trim()) {
-      sheetName =
-        `Image_${Math.random().toString(36).substring(2, 8)}`;
+      sheetName = `Image_${index + 1}`;
     }
 
     const particleSheet =
@@ -405,7 +481,7 @@ function exportBatchResultsToXLS() {
       { wch: 14 }
     ];
 
-       XLSX.utils.book_append_sheet(
+    XLSX.utils.book_append_sheet(
       workbook,
       particleSheet,
       sheetName
@@ -423,4 +499,3 @@ function exportBatchResultsToXLS() {
 
   XLSX.writeFile(workbook, exportName);
 }
-  
