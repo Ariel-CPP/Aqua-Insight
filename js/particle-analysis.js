@@ -330,15 +330,19 @@ function runParticleAnalysis() {
 
   // Update summary
   const particleCountElement = document.getElementById('particleCount');
-  const totalParticleAreaElement = document.getElementById('totalParticleArea');
+  const coverageAreaElement = document.getElementById('coverageArea');
+
+if (coverageAreaElement) {
+  const coveragePercent = uploadedImage
+    ? ((totalArea / (uploadedImage.width * uploadedImage.height)) * 100).toFixed(2)
+    : 0;
+
+  coverageAreaElement.textContent = `${coveragePercent}%`;
+}
   const thresholdMethodLabelElement = document.getElementById('thresholdMethodLabel');
 
   if (particleCountElement) {
     particleCountElement.textContent = filteredParticles.length;
-  }
-
-  if (totalParticleAreaElement) {
-    totalParticleAreaElement.textContent = `${totalArea} px²`;
   }
 
   if (thresholdMethodLabelElement) {
