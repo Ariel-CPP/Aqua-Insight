@@ -1,100 +1,38 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <title>Particle Counter | Aqua Insight</title>
 
-  <!-- Main Styles -->
-  <link
-    rel="stylesheet"
-    href="../css/style.css"
-  />
+  <link rel="stylesheet" href="../css/style.css" />
+  <link rel="stylesheet" href="../css/particle-counter.css" />
 
-  <link
-    rel="stylesheet"
-    href="../css/particle-counter.css"
-  />
-
-  <!-- Google Font -->
-  <link
-    rel="preconnect"
-    href="https://fonts.googleapis.com"
-  />
-
-  <link
-    rel="preconnect"
-    href="https://fonts.gstatic.com"
-    crossorigin
-  />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
   <link
     href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
     rel="stylesheet"
   />
-
-  <!-- XLSX Export Library -->
-  <script
-    src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"
-    defer
-  ></script>
-
-  <!-- Main Scripts -->
-  <script
-    src="../js/main.js"
-    defer
-  ></script>
-
-  <script
-    src="../js/detection.js"
-    defer
-  ></script>
-
-  <script
-    src="../js/particle-analysis.js"
-    defer
-  ></script>
-
-  <script
-    src="../js/export.js"
-    defer
-  ></script>
-
-  <script
-    src="../js/zoom-pan.js"
-    defer
-  ></script>
 </head>
-
 <body>
-  <!-- =========================
-       HEADER
-  ========================== -->
 
+  <!-- HEADER -->
   <header class="main-header">
     <div class="header-left">
       <div class="logo-group">
-        <h1 class="app-title">
-          Aqua Insight
-        </h1>
-
-        <span class="version-badge">
-          Version 0.1
-        </span>
+        <h1 class="app-title">Aqua Insight</h1>
+        <span class="version-badge">Version 0.1</span>
       </div>
     </div>
 
     <nav class="main-nav">
       <ul>
         <li>
-          <a
-            href="../index.html"
-            class="nav-link"
-          >
+          <a href="../index.html" class="nav-link">
             Home
           </a>
         </li>
@@ -102,26 +40,18 @@
         <li class="dropdown">
           <button class="dropdown-button">
             Features
-            <span class="dropdown-arrow">
-              ▼
-            </span>
+            <span class="dropdown-arrow">▼</span>
           </button>
 
           <div class="dropdown-menu">
-            <a
-              href="particle-counter.html"
-              class="active-dropdown-link"
-            >
+            <a href="particle-counter.html" class="active-dropdown-link">
               Particle Counter
             </a>
           </div>
         </li>
 
         <li>
-          <a
-            href="contact.html"
-            class="nav-link"
-          >
+          <a href="contact.html" class="nav-link">
             Contact Us
           </a>
         </li>
@@ -129,17 +59,13 @@
     </nav>
   </header>
 
-  <!-- =========================
-       MAIN LAYOUT
-  ========================== -->
-
+  <!-- MAIN LAYOUT -->
   <main class="feature-layout">
-    <!-- =========================
-         SIDEBAR
-    ========================== -->
 
+    <!-- SIDEBAR -->
     <aside class="feature-sidebar">
-      <!-- Feature Navigation -->
+
+      <!-- MODULE CARD -->
       <div class="sidebar-card">
         <h3 class="sidebar-title">
           Particle Counter
@@ -156,13 +82,13 @@
         </nav>
       </div>
 
-      <!-- Analysis Settings -->
+      <!-- ANALYSIS SETTINGS -->
       <div class="sidebar-card">
         <h4 class="sidebar-section-title">
           Analysis Settings
         </h4>
 
-        <!-- Channel Selection -->
+        <!-- CHANNEL MODE -->
         <div class="settings-group">
           <label for="channelMode">
             Channel Mode
@@ -187,7 +113,7 @@
           </select>
         </div>
 
-        <!-- Threshold Selection -->
+        <!-- THRESHOLD MODE -->
         <div class="settings-group">
           <label for="thresholdMode">
             Threshold Mode
@@ -225,7 +151,7 @@
           </div>
         </div>
 
-        <!-- Manual Threshold -->
+        <!-- MANUAL THRESHOLD -->
         <div
           class="settings-group"
           id="manualThresholdGroup"
@@ -244,7 +170,7 @@
           />
         </div>
 
-        <!-- Overlay Label Area -->
+        <!-- OVERLAY LABEL THRESHOLD -->
         <div class="settings-group">
           <label for="minimumOverlayArea">
             Minimum Area For Label Display
@@ -258,7 +184,7 @@
           />
         </div>
 
-        <!-- Particle Size Filters -->
+        <!-- PARTICLE SIZE FILTER -->
         <div class="settings-row">
           <div class="settings-group">
             <label for="minParticleSize">
@@ -287,7 +213,7 @@
           </div>
         </div>
 
-                <!-- Circularity Filters -->
+        <!-- CIRCULARITY FILTER -->
         <div class="settings-row">
           <div class="settings-group">
             <label for="circularityMin">
@@ -320,7 +246,8 @@
           </div>
         </div>
 
-        <!-- Analysis Options -->
+        ```html
+        <!-- ANALYSIS OPTIONS -->
         <div class="checkbox-group">
           <input
             type="checkbox"
@@ -354,7 +281,7 @@
           </label>
         </div>
 
-        <!-- Background Selection -->
+        <!-- BACKGROUND PICKER INFO -->
         <div class="background-picker-info">
           <div class="background-color-preview">
             <span id="backgroundColorIndicator"></span>
@@ -379,7 +306,6 @@
           Reset Background Selection
         </button>
 
-        <!-- Analysis Action -->
         <button
           class="analyze-button"
           id="runAnalysisButton"
@@ -390,23 +316,16 @@
       </div>
     </aside>
 
-    <!-- =========================
-         FEATURE CONTENT
-    ========================== -->
-
+    <!-- MAIN CONTENT -->
     <section class="feature-content">
-      <!-- Upload Section -->
+
+      <!-- IMAGE UPLOAD -->
       <div class="content-card">
         <div class="card-header">
-          <h2>
-            Image Upload
-          </h2>
+          <h2>Image Upload</h2>
         </div>
 
-        <div
-          class="upload-area"
-          id="uploadArea"
-        >
+        <div class="upload-area" id="uploadArea">
           <input
             type="file"
             id="imageUpload"
@@ -435,95 +354,80 @@
         </div>
       </div>
 
-      <!-- Image Navigation -->
+      <!-- IMAGE NAVIGATION -->
       <div class="content-card">
         <div class="card-header">
-          <h2>
-            Image Navigation
-          </h2>
-
-          <div class="preview-controls">
-            <button
-              class="preview-control-button"
-              id="previousImageButton"
-              type="button"
-            >
-              Previous Image
-            </button>
-
-            <button
-              class="preview-control-button"
-              id="nextImageButton"
-              type="button"
-            >
-              Next Image
-            </button>
-
-            <button
-              class="export-button"
-              id="exportResultsButton"
-              type="button"
-            >
-              Export XLS
-            </button>
-          </div>
+          <h2>Image Navigation</h2>
         </div>
 
-        <div class="image-navigation-info">
-          <span id="imageCounterLabel">
-            Image 0 of 0
-          </span>
+        <div class="preview-controls">
+          <button
+            class="preview-control-button"
+            id="previousImageButton"
+            type="button"
+          >
+            Previous Image
+          </button>
+
+          <button
+            class="preview-control-button"
+            id="nextImageButton"
+            type="button"
+          >
+            Next Image
+          </button>
+
+          <button
+            class="preview-control-button"
+            id="zoomInButton"
+            type="button"
+          >
+            Zoom In
+          </button>
+
+          <button
+            class="preview-control-button"
+            id="zoomOutButton"
+            type="button"
+          >
+            Zoom Out
+          </button>
+
+          <button
+            class="preview-control-button"
+            id="resetZoomButton"
+            type="button"
+          >
+            Reset View
+          </button>
+
+          <button
+            class="export-button"
+            id="exportResultsButton"
+            type="button"
+          >
+            Export XLS
+          </button>
         </div>
       </div>
 
-      <!-- Analysis Preview -->
+      <!-- ANALYSIS PREVIEW -->
       <div class="content-card">
         <div class="card-header">
-          <h2>
-            Analysis Preview
-          </h2>
-
-          <div class="preview-controls">
-            <button
-              class="preview-control-button"
-              id="zoomInButton"
-              type="button"
-            >
-              Zoom In
-            </button>
-
-            <button
-              class="preview-control-button"
-              id="zoomOutButton"
-              type="button"
-            >
-              Zoom Out
-            </button>
-
-            <button
-              class="preview-control-button"
-              id="resetZoomButton"
-              type="button"
-            >
-              Reset View
-            </button>
-          </div>
+          <h2>Analysis Preview</h2>
         </div>
 
         <div class="preview-grid">
-          <!-- Original Image -->
+
+          <!-- ORIGINAL IMAGE -->
           <div class="preview-panel">
-            <h3>
-              Original Image
-            </h3>
+            <h3>Original Image</h3>
 
             <div
               class="preview-canvas-container"
               id="originalCanvasContainer"
             >
-              <canvas
-                id="originalCanvas"
-              ></canvas>
+              <canvas id="originalCanvas"></canvas>
 
               <div
                 class="background-selection-marker"
@@ -532,76 +436,49 @@
             </div>
           </div>
 
-                    <!-- Selected Channel -->
+          <!-- CHANNEL PREVIEW -->
           <div class="preview-panel">
-            <h3>
-              Selected Channel
-            </h3>
+            <h3>Selected Channel</h3>
 
-            <div
-              class="preview-canvas-container"
-              id="channelCanvasContainer"
-            >
-              <canvas
-                id="channelCanvas"
-              ></canvas>
+            <div class="preview-canvas-container">
+              <canvas id="channelCanvas"></canvas>
             </div>
           </div>
 
-          <!-- Binary Threshold -->
+          <!-- BINARY PREVIEW -->
           <div class="preview-panel">
-            <h3>
-              Binary Threshold
-            </h3>
+            <h3>Binary Threshold</h3>
 
-            <div
-              class="preview-canvas-container"
-              id="thresholdCanvasContainer"
-            >
-              <canvas
-                id="thresholdCanvas"
-              ></canvas>
+            <div class="preview-canvas-container">
+              <canvas id="thresholdCanvas"></canvas>
             </div>
           </div>
 
-          <!-- Final Overlay -->
+          <!-- FINAL OVERLAY -->
           <div class="preview-panel">
-            <h3>
-              Final Overlay
-            </h3>
+            <h3>Final Overlay</h3>
 
-            <div
-              class="preview-canvas-container"
-              id="overlayCanvasContainer"
-            >
-              <canvas
-                id="overlayCanvas"
-              ></canvas>
-
-              <svg
-                id="overlaySvg"
-                class="overlay-svg"
-                xmlns="http://www.w3.org/2000/svg"
-              ></svg>
+            <div class="preview-canvas-container">
+              <canvas id="overlayCanvas"></canvas>
+              <svg id="overlaySvg"></svg>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Analysis Summary -->
+      ```html
+      <!-- ANALYSIS SUMMARY -->
       <div class="content-card">
         <div class="card-header">
-          <h2>
-            Analysis Summary
-          </h2>
+          <h2>Analysis Summary</h2>
         </div>
 
         <div class="summary-grid">
+
           <div class="summary-item">
             <span class="summary-label">
               Active Image
             </span>
-
             <span
               class="summary-value"
               id="activeImageSummary"
@@ -614,7 +491,6 @@
             <span class="summary-label">
               Particle Count
             </span>
-
             <span
               class="summary-value"
               id="particleCount"
@@ -627,7 +503,6 @@
             <span class="summary-label">
               Coverage Area (%)
             </span>
-
             <span
               class="summary-value"
               id="coverageArea"
@@ -640,7 +515,6 @@
             <span class="summary-label">
               Coverage Area (px)
             </span>
-
             <span
               class="summary-value"
               id="coveragePixelArea"
@@ -653,7 +527,6 @@
             <span class="summary-label">
               Threshold Method
             </span>
-
             <span
               class="summary-value"
               id="thresholdMethodLabel"
@@ -666,7 +539,6 @@
             <span class="summary-label">
               Threshold Value
             </span>
-
             <span
               class="summary-value"
               id="thresholdValueLabel"
@@ -679,7 +551,6 @@
             <span class="summary-label">
               Channel Mode
             </span>
-
             <span
               class="summary-value"
               id="channelModeLabel"
@@ -692,7 +563,6 @@
             <span class="summary-label">
               Image Size
             </span>
-
             <span
               class="summary-value"
               id="imageSizeLabel"
@@ -703,158 +573,62 @@
         </div>
       </div>
 
-      <!-- Particle Results -->
+      <!-- PARTICLE RESULTS -->
       <div class="content-card">
         <div class="card-header">
-          <h2>
-            Particle Results
-          </h2>
+          <h2>Particle Results</h2>
         </div>
 
-        <div class="results-table-wrapper">
-          <table class="results-table">
+        <div class="table-wrapper">
+          <table class="results-table" id="resultsTable">
             <thead>
               <tr>
-                <th>
-                  ID
-                </th>
-
-                <th>
-                  Area
-                </th>
-
-                <th>
-                  Perimeter
-                </th>
-
-                <th>
-                  Circularity
-                </th>
-
-                <th>
-                  Feret Diameter
-                </th>
-
-                <th>
-                  Aspect Ratio
-                </th>
-
-                <th>
-                  Mean RGB
-                </th>
-
-                <th>
-                  Min RGB
-                </th>
-
-                <th>
-                  Max RGB
-                </th>
-
-                <th>
-                  Centroid X
-                </th>
-
-                <th>
-                  Centroid Y
-                </th>
-
-                <th>
-                  Touches Edge
-                </th>
+                <th>Particle ID</th>
+                <th>Area</th>
+                <th>Perimeter</th>
+                <th>Circularity</th>
+                <th>Feret Diameter</th>
+                <th>Aspect Ratio</th>
+                <th>Mean RGB</th>
+                <th>Min RGB</th>
+                <th>Max RGB</th>
+                <th>Centroid X</th>
+                <th>Centroid Y</th>
+                <th>Touches Edge</th>
               </tr>
             </thead>
 
-            <tbody id="particleResultsBody">
+            <tbody id="resultsTableBody">
+              <tr>
+                <td colspan="12" class="empty-table-message">
+                  No analysis results available
+                </td>
+              </tr>
             </tbody>
           </table>
-        </div>
-      </div>
-      <!-- Analysis Information -->
-      <div class="content-card">
-        <div class="card-header">
-          <h2>
-            Analysis Notes
-          </h2>
-        </div>
-
-        <div class="analysis-note-grid">
-          <div class="analysis-note-card">
-            <h3>
-              Thresholding Workflow
-            </h3>
-
-            <p>
-              Aqua Insight supports multiple thresholding methods including
-              Otsu Automatic, Mean Intensity, Triangle, Minimum Error, and
-              Manual Threshold selection.
-            </p>
-          </div>
-
-          <div class="analysis-note-card">
-            <h3>
-              Background Selection
-            </h3>
-
-            <p>
-              Use background pixel selection to exclude regions with similar
-              intensity or color from particle counting.
-            </p>
-          </div>
-
-          <div class="analysis-note-card">
-            <h3>
-              Particle Filtering
-            </h3>
-
-            <p>
-              Filter particles based on area, circularity, and edge interaction
-              to improve the reliability of detection results.
-            </p>
-          </div>
-
-          <div class="analysis-note-card">
-            <h3>
-              Export Capability
-            </h3>
-
-            <p>
-              Export particle measurements, summary statistics, and analysis
-              metadata into XLS format for further analysis and documentation.
-            </p>
-          </div>
         </div>
       </div>
     </section>
   </main>
 
-  <!-- =========================
-       FOOTER
-  ========================== -->
-
+  <!-- FOOTER -->
   <footer class="main-footer">
     <div class="footer-content">
-      <p>
-        Aqua Insight
-      </p>
-
-      <p>
-        Version 0.1
-      </p>
-
-      <p>
-        Browser-Based Scientific Image Analysis Platform
-      </p>
-
-      <p>
-        Animal Health Laboratory
-      </p>
-
-      <p>
-        Technology Division
-      </p>
+      <p>Aqua Insight</p>
+      <p>Version 0.1</p>
+      <p>Scientific Image Analysis Platform</p>
     </div>
   </footer>
+
+  <!-- XLSX LIBRARY -->
+  <script src="../libs/xlsx.full.min.js"></script>
+
+  <!-- MAIN JAVASCRIPT -->
+  <script src="../js/main.js"></script>
+  <script src="../js/detection.js"></script>
+  <script src="../js/particle-analysis.js"></script>
+  <script src="../js/export.js"></script>
+  <script src="../js/zoom-pan.js"></script>
+
 </body>
 </html>
-      
