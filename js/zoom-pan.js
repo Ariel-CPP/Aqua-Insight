@@ -1,26 +1,23 @@
 // ==============================
-// PARTICLE ZOOM PAN MODULE
+// ZOOM AND PAN MODULE
 // Aqua Insight Version 0.1
 // ==============================
 
-let currentZoom = 1;
-let currentTranslateX = 0;
-let currentTranslateY = 0;
+let zoomScale = 1;
+let panOffsetX = 0;
+let panOffsetY = 0;
 
-let isDragging = false;
+let isDraggingCanvas = false;
 let dragStartX = 0;
 let dragStartY = 0;
 
-const minZoom = 0.25;
-const maxZoom = 8;
-const zoomStep = 0.1;
-
-let currentBatchPreviewIndex = 0;
+const MIN_ZOOM = 0.25;
+const MAX_ZOOM = 8;
+const ZOOM_STEP = 0.15;
 
 document.addEventListener('DOMContentLoaded', () => {
-  initializeZoomPan();
   initializeZoomButtons();
-  initializeBatchNavigation();
+  initializeCanvasPanZoom();
 });
 
 // ==============================
@@ -39,97 +36,99 @@ function initializeZoomButtons() {
 
   if (zoomInButton) {
     zoomInButton.addEventListener('click', () => {
-      currentZoom += zoomStep;
+      zoomScale += ZOOM_STEP;
 
-      if (currentZoom > maxZoom) {
-        currentZoom = maxZoom;
+      if (zoomScale > MAX_ZOOM) {
+        zoomScale = MAX_ZOOM;
       }
 
-      applyZoomPanTransform();
+      applyCanvasTransform();
     });
   }
 
   if (zoomOutButton) {
     zoomOutButton.addEventListener('click', () => {
-      currentZoom -= zoomStep;
+      zoomScale -= ZOOM_STEP;
 
-      if (currentZoom < minZoom) {
-        currentZoom = minZoom;
+      if (zoomScale < MIN_ZOOM) {
+        zoomScale = MIN_ZOOM;
       }
 
-      applyZoomPanTransform();
+      applyCanvasTransform();
     });
   }
 
   if (resetZoomButton) {
     resetZoomButton.addEventListener('click', () => {
-      resetZoomAndPan();
+      resetCanvasTransform();
     });
   }
 }
 
 // ==============================
-// PAN AND SCROLL ZOOM
+// PAN + MOUSE WHEEL ZOOM
 // ==============================
 
-function initializeZoomPan() {
-  const containers = document.querySelectorAll(
-    '.preview-canvas-container'
-  );
+function initializeCanvasPanZoom() {
+  const containers =
+    document.querySelectorAll(
+      '.preview-canvas-container'
+    );
 
   containers.forEach(container => {
     container.addEventListener('mousedown', event => {
-      isDragging = true;
+      isDraggingCanvas = true;
 
       dragStartX =
-        event.clientX - currentTranslateX;
+        event.clientX - panOffsetX;
 
       dragStartY =
-        event.clientY - currentTranslateY;
+        event.clientY - panOffsetY;
 
       container.classList.add('dragging');
     });
 
     container.addEventListener('mousemove', event => {
-      if (!isDragging) return;
+      if (!isDraggingCanvas) return;
 
-      currentTranslateX =
+      panOffsetX =
         event.clientX - dragStartX;
 
-      currentTranslateY =
+      panOffsetY =
         event.clientY - dragStartY;
 
-      applyZoomPanTransform();
+      applyCanvasTransform();
     });
 
     container.addEventListener('mouseup', () => {
-      isDragging = false;
+      isDraggingCanvas = false;
       container.classList.remove('dragging');
     });
 
     container.addEventListener('mouseleave', () => {
-      isDragging = false;
+      isDraggingCanvas = false;
       container.classList.remove('dragging');
     });
 
     container.addEventListener('wheel', event => {
       event.preventDefault();
 
-      if (event.deltaY < 0) {
-        currentZoom += zoomStep;
-      } else {
-        currentZoom -= zoomStep;
+      const delta =
+        event.deltaY < 0
+          ? ZOOM_STEP
+          : -ZOOM_STEP;
+
+      zoomScale += delta;
+
+      if (zoomScale < MIN_ZOOM) {
+        zoomScale = MIN_ZOOM;
       }
 
-      if (currentZoom < minZoom) {
-        currentZoom = minZoom;
+      if (zoomScale > MAX_ZOOM) {
+        zoomScale = MAX_ZOOM;
       }
 
-      if (currentZoom > maxZoom) {
-        currentZoom = maxZoom;
-      }
-
-      applyZoomPanTransform();
+      applyCanvasTransform();
     });
   });
 }
@@ -138,104 +137,99 @@ function initializeZoomPan() {
 // APPLY TRANSFORM
 // ==============================
 
-function applyZoomPanTransform() {
-  const targets = document.querySelectorAll(
-    '.preview-canvas-container canvas, .preview-canvas-container svg'
-  );
+function applyCanvasTransform() {
+  const targets =
+    document.querySelectorAll(
+      '.preview-canvas-container canvas, .preview-canvas-container svg, .background-selection-marker'
+    );
 
   targets.forEach(target => {
     target.style.transform =
-      `translate(${currentTranslateX}px, ${currentTranslateY}px) scale(${currentZoom})`;
+      `translate(${panOffsetX}px, ${panOffsetY}px) scale(${zoomScale})`;
 
-    target.style.transformOrigin = 'center center';
+    target.style.transformOrigin =
+      'center center';
 
-    if (!isDragging) {
+    if (!isDraggingCanvas) {
       target.style.transition =
-        'transform 0.15s ease';
+        'transform 0.12s ease';
     } else {
       target.style.transition = 'none';
     }
   });
 }
 
-function resetZoomAndPan() {
-  currentZoom = 1;
-  currentTranslateX = 0;
-  currentTranslateY = 0;
-
-  applyZoomPanTransform();
-}
 // ==============================
-// BATCH NAVIGATION
+// RESET VIEW
 // ==============================
 
-function initializeBatchNavigation() {
-  const previousButton =
-    document.getElementById('previousBatchImageButton');
+function resetCanvasTransform() {
+  zoomScale = 1;
+  panOffsetX = 0;
+  panOffsetY = 0;
 
-  const nextButton =
-    document.getElementById('nextBatchImageButton');
-
-  if (previousButton) {
-    previousButton.addEventListener('click', () => {
-      showPreviousBatchImage();
-    });
-  }
-
-  if (nextButton) {
-    nextButton.addEventListener('click', () => {
-      showNextBatchImage();
-    });
-  }
+  applyCanvasTransform();
 }
 
-function showPreviousBatchImage() {
-  if (
-    typeof batchResults === 'undefined' ||
-    !batchResults.length
-  ) {
-    return;
-  }
+// ==============================
+// FIT IMAGE TO VIEW
+// ==============================
 
-  currentBatchPreviewIndex--;
+function fitImageToView() {
+  zoomScale = 1;
+  panOffsetX = 0;
+  panOffsetY = 0;
 
-  if (currentBatchPreviewIndex < 0) {
-    currentBatchPreviewIndex =
-      batchResults.length - 1;
-  }
-
-  if (typeof renderBatchPreviewImage === 'function') {
-    renderBatchPreviewImage();
-  }
-
-  if (typeof highlightActiveBatchRow === 'function') {
-    highlightActiveBatchRow();
-  }
-
-  resetZoomAndPan();
+  applyCanvasTransform();
 }
 
-function showNextBatchImage() {
-  if (
-    typeof batchResults === 'undefined' ||
-    !batchResults.length
-  ) {
-    return;
+// ==============================
+// AUTO RESET ON IMAGE CHANGE
+// ==============================
+
+function resetViewForNewImage() {
+  resetCanvasTransform();
+
+  const containers =
+    document.querySelectorAll(
+      '.preview-canvas-container'
+    );
+
+  containers.forEach(container => {
+    container.scrollLeft = 0;
+    container.scrollTop = 0;
+  });
+}
+
+// ==============================
+// OPTIONAL CENTERING
+// ==============================
+
+function centerCurrentView() {
+  const containers =
+    document.querySelectorAll(
+      '.preview-canvas-container'
+    );
+
+  containers.forEach(container => {
+    const rect =
+      container.getBoundingClientRect();
+
+    panOffsetX = rect.width * 0.02;
+    panOffsetY = rect.height * 0.02;
+  });
+
+  applyCanvasTransform();
+}
+
+// ==============================
+// HELPERS FOR IMAGE CHANGE
+// ==============================
+
+function refreshViewAfterNavigation() {
+  resetViewForNewImage();
+
+  if (typeof displayCurrentAnalysis === 'function') {
+    displayCurrentAnalysis();
   }
-
-  currentBatchPreviewIndex++;
-
-  if (currentBatchPreviewIndex >= batchResults.length) {
-    currentBatchPreviewIndex = 0;
-  }
-
-  if (typeof renderBatchPreviewImage === 'function') {
-    renderBatchPreviewImage();
-  }
-
-  if (typeof highlightActiveBatchRow === 'function') {
-    highlightActiveBatchRow();
-  }
-
-  resetZoomAndPan();
 }
