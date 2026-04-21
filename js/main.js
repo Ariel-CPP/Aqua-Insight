@@ -10,7 +10,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initializeLocalStorage();
   initializeSmoothScroll();
   initializeThresholdDescriptions();
-  initializeBatchNavigationButtons();
 });
 
 // ==============================
@@ -18,7 +17,8 @@ document.addEventListener('DOMContentLoaded', () => {
 // ==============================
 
 function initializeNavigation() {
-  const navLinks = document.querySelectorAll('.nav-link');
+  const navLinks =
+    document.querySelectorAll('.nav-link');
 
   navLinks.forEach(link => {
     link.addEventListener('click', () => {
@@ -36,13 +36,14 @@ function initializeNavigation() {
 // ==============================
 
 function initializeDropdowns() {
-  const dropdowns = document.querySelectorAll('.dropdown');
+  const dropdowns =
+    document.querySelectorAll('.dropdown');
 
   dropdowns.forEach(dropdown => {
-    const button = dropdown.querySelector('.dropdown-button');
-    const menu = dropdown.querySelector('.dropdown-menu');
+    const button =
+      dropdown.querySelector('.dropdown-button');
 
-    if (!button || !menu) return;
+    if (!button) return;
 
     button.addEventListener('click', event => {
       event.stopPropagation();
@@ -59,7 +60,8 @@ function initializeDropdowns() {
 }
 
 function closeAllDropdowns() {
-  const dropdowns = document.querySelectorAll('.dropdown');
+  const dropdowns =
+    document.querySelectorAll('.dropdown');
 
   dropdowns.forEach(dropdown => {
     dropdown.classList.remove('dropdown-open');
@@ -67,7 +69,7 @@ function closeAllDropdowns() {
 }
 
 // ==============================
-// ACTIVE LINK DETECTION
+// ACTIVE LINKS
 // ==============================
 
 function initializeActiveLinks() {
@@ -87,7 +89,10 @@ function initializeActiveLinks() {
       href &&
       (
         href === currentPath ||
-        (currentPath === '' && href.includes('index.html'))
+        (
+          currentPath === '' &&
+          href.includes('index.html')
+        )
       )
     ) {
       link.classList.add('active');
@@ -99,10 +104,7 @@ function initializeActiveLinks() {
 
     if (
       href &&
-      (
-        href === currentPath ||
-        (currentPath === '' && href.includes('index.html'))
-      )
+      href === currentPath
     ) {
       link.classList.add('active-dropdown-link');
     }
@@ -115,19 +117,17 @@ function initializeActiveLinks() {
 
 function initializeLocalStorage() {
   const defaultSettings = {
-    theme: 'dark',
-    lastFeature: 'particle-counter',
-    lastFeatureMode: 'single',
     channelMode: 'grayscale',
     thresholdMode: 'otsu',
     manualThresholdValue: 128,
-    invertThreshold: false,
-    excludeEdgeParticles: false,
-    ignoreBackgroundParticles: true,
+    minimumOverlayArea: 50,
     minParticleSize: 0,
     maxParticleSize: 999999,
     circularityMin: 0,
-    circularityMax: 1
+    circularityMax: 1,
+    invertThreshold: false,
+    excludeEdgeParticles: false,
+    useBackgroundPicker: false
   };
 
   const existingSettings =
@@ -151,7 +151,8 @@ function initializeSmoothScroll() {
 
   internalLinks.forEach(link => {
     link.addEventListener('click', event => {
-      const targetId = link.getAttribute('href');
+      const targetId =
+        link.getAttribute('href');
 
       if (!targetId || targetId === '#') return;
 
@@ -169,6 +170,7 @@ function initializeSmoothScroll() {
     });
   });
 }
+
 // ==============================
 // THRESHOLD DESCRIPTION
 // ==============================
@@ -180,14 +182,25 @@ function initializeThresholdDescriptions() {
   const thresholdDescription =
     document.getElementById('thresholdDescription');
 
-  if (!thresholdMode || !thresholdDescription) return;
+  if (!thresholdMode || !thresholdDescription) {
+    return;
+  }
 
   const descriptions = {
-    otsu: 'Automatically separates foreground and background based on maximum between-class variance.',
-    mean: 'Uses the average grayscale intensity of the image as the threshold value.',
-    triangle: 'Applies the triangle algorithm for images with asymmetric histograms.',
-    minerror: 'Uses minimum error thresholding based on separation between foreground and background.',
-    manual: 'Allows manual threshold value adjustment using the threshold input field.'
+    otsu:
+      'Automatically separates foreground and background by maximizing the variance between pixel intensity classes.',
+
+    mean:
+      'Uses the average grayscale intensity of the image as the threshold value.',
+
+    triangle:
+      'Uses the triangle method, suitable for skewed histograms and images with a strong background peak.',
+
+    minerror:
+      'Uses minimum error thresholding to find the best separation between foreground and background distributions.',
+
+    manual:
+      'Uses the exact threshold value entered manually in the threshold input field.'
   };
 
   function updateThresholdDescription() {
@@ -207,62 +220,7 @@ function initializeThresholdDescriptions() {
 }
 
 // ==============================
-// BATCH NAVIGATION BUTTONS
-// ==============================
-
-function initializeBatchNavigationButtons() {
-  const previousButton =
-    document.getElementById('previousBatchImageButton');
-
-  const nextButton =
-    document.getElementById('nextBatchImageButton');
-
-  if (previousButton) {
-    previousButton.addEventListener('click', () => {
-      if (
-        typeof batchResults === 'undefined' ||
-        !batchResults.length
-      ) {
-        return;
-      }
-
-      currentBatchPreviewIndex--;
-
-      if (currentBatchPreviewIndex < 0) {
-        currentBatchPreviewIndex =
-          batchResults.length - 1;
-      }
-
-      if (typeof renderBatchPreviewImage === 'function') {
-        renderBatchPreviewImage();
-      }
-    });
-  }
-
-  if (nextButton) {
-    nextButton.addEventListener('click', () => {
-      if (
-        typeof batchResults === 'undefined' ||
-        !batchResults.length
-      ) {
-        return;
-      }
-
-      currentBatchPreviewIndex++;
-
-      if (currentBatchPreviewIndex >= batchResults.length) {
-        currentBatchPreviewIndex = 0;
-      }
-
-      if (typeof renderBatchPreviewImage === 'function') {
-        renderBatchPreviewImage();
-      }
-    });
-  }
-}
-
-// ==============================
-// GLOBAL STORAGE HELPERS
+// SETTINGS HELPERS
 // ==============================
 
 function saveSetting(key, value) {
@@ -286,4 +244,68 @@ function getSetting(key) {
   return settings[key];
 }
 
-console.log('Aqua Insight initialized successfully.');
+function getAllSettings() {
+  return JSON.parse(
+    localStorage.getItem('aquaInsightSettings')
+  ) || {};
+}
+
+// ==============================
+// SUMMARY HELPERS
+// ==============================
+
+function updateSummaryValue(elementId, value) {
+  const element =
+    document.getElementById(elementId);
+
+  if (!element) return;
+
+  element.textContent = value;
+}
+
+function clearSummaryDisplay() {
+  updateSummaryValue(
+    'activeImageSummary',
+    '-'
+  );
+
+  updateSummaryValue(
+    'particleCount',
+    '0'
+  );
+
+  updateSummaryValue(
+    'coverageArea',
+    '0%'
+  );
+
+  updateSummaryValue(
+    'coveragePixelArea',
+    '0 px'
+  );
+
+  updateSummaryValue(
+    'thresholdMethodLabel',
+    '-'
+  );
+
+  updateSummaryValue(
+    'channelModeLabel',
+    '-'
+  );
+
+  updateSummaryValue(
+    'thresholdValueLabel',
+    '-'
+  );
+
+  updateSummaryValue(
+    'imageSizeLabel',
+    '-'
+  );
+}
+
+console.log(
+  'Aqua Insight initialized successfully.'
+);
+
