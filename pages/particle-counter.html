@@ -5,18 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Particle Counter | Aqua Insight</title>
 
-  <!-- Main CSS -->
   <link rel="stylesheet" href="../css/style.css" />
   <link rel="stylesheet" href="../css/particle-counter.css" />
 
-  <!-- Google Font -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
 </head>
 <body>
 
-  <!-- Header -->
   <header class="main-header">
     <div class="header-left">
       <div class="logo-group">
@@ -27,7 +27,9 @@
 
     <nav class="main-nav">
       <ul>
-        <li><a href="../index.html" class="nav-link">Home</a></li>
+        <li>
+          <a href="../index.html" class="nav-link">Home</a>
+        </li>
 
         <li class="dropdown">
           <button class="dropdown-button">
@@ -40,35 +42,44 @@
           </div>
         </li>
 
-        <li><a href="contact.html" class="nav-link">Contact Us</a></li>
+        <li>
+          <a href="contact.html" class="nav-link">Contact Us</a>
+        </li>
       </ul>
     </nav>
   </header>
 
-  <!-- Main Layout -->
   <main class="feature-layout">
 
-    <!-- Sidebar -->
     <aside class="feature-sidebar">
       <div class="sidebar-card">
         <h3 class="sidebar-title">Particle Counter</h3>
 
         <nav class="sidebar-menu">
-          <button class="sidebar-button active" data-mode="single">
+          <button
+            class="sidebar-button active"
+            data-mode="single"
+          >
             Single Analysis
           </button>
 
-          <button class="sidebar-button" data-mode="batch">
+          <button
+            class="sidebar-button"
+            data-mode="batch"
+          >
             Batch Analysis
           </button>
         </nav>
       </div>
 
       <div class="sidebar-card">
-        <h4 class="sidebar-section-title">Analysis Settings</h4>
+        <h4 class="sidebar-section-title">
+          Analysis Settings
+        </h4>
 
         <div class="settings-group">
           <label for="channelMode">Channel Mode</label>
+
           <select id="channelMode">
             <option value="grayscale">Grayscale</option>
             <option value="red">Red Channel</option>
@@ -77,101 +88,173 @@
           </select>
         </div>
 
-       <div class="settings-group">
-  <label for="thresholdMode">Threshold Mode</label>
+        <div class="settings-group">
+          <label for="thresholdMode">Threshold Mode</label>
 
-  <div class="threshold-select-wrapper">
-    <select id="thresholdMode">
-      <option value="otsu" data-description="Automatically finds the threshold that maximizes separation between background and foreground intensity distributions. Best for images with bimodal histograms.">
-        Otsu Automatic
-      </option>
+          <div class="threshold-select-wrapper">
+            <select id="thresholdMode">
+              <option value="otsu">
+                Otsu Automatic
+              </option>
 
-      <option value="mean" data-description="Uses the average pixel intensity of the image as the threshold value. Useful for evenly illuminated images with moderate contrast.">
-        Mean Intensity
-      </option>
+              <option value="mean">
+                Mean Intensity
+              </option>
 
-      <option value="triangle" data-description="Uses the triangle method to estimate threshold based on histogram shape. Useful for images with skewed intensity distributions.">
-        Triangle
-      </option>
+              <option value="triangle">
+                Triangle
+              </option>
 
-      <option value="minerror" data-description="Uses minimum error thresholding based on statistical separation between foreground and background. Suitable for noisy images.">
-        Minimum Error
-      </option>
+              <option value="minerror">
+                Minimum Error
+              </option>
 
-      <option value="manual" data-description="Allows manual threshold adjustment using a user-defined value. Useful when automatic methods fail.">
-        Manual Threshold
-      </option>
-    </select>
+              <option value="manual">
+                Manual Threshold
+              </option>
+            </select>
 
-    <div class="threshold-tooltip" id="thresholdTooltip">
-      Select a threshold mode to view its description.
-    </div>
-  </div>
-</div>
+            <div
+              class="threshold-tooltip"
+              id="thresholdDescription"
+            >
+              Select a threshold mode to view its description.
+            </div>
+          </div>
+        </div>
 
-<div class="settings-group" id="manualThresholdGroup" style="display: none;">
-  <label for="manualThresholdValue">Manual Threshold Value</label>
-  <input type="number" id="manualThresholdValue" value="128" min="0" max="255" />
-</div>
+        <div
+          class="settings-group"
+          id="manualThresholdGroup"
+          style="display: none;"
+        >
+          <label for="manualThresholdValue">
+            Manual Threshold Value
+          </label>
 
-<div class="checkbox-group">
-  <input type="checkbox" id="ignoreBackgroundParticles" />
-  <label for="ignoreBackgroundParticles">Ignore Background Region</label>
-</div>
+          <input
+            type="number"
+            id="manualThresholdValue"
+            value="128"
+            min="0"
+            max="255"
+          />
+        </div>
+
+        <div class="checkbox-group">
+          <input
+            type="checkbox"
+            id="ignoreBackgroundParticles"
+          />
+          <label for="ignoreBackgroundParticles">
+            Ignore Background Region
+          </label>
+        </div>
 
         <div class="settings-row">
           <div class="settings-group">
             <label for="minParticleSize">Min Size</label>
-            <input type="number" id="minParticleSize" value="0" min="0" />
+
+            <input
+              type="number"
+              id="minParticleSize"
+              value="0"
+              min="0"
+            />
           </div>
 
           <div class="settings-group">
             <label for="maxParticleSize">Max Size</label>
-            <input type="number" id="maxParticleSize" value="999999" min="0" />
+
+            <input
+              type="number"
+              id="maxParticleSize"
+              value="999999"
+              min="0"
+            />
           </div>
         </div>
 
         <div class="settings-row">
           <div class="settings-group">
-            <label for="circularityMin">Circularity Min</label>
-            <input type="number" id="circularityMin" value="0.00" min="0" max="1" step="0.01" />
+            <label for="circularityMin">
+              Circularity Min
+            </label>
+
+            <input
+              type="number"
+              id="circularityMin"
+              value="0"
+              min="0"
+              max="1"
+              step="0.01"
+            />
           </div>
 
           <div class="settings-group">
-            <label for="circularityMax">Circularity Max</label>
-            <input type="number" id="circularityMax" value="1.00" min="0" max="1" step="0.01" />
+            <label for="circularityMax">
+              Circularity Max
+            </label>
+
+            <input
+              type="number"
+              id="circularityMax"
+              value="1"
+              min="0"
+              max="1"
+              step="0.01"
+            />
           </div>
         </div>
 
-        <div class="checkbox-group">
-          <input type="checkbox" id="invertThreshold" />
-          <label for="invertThreshold">Invert Threshold</label>
+                <div class="checkbox-group">
+          <input
+            type="checkbox"
+            id="invertThreshold"
+          />
+          <label for="invertThreshold">
+            Invert Threshold
+          </label>
         </div>
 
         <div class="checkbox-group">
-          <input type="checkbox" id="excludeEdgeParticles" />
-          <label for="excludeEdgeParticles">Exclude Edge Particles</label>
+          <input
+            type="checkbox"
+            id="excludeEdgeParticles"
+          />
+          <label for="excludeEdgeParticles">
+            Exclude Edge Particles
+          </label>
         </div>
 
-        <button class="analyze-button" id="runAnalysisButton">
+        <button
+          class="analyze-button"
+          id="runAnalysisButton"
+        >
           Run Analysis
         </button>
       </div>
     </aside>
 
-    <!-- Main Content -->
     <section class="feature-content">
 
-      <!-- Upload Section -->
       <div class="content-card">
         <div class="card-header">
           <h2>Image Upload</h2>
         </div>
 
         <div class="upload-area" id="uploadArea">
-          <input type="file" id="imageUpload" accept="image/*" hidden />
+          <input
+            type="file"
+            id="imageUpload"
+            accept="image/*"
+            hidden
+          />
 
-          <button class="upload-button" id="uploadButton">
+          <button
+            class="upload-button"
+            id="uploadButton"
+          >
             Upload Image
           </button>
 
@@ -181,15 +264,45 @@
         </div>
       </div>
 
-      <!-- Preview Grid -->
       <div class="content-card">
         <div class="card-header">
           <h2>Analysis Preview</h2>
 
           <div class="preview-controls">
-            <button class="preview-control-button" id="zoomInButton">+</button>
-            <button class="preview-control-button" id="zoomOutButton">−</button>
-            <button class="preview-control-button" id="resetZoomButton">Reset</button>
+            <button
+              class="preview-control-button"
+              id="zoomInButton"
+            >
+              +
+            </button>
+
+            <button
+              class="preview-control-button"
+              id="zoomOutButton"
+            >
+              −
+            </button>
+
+            <button
+              class="preview-control-button"
+              id="resetZoomButton"
+            >
+              Reset
+            </button>
+
+            <button
+              class="preview-control-button"
+              id="previousBatchImageButton"
+            >
+              Previous
+            </button>
+
+            <button
+              class="preview-control-button"
+              id="nextBatchImageButton"
+            >
+              Next
+            </button>
           </div>
         </div>
 
@@ -197,6 +310,7 @@
 
           <div class="preview-panel">
             <h3>Original Image</h3>
+
             <div class="preview-canvas-container">
               <canvas id="originalCanvas"></canvas>
             </div>
@@ -204,6 +318,7 @@
 
           <div class="preview-panel">
             <h3>Selected Channel</h3>
+
             <div class="preview-canvas-container">
               <canvas id="channelCanvas"></canvas>
             </div>
@@ -211,6 +326,7 @@
 
           <div class="preview-panel">
             <h3>Binary Threshold</h3>
+
             <div class="preview-canvas-container">
               <canvas id="thresholdCanvas"></canvas>
             </div>
@@ -218,6 +334,7 @@
 
           <div class="preview-panel">
             <h3>Final Overlay</h3>
+
             <div class="preview-canvas-container overlay-container">
               <canvas id="overlayCanvas"></canvas>
               <svg id="overlaySvg"></svg>
@@ -227,7 +344,6 @@
         </div>
       </div>
 
-      <!-- Summary Section -->
       <div class="content-card">
         <div class="card-header">
           <h2>Analysis Summary</h2>
@@ -235,39 +351,76 @@
 
         <div class="summary-grid">
           <div class="summary-item">
-            <span class="summary-label">Detected Particles</span>
-            <span class="summary-value" id="particleCount">0</span>
+            <span class="summary-label">
+              Detected Particles
+            </span>
+
+            <span
+              class="summary-value"
+              id="particleCount"
+            >
+              0
+            </span>
           </div>
 
           <div class="summary-item">
-            <span class="summary-label">Coverage Area</span>
-            <span class="summary-value" id="coverageArea">0%</span>
+            <span class="summary-label">
+              Coverage Area
+            </span>
+
+            <span
+              class="summary-value"
+              id="coverageArea"
+            >
+              0%
+            </span>
+          </div>
+
+                    <div class="summary-item">
+            <span class="summary-label">
+              Threshold Method
+            </span>
+
+            <span
+              class="summary-value"
+              id="thresholdMethodLabel"
+            >
+              Otsu
+            </span>
           </div>
 
           <div class="summary-item">
-            <span class="summary-label">Threshold Method</span>
-            <span class="summary-value" id="thresholdMethodLabel">Otsu</span>
-          </div>
+            <span class="summary-label">
+              Channel Mode
+            </span>
 
-          <div class="summary-item">
-            <span class="summary-label">Channel Mode</span>
-            <span class="summary-value" id="channelModeLabel">Grayscale</span>
+            <span
+              class="summary-value"
+              id="channelModeLabel"
+            >
+              Grayscale
+            </span>
           </div>
         </div>
       </div>
 
-      <!-- Results Table -->
       <div class="content-card">
         <div class="card-header">
           <h2>Particle Results</h2>
 
-          <button class="export-button" id="exportResultsButton">
+          <button
+            class="export-button"
+            id="exportResultsButton"
+          >
             Export XLS
           </button>
         </div>
 
         <div class="table-wrapper">
-          <table class="results-table" id="resultsTable">
+          <table
+            class="results-table"
+            id="resultsTable"
+          >
             <thead>
               <tr>
                 <th>ID</th>
@@ -285,7 +438,10 @@
 
             <tbody id="resultsTableBody">
               <tr>
-                <td colspan="10" class="empty-table-message">
+                <td
+                  colspan="10"
+                  class="empty-table-message"
+                >
                   No analysis results available.
                 </td>
               </tr>
@@ -297,15 +453,14 @@
     </section>
   </main>
 
-  <!-- SheetJS -->
-  <script src="../vendor/xlsx/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
-  <!-- Main Scripts -->
   <script src="../js/main.js"></script>
-  <script src="../js/particle-analysis.js"></script>
   <script src="../js/detection.js"></script>
-  <script src="../js/export.js"></script>
+  <script src="../js/particle-analysis.js"></script>
   <script src="../js/batch.js"></script>
+  <script src="../js/export.js"></script>
   <script src="../js/zoom-pan.js"></script>
+
 </body>
 </html>
