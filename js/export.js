@@ -1,17 +1,17 @@
 // ==============================
-// EXPORT MODULE
+// EXPORT MODULE (MULTI-IMAGE)
 // Aqua Insight Version 0.1
 // ==============================
 
-let latestParticleResults = [];
-let latestAnalysisMetadata = {};
+let analysisResults = []; // array per image
+let analysisMetadata = {}; // global metadata
 
 document.addEventListener('DOMContentLoaded', () => {
   initializeExportButton();
 });
 
 // ==============================
-// EXPORT BUTTON
+// INIT EXPORT BUTTON
 // ==============================
 
 function initializeExportButton() {
@@ -21,156 +21,219 @@ function initializeExportButton() {
   if (!exportButton) return;
 
   exportButton.addEventListener('click', () => {
-    if (currentAnalysisMode === 'batch') {
-      exportBatchResultsToXLS();
+    if (!analysisResults.length) {
+      alert('No analysis results available.');
       return;
     }
 
-    if (!latestParticleResults.length) {
-      alert('No analysis results available for export.');
-      return;
-    }
-
-    exportParticleResultsToXLS();
+    exportAllResultsToXLS();
   });
 }
 
 // ==============================
-// STORE RESULTS
+// STORE RESULTS (CALLED FROM ANALYSIS)
 // ==============================
 
-function storeAnalysisResults(
-  particles,
+function storeMultiAnalysisResults(
+  resultsArray,
   metadata
 ) {
-  latestParticleResults = particles;
-  latestAnalysisMetadata = metadata;
+  analysisResults = resultsArray;
+  analysisMetadata = metadata;
 }
 
 // ==============================
-// SINGLE ANALYSIS EXPORT
+// EXPORT MAIN FUNCTION
 // ==============================
 
-function exportParticleResultsToXLS() {
+function exportAllResultsToXLS() {
   const workbook = XLSX.utils.book_new();
 
-  const metadataRows = [
-    ['Aqua Insight Version', '0.1'],
-    ['Filename', latestAnalysisMetadata.filename || '-'],
-    ['Analysis Mode', latestAnalysisMetadata.analysisMode || '-'],
-    ['Threshold Mode', latestAnalysisMetadata.thresholdMode || '-'],
-    ['Threshold Value', latestAnalysisMetadata.thresholdValue || '-'],
-    ['Channel Mode', latestAnalysisMetadata.channelMode || '-'],
-    ['Invert Threshold', latestAnalysisMetadata.invertThreshold ? 'Yes' : 'No'],
-    ['Exclude Edge Particles', latestAnalysisMetadata.excludeEdgeParticles ? 'Yes' : 'No'],
-    ['Minimum Particle Size', latestAnalysisMetadata.minParticleSize || 0],
-    ['Maximum Particle Size', latestAnalysisMetadata.maxParticleSize || 0],
-    ['Circularity Minimum', latestAnalysisMetadata.circularityMin || 0],
-    ['Circularity Maximum', latestAnalysisMetadata.circularityMax || 1],
-    ['Detected Particle Count', latestAnalysisMetadata.detectedParticleCount || 0],
-    ['Total Particle Area', latestAnalysisMetadata.totalParticleArea || 0],
-    ['Coverage Percentage', latestAnalysisMetadata.coveragePercentage || 0]
-  ];
+  // =========================
+  // GLOBAL SUMMARY SHEET
+  // =========================
 
-  const metadataSheet =
-    XLSX.utils.aoa_to_sheet(metadataRows);
-
-  metadataSheet['!cols'] = [
-    { wch: 30 },
-    { wch: 30 }
-  ];
-
-  const particleRows = [
+  const summaryRows = [
     [
-      'Particle ID',
-      'Area',
-      'Perimeter',
-      'Circularity',
-      'Feret Diameter',
-      'Aspect Ratio',
-      'Mean RGB',
-      'Min RGB',
-      'Max RGB',
-      'Centroid X',
-      'Centroid Y',
-      'Touches Edge'
+      'Image No',
+      'Filename',
+      'Particles',
+      'Coverage (%)',
+      'Coverage (px)',
+      'Threshold Mode',
+      'Threshold Value',
+      'Channel Mode'
     ]
   ];
 
-  latestParticleResults.forEach((particle, index) => {
-    particleRows.push([
+  analysisResults.forEach((result, index) => {
+    summaryRows.push([
       index + 1,
-      particle.area,
-      particle.perimeter,
-      particle.circularity,
-      particle.feretDiameter,
-      particle.aspectRatio,
-      particle.meanRGB,
-      particle.minRGB,
-      particle.maxRGB,
-      Number(particle.centroidX.toFixed(2)),
-      Number(particle.centroidY.toFixed(2)),
-      particle.touchesEdge ? 'Yes' : 'No'
+      result.filename,
+      result.particles.length,
+      result.coveragePercent,
+      result.coveragePixels,
+      result.thresholdMode,
+      result.thresholdValue,
+      result.channelMode
     ]);
   });
 
-  const particleSheet =
-    XLSX.utils.aoa_to_sheet(particleRows);
+  const summarySheet =
+    XLSX.utils.aoa_to_sheet(summaryRows);
 
-  particleSheet['!cols'] = [
-    { wch: 12 },
-    { wch: 12 },
+  summarySheet['!cols'] = [
+    { wch: 10 },
+    { wch: 30 },
     { wch: 12 },
     { wch: 14 },
     { wch: 16 },
-    { wch: 14 },
     { wch: 18 },
     { wch: 18 },
-    { wch: 18 },
-    { wch: 14 },
-    { wch: 14 },
-    { wch: 14 }
+    { wch: 16 }
   ];
 
   XLSX.utils.book_append_sheet(
     workbook,
-    metadataSheet,
-    'Metadata'
+    summarySheet,
+    'Summary'
   );
 
-  XLSX.utils.book_append_sheet(
-    workbook,
-    particleSheet,
-    'Particle Results'
-  );
+  // =========================
+  // PER IMAGE SHEETS
+  // =========================
+
+  analysisResults.forEach((result, index) => {
+    const rows = [
+      [
+        'Particle ID',
+        'Area',
+        'Perimeter',
+        'Circularity',
+        'Feret Diameter',
+        'Aspect Ratio',
+        'Mean RGB',
+        'Min RGB',
+        'Max RGB',
+        'Centroid X',
+        'Centroid Y',
+        'Touches Edge'
+      ]
+    ];
+
+    result.particles.forEach((particle, i) => {
+      rows.push([
+        i + 1,
+        particle.area,
+        particle.perimeter,
+        particle.circularity,
+        particle.feretDiameter,
+        particle.aspectRatio,
+        particle.meanRGB,
+        particle.minRGB,
+        particle.maxRGB,
+        Number(particle.centroidX.toFixed(2)),
+        Number(particle.centroidY.toFixed(2)),
+        particle.touchesEdge ? 'Yes' : 'No'
+      ]);
+    });
+
+    const sheet =
+      XLSX.utils.aoa_to_sheet(rows);
+
+    sheet['!cols'] = [
+      { wch: 12 },
+      { wch: 12 },
+      { wch: 12 },
+      { wch: 14 },
+      { wch: 16 },
+      { wch: 14 },
+      { wch: 18 },
+      { wch: 18 },
+      { wch: 18 },
+      { wch: 14 },
+      { wch: 14 },
+      { wch: 14 }
+    ];
+
+    let sheetName =
+      `${index + 1}_${result.filename}`
+        .replace(/\.[^/.]+$/, '')
+        .substring(0, 28);
+
+    if (!sheetName.trim()) {
+      sheetName = `Image_${index + 1}`;
+    }
+
+    XLSX.utils.book_append_sheet(
+      workbook,
+      sheet,
+      sheetName
+    );
+  });
 
   XLSX.writeFile(
     workbook,
-    generateSingleExportFileName()
+    generateExportFileName()
   );
 }
+
 // ==============================
 // FILE NAME GENERATION
 // ==============================
 
-function generateSingleExportFileName() {
-  const baseName = uploadedImageName
-    ? uploadedImageName.replace(/\.[^/.]+$/, '')
-    : 'particle-analysis';
-
+function generateExportFileName() {
   const now = new Date();
 
-  const datePart = [
-    now.getFullYear(),
-    String(now.getMonth() + 1).padStart(2, '0'),
-    String(now.getDate()).padStart(2, '0')
-  ].join('-');
+  const year = now.getFullYear();
 
-  const timePart = [
-    String(now.getHours()).padStart(2, '0'),
-    String(now.getMinutes()).padStart(2, '0'),
-    String(now.getSeconds()).padStart(2, '0')
-  ].join('-');
+  const month = String(
+    now.getMonth() + 1
+  ).padStart(2, '0');
 
-  return `${baseName}_particle_analysis_${datePart}_${timePart}.xlsx`;
+  const day = String(
+    now.getDate()
+  ).padStart(2, '0');
+
+  const hours = String(
+    now.getHours()
+  ).padStart(2, '0');
+
+  const minutes = String(
+    now.getMinutes()
+  ).padStart(2, '0');
+
+  const seconds = String(
+    now.getSeconds()
+  ).padStart(2, '0');
+
+  return (
+    `aqua_insight_particle_analysis_` +
+    `${year}-${month}-${day}_` +
+    `${hours}-${minutes}-${seconds}.xlsx`
+  );
+}
+
+// ==============================
+// CLEAR STORED EXPORT DATA
+// ==============================
+
+function resetStoredExportResults() {
+  analysisResults = [];
+  analysisMetadata = {};
+}
+
+// ==============================
+// HELPER FOR SINGLE ACTIVE IMAGE
+// ==============================
+
+function getCurrentActiveExportResult() {
+  if (
+    typeof currentImageIndex === 'undefined' ||
+    !analysisResults.length
+  ) {
+    return null;
+  }
+
+  return analysisResults[currentImageIndex] || null;
 }
