@@ -1,680 +1,99 @@
-function analyzeSingleImage(imageItem, imageIndex) {
-  const tempCanvas =
-    document.createElement('canvas');
-
-  const tempCtx =
-    tempCanvas.getContext('2d');
-
-  tempCanvas.width =
-    imageItem.image.width;
-
-  tempCanvas.height =
-    imageItem.image.height;
-
-  tempCtx.drawImage(imageItem.image, 0, 0);
-
-  const settings = getCurrentAnalysisSettings();
-
-  const detectionResult = runDetectionPipeline(
-    tempCanvas,
-    settings
-  );
-
-  const imageData = tempCtx.getImageData(
-    0,
-    0,
-    tempCanvas.width,
-    tempCanvas.height
-  );
-
-  const extractedParticles =
-    detectionResult.particles.map(particle => {
-      return extractParticleFeatures(
-        particle,
-        imageData,
-        tempCanvas.width,
-        tempCanvas.height
-      );
-    });
-
-  const filteredParticles = extractedParticles.filter(particle => {
-    const validArea =
-      particle.area >= settings.minParticleSize &&
-      particle.area <= settings.maxParticleSize;
-
-    const validCircularity =
-      particle.circularity >= settings.circularityMin &&
-      particle.circularity <= settings.circularityMax;
-
-    const validEdge =
-      settings.excludeEdgeParticles
-        ? !particle.touchesEdge
-        : true;
-
-    return (
-      validArea &&
-      validCircularity &&
-      particle.area >= 1 &&
-      validEdge
-    );
-  });
-
-  const totalArea = filteredParticles.reduce(
-    (sum, particle) => sum + particle.area,
-    0
-  );
-
-  const coveragePercent =
-    tempCanvas.width * tempCanvas.height > 0
-      ? (
-          (totalArea /
-            (tempCanvas.width * tempCanvas.height)) *
-          100
-        ).toFixed(2)
-      : '0.00';
-
-  return {
-    imageIndex,
-    filename: imageItem.name,
-    image: imageItem.image,
-    width: tempCanvas.width,
-    height: tempCanvas.height,
-    thresholdMode: settings.thresholdMode,
-    thresholdValue: detectionResult.thresholdValue,
-    channelMode: settings.channelMode,
-    binaryMask: detectionResult.binaryMask,
-    particles: filteredParticles,
-    coveragePixels: totalArea,
-    coveragePercent
-  };
-}
-
 // ==============================
-// ACTIVE IMAGE RENDER
-// ==============================
-
-function renderStoredAnalysisForCurrentImage() {
-  if (!allAnalysisResults.length) return;
-
-  const result =
-    allAnalysisResults[currentImageIndex];
-
-  if (!result) return;
-
-  renderCurrentImage();
-
-  renderSelectedChannelPreview(
-    result.channelMode
-  );
-
-  renderBinaryMaskToCanvas(
-    result.binaryMask,
-    result.width,
-    result.height,
-    thresholdCanvas
-  );
-
-  drawParticleOverlay(
-    result.particles,
-    result.width,
-    result.height
-  );
-
-  populateResultsTable(result.particles);
-
-  updateSummaryDisplay(result);
-}
-
-// ==============================
-// BACKGROUND PICKER
-// ==============================
-
-function initializeBackgroundPicker() {
-  const container =
-    document.getElementById('originalCanvasContainer');
-
-  const resetButton =
-    document.getElementById('resetBackgroundButton');
-
-  const indicator =
-    document.getElementById('backgroundColorIndicator');
-
-  const label =
-    document.getElementById('backgroundPixelValue');
-
-  const marker =
-    document.getElementById('backgroundSelectionMarker');
-
-  if (!container) return;
-
-  container.addEventListener('click', event => {
-    const usePicker =
-      document.getElementById('useBackgroundPicker')?.checked;
-
-    if (!usePicker) return;
-
-    const rect =
-      originalCanvas.getBoundingClientRect();
-
-    const scaleX =
-      originalCanvas.width / rect.width;
-
-    const scaleY =
-      originalCanvas.height / rect.height;
-
-    const x = Math.floor(
-      (event.clientX - rect.left) * scaleX
-    );
-
-    const y = Math.floor(
-      (event.clientY - rect.top) * scaleY
-    );
-
-    const pixel = originalCtx.getImageData(
-      x,
-      y,
-      1,
-      1
-    ).data;
-
-    const gray = Math.round(
-      pixel[0] * 0.299 +
-      pixel[1] * 0.587 +
-      pixel[2] * 0.114
-    );
-
-    selectedBackgroundPixel = gray;
-    selectedBackgroundPosition = { x, y };
-
-    if (indicator) {
-      indicator.style.background =
-        `rgb(${pixel[0]},${pixel[1]},${pixel[2]})`;
-    }
-
-    if (label) {
-      label.textContent =
-        `RGB(${pixel[0]}, ${pixel[1]}, ${pixel[2]})`;
-    }
-
-    if (marker) {
-      marker.style.display = 'block';
-      marker.style.left =
-        `${event.clientX - rect.left}px`;
-      marker.style.top =
-        `${event.clientY - rect.top}px`;
-    }
-  });
-
-  if (resetButton) {
-    resetButton.addEventListener('click', () => {
-      selectedBackgroundPixel = null;
-      selectedBackgroundPosition = null;
-
-      if (indicator) {
-        indicator.style.background = 'transparent';
-      }
-
-      if (label) {
-        label.textContent = 'No pixel selected';
-      }
-
-      if (marker) {
-        marker.style.display = 'none';
-      }
-    });
-  }
-}
-
-// ==============================
-// ANALYSIS CONTROL
-// ==============================
-
-function initializeAnalysisControls() {
-  const runButton =
-    document.getElementById('runAnalysisButton');
-
-  if (!runButton) return;
-
-  runButton.addEventListener('click', () => {
-    if (!uploadedImages.length) {
-      alert('Upload image first.');
-      return;
-    }
-
-    runFullAnalysis();
-  });
-}
-
-function runFullAnalysis() {
-  const settings = getCurrentSettings();
-
-  allAnalysisResults = [];
-
-  uploadedImages.forEach((item, index) => {
-    const tempCanvas =
-      document.createElement('canvas');
-
-    tempCanvas.width = item.image.width;
-    tempCanvas.height = item.image.height;
-
-    const tempCtx =
-      tempCanvas.getContext('2d');
-
-    tempCtx.drawImage(item.image, 0, 0);
-
-    const result = runDetectionPipeline(
-      tempCanvas,
-      {
-        ...settings,
-        backgroundPixel: selectedBackgroundPixel
-      }
-    );
-
-    const features =
-      extractParticlesWithFeatures(
-        result.particles,
-        tempCanvas
-      );
-
-    const filtered =
-      filterParticles(features, settings);
-
-    const totalArea =
-      filtered.reduce(
-        (sum, p) => sum + p.area,
-        0
-      );
-
-    const totalPixels =
-      tempCanvas.width * tempCanvas.height;
-
-    const coveragePercent =
-      ((totalArea / totalPixels) * 100).toFixed(2);
-
-    allAnalysisResults.push({
-      filename: item.name,
-      particles: filtered,
-      thresholdMode: settings.thresholdMode,
-      thresholdValue: result.thresholdValue,
-      channelMode: settings.channelMode,
-      coveragePixels: totalArea,
-      coveragePercent
-    });
-  });
-
-  storeMultiAnalysisResults(
-    allAnalysisResults,
-    {}
-  );
-
-  displayCurrentAnalysis();
-}
-
-// ==============================
-// DISPLAY CURRENT RESULT
-// ==============================
-
-function displayCurrentAnalysis() {
-  if (!allAnalysisResults.length) return;
-
-  const result =
-    allAnalysisResults[currentImageIndex];
-
-  const imageData =
-    uploadedImages[currentImageIndex];
-
-  renderCurrentImage();
-
-  renderSelectedChannelPreview();
-
-  renderBinaryPreview();
-
-  drawOverlay(result.particles);
-
-  updateSummaryValue(
-    'activeImageSummary',
-    imageData.name
-  );
-
-  updateSummaryValue(
-    'particleCount',
-    result.particles.length
-  );
-
-  updateSummaryValue(
-    'coverageArea',
-    `${result.coveragePercent}%`
-  );
-
-  updateSummaryValue(
-    'coveragePixelArea',
-    `${result.coveragePixels} px`
-  );
-
-  updateSummaryValue(
-    'thresholdMethodLabel',
-    result.thresholdMode
-  );
-
-  updateSummaryValue(
-    'channelModeLabel',
-    result.channelMode
-  );
-
-  updateSummaryValue(
-    'thresholdValueLabel',
-    result.thresholdValue
-  );
-
-  updateSummaryValue(
-    'imageSizeLabel',
-    `${overlayCanvas.width} x ${overlayCanvas.height}`
-  );
-
-  populateResultsTable(result.particles);
-}
-
-// ==============================
-// PREVIEW RENDER
-// ==============================
-
-function renderSelectedChannelPreview() {
-  const settings = getCurrentSettings();
-
-  const image =
-    uploadedImages[currentImageIndex].image;
-
-  channelCtx.drawImage(image, 0, 0);
-
-  const imageData =
-    channelCtx.getImageData(
-      0,
-      0,
-      channelCanvas.width,
-      channelCanvas.height
-    );
-
-  const data = imageData.data;
-
-  for (let i = 0; i < data.length; i += 4) {
-    const r = data[i];
-    const g = data[i + 1];
-    const b = data[i + 2];
-
-    if (settings.channelMode === 'red') {
-      data[i + 1] = 0;
-      data[i + 2] = 0;
-    } else if (settings.channelMode === 'green') {
-      data[i] = 0;
-      data[i + 2] = 0;
-    } else if (settings.channelMode === 'blue') {
-      data[i] = 0;
-      data[i + 1] = 0;
-    } else {
-      const gray =
-        0.299 * r +
-        0.587 * g +
-        0.114 * b;
-
-      data[i] = data[i + 1] = data[i + 2] = gray;
-    }
-  }
-
-  channelCtx.putImageData(imageData, 0, 0);
-}
-
-function renderBinaryPreview() {
-  const settings = getCurrentSettings();
-
-  const tempCanvas =
-    document.createElement('canvas');
-
-  const img =
-    uploadedImages[currentImageIndex].image;
-
-  tempCanvas.width = img.width;
-  tempCanvas.height = img.height;
-
-  const ctx =
-    tempCanvas.getContext('2d');
-
-  ctx.drawImage(img, 0, 0);
-
-  const result = runDetectionPipeline(
-    tempCanvas,
-    {
-      ...settings,
-      backgroundPixel: selectedBackgroundPixel
-    }
-  );
-
-  renderBinaryMaskToCanvas(
-    result.binaryMask,
-    tempCanvas.width,
-    tempCanvas.height,
-    thresholdCanvas
-  );
-}
-
-// ==============================
-// OVERLAY DRAWING
-// ==============================
-
-function drawOverlay(particles) {
-  const svg =
-    document.getElementById('overlaySvg');
-
-  if (!svg) return;
-
-  svg.innerHTML = '';
-
-  svg.setAttribute(
-    'viewBox',
-    `0 0 ${overlayCanvas.width} ${overlayCanvas.height}`
-  );
-
-  particles.forEach((particle, index) => {
-    if (!particle.pixels || particle.pixels.length < 5) {
-      return;
-    }
-
-    const boundary =
-      extractBoundaryPoints(particle.pixels);
-
-    if (!boundary.length) return;
-
-    const polygon =
-      document.createElementNS(
-        'http://www.w3.org/2000/svg',
-        'polygon'
-      );
-
-    polygon.setAttribute(
-      'points',
-      boundary
-        .map(p => `${p.x},${p.y}`)
-        .join(' ')
-    );
-
-    polygon.setAttribute('fill', 'none');
-    polygon.setAttribute('stroke', '#00ffff');
-    polygon.setAttribute('stroke-width', '1');
-
-    svg.appendChild(polygon);
-
-    const settings = getCurrentSettings();
-
-    if (particle.area >= settings.minimumOverlayArea) {
-      const text =
-        document.createElementNS(
-          'http://www.w3.org/2000/svg',
-          'text'
-        );
-
-      text.setAttribute('x', particle.centroidX);
-      text.setAttribute('y', particle.centroidY);
-      text.textContent = index + 1;
-
-      svg.appendChild(text);
-    }
-  });
-}
-
-// ==============================
-// PARTICLE FEATURE EXTRACTION
+// PARTICLE ANALYSIS MODULE
+// Aqua Insight Version 0.1
 // ==============================
 
 function extractParticlesWithFeatures(
-  particles,
-  canvas
+  detectedParticles,
+  sourceCanvas
 ) {
-  const ctx = canvas.getContext('2d');
+  const ctx = sourceCanvas.getContext('2d');
 
-  const width = canvas.width;
-  const height = canvas.height;
+  const imageData = ctx.getImageData(
+    0,
+    0,
+    sourceCanvas.width,
+    sourceCanvas.height
+  );
 
-  const imageData =
-    ctx.getImageData(0, 0, width, height).data;
+  return detectedParticles.map((particle, index) => {
+    const area = particle.area;
 
-  return particles.map(particle => {
-    let area = particle.pixels.length;
+    const perimeter = calculateParticlePerimeter(
+      particle.pixels
+    );
 
-    let sumX = 0;
-    let sumY = 0;
+    const circularity = calculateCircularity(
+      area,
+      perimeter
+    );
 
-    let minX = Infinity;
-    let maxX = -Infinity;
-    let minY = Infinity;
-    let maxY = -Infinity;
+    const feretDiameter = calculateFeretDiameter(
+      particle.pixels
+    );
 
-    let rSum = 0;
-    let gSum = 0;
-    let bSum = 0;
+    const aspectRatio = calculateAspectRatio(
+      particle.width,
+      particle.height
+    );
 
-    let rMin = 255;
-    let gMin = 255;
-    let bMin = 255;
+    const centroid = calculateCentroid(
+      particle.pixels
+    );
 
-    let rMax = 0;
-    let gMax = 0;
-    let bMax = 0;
-
-    particle.pixels.forEach(p => {
-      const idx = (p.y * width + p.x) * 4;
-
-      const r = imageData[idx];
-      const g = imageData[idx + 1];
-      const b = imageData[idx + 2];
-
-      rSum += r;
-      gSum += g;
-      bSum += b;
-
-      rMin = Math.min(rMin, r);
-      gMin = Math.min(gMin, g);
-      bMin = Math.min(bMin, b);
-
-      rMax = Math.max(rMax, r);
-      gMax = Math.max(gMax, g);
-      bMax = Math.max(bMax, b);
-
-      sumX += p.x;
-      sumY += p.y;
-
-      minX = Math.min(minX, p.x);
-      maxX = Math.max(maxX, p.x);
-      minY = Math.min(minY, p.y);
-      maxY = Math.max(maxY, p.y);
-    });
-
-    const centroidX = sumX / area;
-    const centroidY = sumY / area;
-
-    const widthBox = maxX - minX + 1;
-    const heightBox = maxY - minY + 1;
-
-    const aspectRatio =
-      widthBox / heightBox;
-
-    const perimeter =
-      estimatePerimeter(particle.pixels);
-
-    const circularity =
-      (4 * Math.PI * area) /
-      (perimeter * perimeter || 1);
-
-    const feretDiameter =
-      Math.max(widthBox, heightBox);
-
-    const touchesEdge =
-      particle.pixels.some(p =>
-        p.x === 0 ||
-        p.y === 0 ||
-        p.x === width - 1 ||
-        p.y === height - 1
-      );
+    const rgbStatistics = calculateRGBStatistics(
+      particle.pixels,
+      imageData,
+      sourceCanvas.width
+    );
 
     return {
-      ...particle,
+      id: index + 1,
+      pixels: particle.pixels,
       area,
       perimeter,
       circularity,
       feretDiameter,
       aspectRatio,
-      meanRGB: `(${Math.round(rSum / area)}, ${Math.round(gSum / area)}, ${Math.round(bSum / area)})`,
-      minRGB: `(${rMin}, ${gMin}, ${bMin})`,
-      maxRGB: `(${rMax}, ${gMax}, ${bMax})`,
-      centroidX,
-      centroidY,
-      touchesEdge
+      centroidX: centroid.x,
+      centroidY: centroid.y,
+      meanRGB: rgbStatistics.meanRGB,
+      minRGB: rgbStatistics.minRGB,
+      maxRGB: rgbStatistics.maxRGB,
+      touchesEdge: particle.touchesEdge,
+      minX: particle.minX,
+      minY: particle.minY,
+      maxX: particle.maxX,
+      maxY: particle.maxY,
+      width: particle.width,
+      height: particle.height
     };
   });
 }
 
 // ==============================
-// PARTICLE FILTERING
+// PARTICLE PERIMETER
 // ==============================
 
-function filterParticles(particles, settings) {
-  return particles.filter(p => {
-    const sizeValid =
-      p.area >= settings.minParticleSize &&
-      p.area <= settings.maxParticleSize;
+function calculateParticlePerimeter(pixels) {
+  const pointSet = new Set();
 
-    const circularityValid =
-      p.circularity >= settings.circularityMin &&
-      p.circularity <= settings.circularityMax;
-
-    const edgeValid =
-      settings.excludeEdgeParticles
-        ? !p.touchesEdge
-        : true;
-
-    return sizeValid && circularityValid && edgeValid;
+  pixels.forEach(pixel => {
+    pointSet.add(`${pixel.x},${pixel.y}`);
   });
-}
-
-// ==============================
-// PERIMETER ESTIMATION
-// ==============================
-
-function estimatePerimeter(pixels) {
-  const pixelSet = new Set(
-    pixels.map(p => `${p.x},${p.y}`)
-  );
 
   let perimeter = 0;
 
-  pixels.forEach(p => {
+  pixels.forEach(pixel => {
     const neighbors = [
-      [p.x - 1, p.y],
-      [p.x + 1, p.y],
-      [p.x, p.y - 1],
-      [p.x, p.y + 1]
+      `${pixel.x - 1},${pixel.y}`,
+      `${pixel.x + 1},${pixel.y}`,
+      `${pixel.x},${pixel.y - 1}`,
+      `${pixel.x},${pixel.y + 1}`
     ];
 
-    neighbors.forEach(([nx, ny]) => {
-      if (!pixelSet.has(`${nx},${ny}`)) {
+    neighbors.forEach(neighbor => {
+      if (!pointSet.has(neighbor)) {
         perimeter++;
       }
     });
@@ -684,104 +103,479 @@ function estimatePerimeter(pixels) {
 }
 
 // ==============================
-// NAVIGATION
+// CIRCULARITY
 // ==============================
 
-function initializeNavigationButtons() {
-  const prev =
-    document.getElementById('previousBatchImageButton');
-
-  const next =
-    document.getElementById('nextBatchImageButton');
-
-  if (prev) {
-    prev.addEventListener('click', () => {
-      if (!uploadedImages.length) return;
-
-      currentImageIndex--;
-
-      if (currentImageIndex < 0) {
-        currentImageIndex =
-          uploadedImages.length - 1;
-      }
-
-      displayCurrentAnalysis();
-      updateImageNavigationLabel();
-    });
+function calculateCircularity(
+  area,
+  perimeter
+) {
+  if (perimeter === 0) {
+    return 0;
   }
 
-  if (next) {
-    next.addEventListener('click', () => {
-      if (!uploadedImages.length) return;
-
-      currentImageIndex++;
-
-      if (currentImageIndex >= uploadedImages.length) {
-        currentImageIndex = 0;
-      }
-
-      displayCurrentAnalysis();
-      updateImageNavigationLabel();
-    });
-  }
+  return (
+    (4 * Math.PI * area) /
+    Math.pow(perimeter, 2)
+  );
 }
 
 // ==============================
-// LABEL UPDATE
+// FERET DIAMETER
 // ==============================
 
-function updateImageNavigationLabel() {
-  const label =
-    document.getElementById('activeImageLabel');
+function calculateFeretDiameter(pixels) {
+  let maxDistance = 0;
 
-  if (!label || !uploadedImages.length) return;
+  for (let i = 0; i < pixels.length; i++) {
+    for (let j = i + 1; j < pixels.length; j++) {
+      const dx = pixels[i].x - pixels[j].x;
+      const dy = pixels[i].y - pixels[j].y;
 
-  label.textContent =
-    `${uploadedImages[currentImageIndex].name} ` +
-    `(${currentImageIndex + 1}/${uploadedImages.length})`;
-}
+      const distance = Math.sqrt(
+        dx * dx + dy * dy
+      );
 
-// ==============================
-// SETTINGS
-// ==============================
-
-function initializeSettingPersistence() {
-  const ids = [
-    'channelMode',
-    'thresholdMode',
-    'manualThresholdValue',
-    'minimumOverlayArea',
-    'minParticleSize',
-    'maxParticleSize',
-    'circularityMin',
-    'circularityMax',
-    'invertThreshold',
-    'excludeEdgeParticles',
-    'useBackgroundPicker'
-  ];
-
-  ids.forEach(id => {
-    const el = document.getElementById(id);
-
-    if (!el) return;
-
-    const saved = getSetting(id);
-
-    if (saved !== undefined) {
-      if (el.type === 'checkbox') {
-        el.checked = saved;
-      } else {
-        el.value = saved;
+      if (distance > maxDistance) {
+        maxDistance = distance;
       }
     }
+  }
 
-    el.addEventListener('change', () => {
-      const val =
-        el.type === 'checkbox'
-          ? el.checked
-          : el.value;
+  return maxDistance;
+}
 
-      saveSetting(id, val);
+// ==============================
+// ASPECT RATIO
+// ==============================
+
+function calculateAspectRatio(
+  width,
+  height
+) {
+  if (height === 0) {
+    return 0;
+  }
+
+  return width / height;
+}
+
+// ==============================
+// CENTROID
+// ==============================
+
+function calculateCentroid(pixels) {
+  let sumX = 0;
+  let sumY = 0;
+
+  pixels.forEach(pixel => {
+    sumX += pixel.x;
+    sumY += pixel.y;
+  });
+
+  return {
+    x: sumX / pixels.length,
+    y: sumY / pixels.length
+  };
+}
+
+// ==============================
+// RGB STATISTICS
+// ==============================
+
+function calculateRGBStatistics(
+  pixels,
+  imageData,
+  imageWidth
+) {
+  let totalRed = 0;
+  let totalGreen = 0;
+  let totalBlue = 0;
+
+  let minRed = 255;
+  let minGreen = 255;
+  let minBlue = 255;
+
+  let maxRed = 0;
+  let maxGreen = 0;
+  let maxBlue = 0;
+
+  pixels.forEach(pixel => {
+    const index =
+      (pixel.y * imageWidth + pixel.x) * 4;
+
+    const red = imageData.data[index];
+    const green = imageData.data[index + 1];
+    const blue = imageData.data[index + 2];
+
+    totalRed += red;
+    totalGreen += green;
+    totalBlue += blue;
+
+    if (red < minRed) minRed = red;
+    if (green < minGreen) minGreen = green;
+    if (blue < minBlue) minBlue = blue;
+
+    if (red > maxRed) maxRed = red;
+    if (green > maxGreen) maxGreen = green;
+    if (blue > maxBlue) maxBlue = blue;
+  });
+
+```javascript
+  const meanRed = Math.round(
+    totalRed / pixels.length
+  );
+
+  const meanGreen = Math.round(
+    totalGreen / pixels.length
+  );
+
+  const meanBlue = Math.round(
+    totalBlue / pixels.length
+  );
+
+  return {
+    meanRGB: `${meanRed}, ${meanGreen}, ${meanBlue}`,
+    minRGB: `${minRed}, ${minGreen}, ${minBlue}`,
+    maxRGB: `${maxRed}, ${maxGreen}, ${maxBlue}`
+  };
+}
+
+// ==============================
+// PARTICLE SORTING
+// ==============================
+
+function sortParticlesByArea(
+  particles,
+  descending = true
+) {
+  return [...particles].sort((a, b) => {
+    return descending
+      ? b.area - a.area
+      : a.area - b.area;
+  });
+}
+
+function sortParticlesByCircularity(
+  particles,
+  descending = true
+) {
+  return [...particles].sort((a, b) => {
+    return descending
+      ? b.circularity - a.circularity
+      : a.circularity - b.circularity;
+  });
+}
+
+function sortParticlesByPerimeter(
+  particles,
+  descending = true
+) {
+  return [...particles].sort((a, b) => {
+    return descending
+      ? b.perimeter - a.perimeter
+      : a.perimeter - b.perimeter;
+  });
+}
+
+// ==============================
+// PARTICLE SUMMARY
+// ==============================
+
+function calculateParticleSummary(particles) {
+  if (!particles || !particles.length) {
+    return {
+      totalParticles: 0,
+      totalArea: 0,
+      meanArea: 0,
+      meanPerimeter: 0,
+      meanCircularity: 0,
+      meanFeretDiameter: 0
+    };
+  }
+
+  const totalParticles = particles.length;
+
+  const totalArea = particles.reduce(
+    (sum, particle) => {
+      return sum + particle.area;
+    },
+    0
+  );
+
+  const totalPerimeter = particles.reduce(
+    (sum, particle) => {
+      return sum + particle.perimeter;
+    },
+    0
+  );
+
+  const totalCircularity = particles.reduce(
+    (sum, particle) => {
+      return sum + particle.circularity;
+    },
+    0
+  );
+
+  const totalFeretDiameter = particles.reduce(
+    (sum, particle) => {
+      return sum + particle.feretDiameter;
+    },
+    0
+  );
+
+  return {
+    totalParticles,
+    totalArea,
+    meanArea: totalArea / totalParticles,
+    meanPerimeter:
+      totalPerimeter / totalParticles,
+    meanCircularity:
+      totalCircularity / totalParticles,
+    meanFeretDiameter:
+      totalFeretDiameter / totalParticles
+  };
+}
+
+// ==============================
+// PARTICLE EXPORT FORMATTER
+// ==============================
+
+function formatParticleForExport(
+  particle,
+  particleIndex
+) {
+  return {
+    particleId: particleIndex + 1,
+    area: particle.area,
+    perimeter: Number(
+      particle.perimeter.toFixed(2)
+    ),
+    circularity: Number(
+      particle.circularity.toFixed(4)
+    ),
+    feretDiameter: Number(
+      particle.feretDiameter.toFixed(2)
+    ),
+    aspectRatio: Number(
+      particle.aspectRatio.toFixed(2)
+    ),
+    meanRGB: particle.meanRGB,
+    minRGB: particle.minRGB,
+    maxRGB: particle.maxRGB,
+    centroidX: Number(
+      particle.centroidX.toFixed(2)
+    ),
+    centroidY: Number(
+      particle.centroidY.toFixed(2)
+    ),
+    touchesEdge: particle.touchesEdge
+      ? 'Yes'
+      : 'No'
+  };
+}
+
+// ==============================
+// PARTICLE REINDEXING
+// ==============================
+
+function reindexParticles(particles) {
+  return particles.map((particle, index) => {
+    return {
+      ...particle,
+      id: index + 1
+    };
+  });
+}
+
+// ==============================
+// PARTICLE BOUNDING BOX
+// ==============================
+
+function calculateBoundingBox(pixels) {
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+
+  pixels.forEach(pixel => {
+    if (pixel.x < minX) minX = pixel.x;
+    if (pixel.y < minY) minY = pixel.y;
+    if (pixel.x > maxX) maxX = pixel.x;
+    if (pixel.y > maxY) maxY = pixel.y;
+  });
+
+  return {
+    minX,
+    minY,
+    maxX,
+    maxY,
+    width: maxX - minX + 1,
+    height: maxY - minY + 1
+  };
+}
+
+```javascript
+// ==============================
+// PARTICLE SHAPE CLASSIFICATION
+// ==============================
+
+function classifyParticleShape(particle) {
+  const circularity = particle.circularity;
+  const aspectRatio = particle.aspectRatio;
+
+  if (circularity >= 0.85) {
+    return 'Round';
+  }
+
+  if (
+    circularity >= 0.6 &&
+    aspectRatio >= 0.75 &&
+    aspectRatio <= 1.25
+  ) {
+    return 'Oval';
+  }
+
+  if (aspectRatio > 1.5) {
+    return 'Elongated';
+  }
+
+  if (circularity < 0.4) {
+    return 'Irregular';
+  }
+
+  return 'Intermediate';
+}
+
+// ==============================
+// PARTICLE DENSITY
+// ==============================
+
+function calculateParticleDensity(
+  particles,
+  imageWidth,
+  imageHeight
+) {
+  const imageArea = imageWidth * imageHeight;
+
+  if (imageArea === 0) {
+    return 0;
+  }
+
+  return particles.length / imageArea;
+}
+
+// ==============================
+// COVERAGE CALCULATION
+// ==============================
+
+function calculateCoverageMetrics(
+  particles,
+  imageWidth,
+  imageHeight
+) {
+  const totalParticleArea = particles.reduce(
+    (sum, particle) => {
+      return sum + particle.area;
+    },
+    0
+  );
+
+  const imageArea = imageWidth * imageHeight;
+
+  const coveragePercent =
+    imageArea > 0
+      ? (totalParticleArea / imageArea) * 100
+      : 0;
+
+  return {
+    coveragePixels: totalParticleArea,
+    coveragePercent: Number(
+      coveragePercent.toFixed(2)
+    )
+  };
+}
+
+// ==============================
+// PARTICLE DISTANCE MAP
+// ==============================
+
+function calculateNearestNeighborDistances(
+  particles
+) {
+  return particles.map((particle, index) => {
+    let nearestDistance = Infinity;
+
+    particles.forEach((otherParticle, otherIndex) => {
+      if (index === otherIndex) {
+        return;
+      }
+
+      const dx =
+        particle.centroidX - otherParticle.centroidX;
+
+      const dy =
+        particle.centroidY - otherParticle.centroidY;
+
+      const distance = Math.sqrt(
+        dx * dx + dy * dy
+      );
+
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+      }
     });
+
+    return {
+      particleId: particle.id,
+      nearestNeighborDistance:
+        nearestDistance === Infinity
+          ? 0
+          : Number(nearestDistance.toFixed(2))
+    };
+  });
+}
+
+// ==============================
+// PARTICLE EDGE FRACTION
+// ==============================
+
+function calculateEdgeParticleFraction(particles) {
+  if (!particles.length) {
+    return 0;
+  }
+
+  const edgeParticles = particles.filter(
+    particle => particle.touchesEdge
+  ).length;
+
+  return Number(
+    ((edgeParticles / particles.length) * 100).toFixed(2)
+  );
+}
+
+// ==============================
+// PARTICLE FEATURE VALIDATION
+// ==============================
+
+function validateParticleFeatures(particle) {
+  return (
+    particle.area >= 0 &&
+    particle.perimeter >= 0 &&
+    particle.circularity >= 0 &&
+    particle.feretDiameter >= 0 &&
+    particle.aspectRatio >= 0 &&
+    !Number.isNaN(particle.centroidX) &&
+    !Number.isNaN(particle.centroidY)
+  );
+}
+
+// ==============================
+// PARTICLE DATA SANITIZER
+// ==============================
+
+function sanitizeParticleData(particles) {
+  return particles.filter(particle => {
+    return validateParticleFeatures(particle);
   });
 }
