@@ -1,82 +1,77 @@
 <!DOCTYPE html>
-              <div class="feature-item active-feature-item">
-                <div>
-                  <h4>Particle Counter</h4>
-                  <p>
-                    Analyze particles using thresholding, color classification, connected component labeling, overlay rendering, and XLSX export.
-                  </p>
-                </div>
-                <a href="pages/particle-counter.html" class="primary-button">
-                  Open
-                </a>
-              </div>
-            </div>
+    </section>
+
+    <section class="content-section">
+      <div class="section-header">
+        <h3>Currently Available Feature</h3>
+      </div>
+
+      <div class="feature-list">
+        <div class="feature-item active-feature">
+          <div class="feature-status available">Available</div>
+          <div class="feature-content">
+            <h4>Particle Counter</h4>
+            <p>
+              Analyze particle count, coverage area, circularity, RGB intensity, overlay, classification, and XLSX export.
+            </p>
           </div>
+        </div>
+      </div>
+    </section>
 
-          <div class="content-card">
-            <div class="card-header">
-              <h3>Development Features</h3>
-            </div>
+    <section class="content-section">
+      <div class="section-header">
+        <h3>On Development</h3>
+      </div>
 
-            <div class="feature-list compact-list">
-              <div class="feature-item"><span>Color Area Analysis</span><span class="status-badge development-badge">Development</span></div>
-              <div class="feature-item"><span>Cell Density Analysis</span><span class="status-badge development-badge">Development</span></div>
-              <div class="feature-item"><span>Morphometric Analysis</span><span class="status-badge development-badge">Development</span></div>
-              <div class="feature-item"><span>RGB Distribution Analysis</span><span class="status-badge development-badge">Development</span></div>
-              <div class="feature-item"><span>Colony Counter</span><span class="status-badge development-badge">Development</span></div>
-              <div class="feature-item"><span>Plankton Classification</span><span class="status-badge development-badge">Development</span></div>
-            </div>
+      <div class="feature-list">
+        <div class="feature-item disabled-feature">
+          <div class="feature-status development">On Development</div>
+          <div class="feature-content">
+            <h4>Color Area Analysis</h4>
+            <p>
+              Measure and classify proportional area occupied by different color groups.
+            </p>
           </div>
-        </section>
+        </div>
 
-        <section class="content-card roadmap-card">
-          <div class="card-header">
-            <h3>System Roadmap</h3>
+        <div class="feature-item disabled-feature">
+          <div class="feature-status development">On Development</div>
+          <div class="feature-content">
+            <h4>Cell Density Analysis</h4>
+            <p>
+              Estimate object density and regional occupancy across histology images.
+            </p>
           </div>
+        </div>
 
-          <div class="roadmap-list">
-            <div class="roadmap-item">
-              <div class="roadmap-step">01</div>
-              <div>
-                <h4>Particle Counter Foundation</h4>
-                <p>Upload, thresholding, overlay rendering, particle analysis, and export system.</p>
-              </div>
-            </div>
-
-            <div class="roadmap-item">
-              <div class="roadmap-step">02</div>
-              <div>
-                <h4>Advanced Histology Tools</h4>
-                <p>Color classification, hepatopancreas analysis, and tissue segmentation workflows.</p>
-              </div>
-            </div>
-
-            <div class="roadmap-item">
-              <div class="roadmap-step">03</div>
-              <div>
-                <h4>AI-Assisted Analysis</h4>
-                <p>Future support for object detection, classification, and automatic report generation.</p>
-              </div>
-            </div>
+        <div class="feature-item disabled-feature">
+          <div class="feature-status development">On Development</div>
+          <div class="feature-content">
+            <h4>Histopathology Segmentation</h4>
+            <p>
+              Segment tissue structures and classify damaged or abnormal regions automatically.
+            </p>
           </div>
-        </section>
-      </main>
+        </div>
+      </div>
+    </section>
+  </main>
 
-      <footer class="main-footer">
-        <p>Aqua Insight © 2026 - Modular Web-Based Scientific Image Analysis Platform</p>
-      </footer>
+  <footer class="main-footer">
+    <div class="footer-content">
+      <p>Aqua Insight</p>
+      <p>Version 0.1</p>
+      <p>Scientific Browser-Based Image Analysis Platform</p>
     </div>
-  </div>
+  </footer>
 
   <script>
-    const dropdownButtons = document.querySelectorAll('.nav-dropdown-btn');
+    const featureDropdownBtn = document.getElementById('featureDropdownBtn');
+    const featureDropdownMenu = document.getElementById('featureDropdownMenu');
 
-    dropdownButtons.forEach(button => {
-      button.addEventListener('click', () => {
-        const targetId = button.dataset.target;
-        const targetMenu = document.getElementById(targetId);
-        targetMenu.classList.toggle('open');
-      });
+    featureDropdownBtn.addEventListener('click', () => {
+      featureDropdownMenu.classList.toggle('show');
     });
   </script>
 </body>
