@@ -1,9 +1,12 @@
 // ==============================
-// DETECTION ENGINE
+// DETECTION MODULE
 // Aqua Insight Version 0.1
 // ==============================
 
-function runDetectionPipeline(sourceCanvas, settings) {
+function runDetectionPipeline(
+  sourceCanvas,
+  settings
+) {
   const ctx = sourceCanvas.getContext('2d');
 
   const width = sourceCanvas.width;
@@ -16,24 +19,32 @@ function runDetectionPipeline(sourceCanvas, settings) {
     height
   );
 
-  const channelData = extractChannelData(
-    imageData,
+  const grayscalePixels = extractChannelPixels(
+    imageData.data,
     settings.channelMode
   );
 
-  const thresholdValue = calculateThresholdValue(
-    channelData,
+  let thresholdValue = calculateThresholdValue(
+    grayscalePixels,
     settings
   );
 
   let binaryMask = applyThreshold(
-    channelData,
-    width,
-    height,
+    grayscalePixels,
     thresholdValue,
-    settings.invertThreshold,
-    settings.backgroundPixel
+    settings.invertThreshold
   );
+
+  if (
+    settings.useBackgroundPicker &&
+    settings.backgroundPixel !== null
+  ) {
+    binaryMask = removeBackgroundPixels(
+      grayscalePixels,
+      binaryMask,
+      settings.backgroundPixel
+    );
+  }
 
   binaryMask = morphologicalOpening(
     binaryMask,
@@ -41,17 +52,16 @@ function runDetectionPipeline(sourceCanvas, settings) {
     height
   );
 
-  const labeledParticles = connectedComponentLabeling(
+  const particles = connectedComponentLabeling(
     binaryMask,
     width,
     height
   );
 
   return {
-    channelData,
-    binaryMask,
     thresholdValue,
-    particles: labeledParticles
+    binaryMask,
+    particles
   };
 }
 
@@ -59,69 +69,77 @@ function runDetectionPipeline(sourceCanvas, settings) {
 // CHANNEL EXTRACTION
 // ==============================
 
-function extractChannelData(
-  imageData,
+function extractChannelPixels(
+  pixelData,
   channelMode
 ) {
-  const data = imageData.data;
-
-  const output = new Uint8ClampedArray(
-    data.length / 4
+  const result = new Uint8Array(
+    pixelData.length / 4
   );
 
   for (
-    let pixelIndex = 0, channelIndex = 0;
-    pixelIndex < data.length;
-    pixelIndex += 4, channelIndex++
+    let i = 0, pixelIndex = 0;
+    i < pixelData.length;
+    i += 4, pixelIndex++
   ) {
-    const red = data[pixelIndex];
-    const green = data[pixelIndex + 1];
-    const blue = data[pixelIndex + 2];
+    const red = pixelData[i];
+    const green = pixelData[i + 1];
+    const blue = pixelData[i + 2];
+
+    let value = 0;
 
     switch (channelMode) {
       case 'red':
-        output[channelIndex] = red;
+        value = red;
         break;
 
       case 'green':
-        output[channelIndex] = green;
+        value = green;
         break;
 
       case 'blue':
-        output[channelIndex] = blue;
+        value = blue;
         break;
 
       case 'grayscale':
       default:
-        output[channelIndex] = Math.round(
+        value = Math.round(
           red * 0.299 +
           green * 0.587 +
           blue * 0.114
         );
         break;
     }
+
+    result[pixelIndex] = value;
   }
 
-  return output;
+  return result;
 }
 
 // ==============================
-// THRESHOLD CONTROLLER
+// THRESHOLD SELECTION
 // ==============================
 
 function calculateThresholdValue(
-  grayscale,
+  grayscalePixels,
   settings
 ) {
   switch (settings.thresholdMode) {
     case 'mean':
-      return calculateMeanThreshold(grayscale);
+      return calculateMeanThreshold(
+        grayscalePixels
+      );
 
     case 'triangle':
-      return calculateTriangleThreshold(grayscale);
+      return calculateTriangleThreshold(
+        grayscalePixels
+      );
 
     case 'minerror':
-      return calculateMinimumErrorThreshold(grayscale);
+      return calculateMinimumErrorThreshold(
+        grayscalePixels
+      );
 
     case 'manual':
       return Number(
@@ -130,20 +148,22 @@ function calculateThresholdValue(
 
     case 'otsu':
     default:
-      return calculateOtsuThreshold(grayscale);
+      return calculateOtsuThreshold(
+        grayscalePixels
+      );
   }
 }
 
 // ==============================
-// HISTOGRAM UTILITY
+// HISTOGRAM
 // ==============================
 
-function buildHistogram(grayscale) {
+function buildHistogram(grayscalePixels) {
   const histogram = new Array(256).fill(0);
 
-  for (let i = 0; i < grayscale.length; i++) {
-    histogram[grayscale[i]]++;
-  }
+  grayscalePixels.forEach(value => {
+    histogram[value]++;
+  });
 
   return histogram;
 }
@@ -152,192 +172,203 @@ function buildHistogram(grayscale) {
 // OTSU THRESHOLD
 // ==============================
 
-function calculateOtsuThreshold(grayscale) {
-  const histogram = buildHistogram(grayscale);
+function calculateOtsuThreshold(
+  grayscalePixels
+) {
+  const histogram = buildHistogram(
+    grayscalePixels
+  );
 
-  const totalPixels = grayscale.length;
+  const total = grayscalePixels.length;
 
-  let totalIntensity = 0;
+  let sum = 0;
 
   for (let i = 0; i < 256; i++) {
-    totalIntensity += i * histogram[i];
+    sum += i * histogram[i];
   }
 
-  let backgroundWeight = 0;
-  let foregroundWeight = 0;
+  let sumBackground = 0;
+  let weightBackground = 0;
+  let maxVariance = 0;
+  let threshold = 0;
 
-  let backgroundIntensity = 0;
+  for (let i = 0; i < 256; i++) {
+    weightBackground += histogram[i];
 
-  let bestVariance = -1;
-  let bestThreshold = 128;
-
-  for (let threshold = 0; threshold < 256; threshold++) {
-    backgroundWeight += histogram[threshold];
-
-    if (backgroundWeight === 0) {
+    if (weightBackground === 0) {
       continue;
     }
 
-    foregroundWeight =
-      totalPixels - backgroundWeight;
+    const weightForeground =
+      total - weightBackground;
 
-    if (foregroundWeight === 0) {
+    if (weightForeground === 0) {
       break;
     }
 
-    backgroundIntensity +=
-      threshold * histogram[threshold];
+    sumBackground += i * histogram[i];
 
-    const backgroundMean =
-      backgroundIntensity / backgroundWeight;
+    const meanBackground =
+      sumBackground / weightBackground;
 
-    const foregroundMean =
-      (totalIntensity - backgroundIntensity) /
-      foregroundWeight;
+    const meanForeground =
+      (sum - sumBackground) /
+      weightForeground;
 
-    const betweenClassVariance =
-      backgroundWeight *
-      foregroundWeight *
+    const betweenVariance =
+      weightBackground *
+      weightForeground *
       Math.pow(
-        backgroundMean - foregroundMean,
+        meanBackground - meanForeground,
         2
       );
 
-    if (betweenClassVariance > bestVariance) {
-      bestVariance = betweenClassVariance;
-      bestThreshold = threshold;
+    if (betweenVariance > maxVariance) {
+      maxVariance = betweenVariance;
+      threshold = i;
     }
   }
-
-  return bestThreshold;
-}
-
 // ==============================
 // MEAN THRESHOLD
 // ==============================
 
-function calculateMeanThreshold(grayscale) {
-  let sum = 0;
+function calculateMeanThreshold(
+  grayscalePixels
+) {
+  let total = 0;
 
-  for (let i = 0; i < grayscale.length; i++) {
-    sum += grayscale[i];
-  }
+  grayscalePixels.forEach(value => {
+    total += value;
+  });
 
-  return Math.round(sum / grayscale.length);
+  return Math.round(
+    total / grayscalePixels.length
+  );
 }
 
 // ==============================
 // TRIANGLE THRESHOLD
 // ==============================
 
-function calculateTriangleThreshold(grayscale) {
-  const histogram = buildHistogram(grayscale);
+function calculateTriangleThreshold(
+  grayscalePixels
+) {
+  const histogram = buildHistogram(
+    grayscalePixels
+  );
 
-  let peakIndex = 0;
+  let left = 0;
+  let right = 255;
+  let peak = 0;
+  let peakValue = 0;
 
-  for (let i = 1; i < histogram.length; i++) {
-    if (histogram[i] > histogram[peakIndex]) {
-      peakIndex = i;
+  for (let i = 0; i < 256; i++) {
+    if (histogram[i] > 0) {
+      left = i;
+      break;
     }
   }
 
-
-  let leftBoundary = 0;
-  let rightBoundary = 255;
-
-  while (
-    leftBoundary < 255 &&
-    histogram[leftBoundary] === 0
-  ) {
-    leftBoundary++;
+  for (let i = 255; i >= 0; i--) {
+    if (histogram[i] > 0) {
+      right = i;
+      break;
+    }
   }
 
-  while (
-    rightBoundary > 0 &&
-    histogram[rightBoundary] === 0
-  ) {
-    rightBoundary--;
+  for (let i = 0; i < 256; i++) {
+    if (histogram[i] > peakValue) {
+      peakValue = histogram[i];
+      peak = i;
+    }
   }
 
   let maxDistance = -1;
-  let bestThreshold = peakIndex;
+  let threshold = peak;
 
-  for (
-    let intensity = leftBoundary;
-    intensity <= rightBoundary;
-    intensity++
-  ) {
-    const distance = Math.abs(
-      (
-        (rightBoundary - leftBoundary) *
-        (peakIndex - intensity)
-      ) -
-      (
-        (peakIndex - leftBoundary) *
-        (rightBoundary - intensity)
-      )
-    );
+  const inverted = peak - left < right - peak;
 
-    if (distance > maxDistance) {
-      maxDistance = distance;
-      bestThreshold = intensity;
+  if (inverted) {
+    for (let i = peak; i <= right; i++) {
+      const distance = Math.abs(
+        (right - peak) *
+        (peakValue - histogram[i]) -
+        (peakValue - 0) * (i - peak)
+      );
+
+      if (distance > maxDistance) {
+        maxDistance = distance;
+        threshold = i;
+      }
+    }
+  } else {
+    for (let i = left; i <= peak; i++) {
+      const distance = Math.abs(
+        (peak - left) *
+        (peakValue - histogram[i]) -
+        (peakValue - 0) * (i - left)
+      );
+
+      if (distance > maxDistance) {
+        maxDistance = distance;
+        threshold = i;
+      }
     }
   }
 
-  return bestThreshold;
+  return threshold;
 }
 
 // ==============================
 // MINIMUM ERROR THRESHOLD
+// Simplified iterative threshold
 // ==============================
 
-function calculateMinimumErrorThreshold(grayscale) {
-  const histogram = buildHistogram(grayscale);
+function calculateMinimumErrorThreshold(
+  grayscalePixels
+) {
+  let threshold = calculateMeanThreshold(
+    grayscalePixels
+  );
 
-  let bestThreshold = 128;
-  let minimumDifference = Infinity;
+  let previousThreshold = 0;
 
-  for (let threshold = 1; threshold < 255; threshold++) {
-    let backgroundCount = 0;
-    let foregroundCount = 0;
+  while (
+    Math.abs(threshold - previousThreshold) > 1
+  ) {
+    previousThreshold = threshold;
 
     let backgroundSum = 0;
+    let backgroundCount = 0;
     let foregroundSum = 0;
+    let foregroundCount = 0;
 
-    for (let i = 0; i <= threshold; i++) {
-      backgroundCount += histogram[i];
-      backgroundSum += histogram[i] * i;
-    }
-
-    for (let i = threshold + 1; i < 256; i++) {
-      foregroundCount += histogram[i];
-      foregroundSum += histogram[i] * i;
-    }
-
-    if (
-      backgroundCount === 0 ||
-      foregroundCount === 0
-    ) {
-      continue;
-    }
+    grayscalePixels.forEach(value => {
+      if (value <= threshold) {
+        backgroundSum += value;
+        backgroundCount++;
+      } else {
+        foregroundSum += value;
+        foregroundCount++;
+      }
+    });
 
     const backgroundMean =
-      backgroundSum / backgroundCount;
+      backgroundCount > 0
+        ? backgroundSum / backgroundCount
+        : 0;
 
     const foregroundMean =
-      foregroundSum / foregroundCount;
+      foregroundCount > 0
+        ? foregroundSum / foregroundCount
+        : 0;
 
-    const meanDifference = Math.abs(
-      foregroundMean - backgroundMean
+    threshold = Math.round(
+      (backgroundMean + foregroundMean) / 2
     );
-
-    if (meanDifference < minimumDifference) {
-      minimumDifference = meanDifference;
-      bestThreshold = threshold;
-    }
   }
 
-  return bestThreshold;
+  return threshold;
 }
 
 // ==============================
@@ -345,45 +376,56 @@ function calculateMinimumErrorThreshold(grayscale) {
 // ==============================
 
 function applyThreshold(
-  grayscale,
-  width,
-  height,
+  grayscalePixels,
   thresholdValue,
-  invertThreshold,
-  backgroundPixel
+  invertThreshold = false
 ) {
   const binaryMask = new Uint8Array(
-    width * height
+    grayscalePixels.length
   );
 
-  for (let i = 0; i < grayscale.length; i++) {
-    const pixelValue = grayscale[i];
+  for (let i = 0; i < grayscalePixels.length; i++) {
+    const foreground = invertThreshold
+      ? grayscalePixels[i] < thresholdValue
+      : grayscalePixels[i] > thresholdValue;
 
-    let isForeground = invertThreshold
-      ? pixelValue < thresholdValue
-      : pixelValue >= thresholdValue;
-
-    if (
-      backgroundPixel !== null &&
-      backgroundPixel !== undefined
-    ) {
-      const difference = Math.abs(
-        pixelValue - backgroundPixel
-      );
-
-      if (difference <= 10) {
-        isForeground = false;
-      }
-    }
-
-    binaryMask[i] = isForeground ? 1 : 0;
+    binaryMask[i] = foreground ? 1 : 0;
   }
 
   return binaryMask;
 }
+  // ==============================
+// BACKGROUND REMOVAL
+// ==============================
+
+function removeBackgroundPixels(
+  grayscalePixels,
+  binaryMask,
+  backgroundPixel
+) {
+  const tolerance = 20;
+
+  const filteredMask = new Uint8Array(
+    binaryMask.length
+  );
+
+  for (let i = 0; i < binaryMask.length; i++) {
+    const difference = Math.abs(
+      grayscalePixels[i] - backgroundPixel
+    );
+
+    filteredMask[i] =
+      difference <= tolerance
+        ? 0
+        : binaryMask[i];
+  }
+
+  return filteredMask;
+}
 
 // ==============================
 // MORPHOLOGICAL OPENING
+// Erosion + Dilation
 // ==============================
 
 function morphologicalOpening(
@@ -391,45 +433,39 @@ function morphologicalOpening(
   width,
   height
 ) {
-  const eroded = erosion(
+  const eroded = erodeBinaryMask(
     binaryMask,
     width,
     height
   );
 
-  const dilated = dilation(
+  return dilateBinaryMask(
     eroded,
     width,
     height
   );
-
-  return dilated;
 }
 
-// ==============================
-// EROSION
-// ==============================
-
-function erosion(
+function erodeBinaryMask(
   binaryMask,
   width,
   height
 ) {
   const output = new Uint8Array(
-    width * height
+    binaryMask.length
   );
 
   for (let y = 1; y < height - 1; y++) {
     for (let x = 1; x < width - 1; x++) {
-      let keepPixel = true;
+      let keepPixel = 1;
 
       for (let ky = -1; ky <= 1; ky++) {
         for (let kx = -1; kx <= 1; kx++) {
-          const neighborIndex =
+          const index =
             (y + ky) * width + (x + kx);
 
-          if (binaryMask[neighborIndex] === 0) {
-            keepPixel = false;
+          if (binaryMask[index] === 0) {
+            keepPixel = 0;
             break;
           }
         }
@@ -439,37 +475,33 @@ function erosion(
         }
       }
 
-      output[y * width + x] = keepPixel ? 1 : 0;
+      output[y * width + x] = keepPixel;
     }
   }
 
   return output;
 }
 
-// ==============================
-// DILATION
-// ==============================
-
-function dilation(
+function dilateBinaryMask(
   binaryMask,
   width,
   height
 ) {
   const output = new Uint8Array(
-    width * height
+    binaryMask.length
   );
 
   for (let y = 1; y < height - 1; y++) {
     for (let x = 1; x < width - 1; x++) {
-      let fillPixel = false;
+      let fillPixel = 0;
 
       for (let ky = -1; ky <= 1; ky++) {
         for (let kx = -1; kx <= 1; kx++) {
-          const neighborIndex =
+          const index =
             (y + ky) * width + (x + kx);
 
-          if (binaryMask[neighborIndex] === 1) {
-            fillPixel = true;
+          if (binaryMask[index] === 1) {
+            fillPixel = 1;
             break;
           }
         }
@@ -479,13 +511,12 @@ function dilation(
         }
       }
 
-      output[y * width + x] = fillPixel ? 1 : 0;
+      output[y * width + x] = fillPixel;
     }
   }
 
   return output;
 }
-
 
 // ==============================
 // CONNECTED COMPONENT LABELING
@@ -497,12 +528,10 @@ function connectedComponentLabeling(
   height
 ) {
   const visited = new Uint8Array(
-    width * height
+    binaryMask.length
   );
 
   const particles = [];
-
-  let particleId = 1;
 
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
@@ -516,81 +545,58 @@ function connectedComponentLabeling(
       }
 
       const particle = floodFillParticle(
+        x,
+        y,
         binaryMask,
         visited,
         width,
-        height,
-        x,
-        y,
-        particleId
+        height
       );
 
-      if (particle.pixels.length > 0) {
+      if (particle.area > 0) {
         particles.push(particle);
-        particleId++;
       }
     }
   }
 
   return particles;
 }
-
+  
+  return threshold;
+}
 // ==============================
-// FLOOD FILL PARTICLE EXTRACTION
+// FLOOD FILL PARTICLE
 // ==============================
 
 function floodFillParticle(
+  startX,
+  startY,
   binaryMask,
   visited,
   width,
-  height,
-  startX,
-  startY,
-  particleId
+  height
 ) {
-  const stack = [];
-
-  stack.push({
-    x: startX,
-    y: startY
-  });
-
+  const queue = [[startX, startY]];
   const pixels = [];
-
-  let touchesEdge = false;
 
   let minX = startX;
   let minY = startY;
   let maxX = startX;
   let maxY = startY;
 
-  while (stack.length > 0) {
-    const current = stack.pop();
+  let touchesEdge = false;
 
-    const x = current.x;
-    const y = current.y;
+  visited[startY * width + startX] = 1;
 
-    if (
-      x < 0 ||
-      y < 0 ||
-      x >= width ||
-      y >= height
-    ) {
-      continue;
-    }
-
-    const index = y * width + x;
-
-    if (
-      visited[index] === 1 ||
-      binaryMask[index] === 0
-    ) {
-      continue;
-    }
-
-    visited[index] = 1;
+  while (queue.length > 0) {
+    const [x, y] = queue.pop();
 
     pixels.push({ x, y });
+
+    if (x < minX) minX = x;
+    if (y < minY) minY = y;
+    if (x > maxX) maxX = x;
+    if (y > maxY) maxY = y;
 
     if (
       x === 0 ||
@@ -601,70 +607,129 @@ function floodFillParticle(
       touchesEdge = true;
     }
 
-    if (x < minX) minX = x;
-    if (y < minY) minY = y;
-    if (x > maxX) maxX = x;
-    if (y > maxY) maxY = y;
+    const neighbors = [
+      [x - 1, y],
+      [x + 1, y],
+      [x, y - 1],
+      [x, y + 1],
+      [x - 1, y - 1],
+      [x + 1, y - 1],
+      [x - 1, y + 1],
+      [x + 1, y + 1]
+    ];
 
-    // 8-connectivity neighbors
-    stack.push({ x: x - 1, y: y - 1 });
-    stack.push({ x: x, y: y - 1 });
-    stack.push({ x: x + 1, y: y - 1 });
-    stack.push({ x: x - 1, y: y });
-    stack.push({ x: x + 1, y: y });
-    stack.push({ x: x - 1, y: y + 1 });
-    stack.push({ x: x, y: y + 1 });
-    stack.push({ x: x + 1, y: y + 1 });
+    neighbors.forEach(([nx, ny]) => {
+      if (
+        nx < 0 ||
+        ny < 0 ||
+        nx >= width ||
+        ny >= height
+      ) {
+        return;
+      }
+
+      const neighborIndex = ny * width + nx;
+
+      if (
+        binaryMask[neighborIndex] === 1 &&
+        visited[neighborIndex] === 0
+      ) {
+        visited[neighborIndex] = 1;
+        queue.push([nx, ny]);
+      }
+    });
   }
 
   return {
-    id: particleId,
     pixels,
     area: pixels.length,
-    touchesEdge,
     minX,
     minY,
     maxX,
     maxY,
     width: maxX - minX + 1,
-    height: maxY - minY + 1
+    height: maxY - minY + 1,
+    touchesEdge
   };
 }
 
 // ==============================
-// BINARY MASK TO IMAGE DATA
+// CHANNEL PREVIEW RENDER
 // ==============================
 
-function createBinaryImageData(
-  binaryMask,
-  width,
-  height
+function renderChannelPreview(
+  sourceCanvas,
+  targetCanvas,
+  channelMode
 ) {
-  const imageData = new ImageData(
-    width,
-    height
+  const sourceCtx = sourceCanvas.getContext('2d');
+  const targetCtx = targetCanvas.getContext('2d');
+
+  targetCanvas.width = sourceCanvas.width;
+  targetCanvas.height = sourceCanvas.height;
+
+  const imageData = sourceCtx.getImageData(
+    0,
+    0,
+    sourceCanvas.width,
+    sourceCanvas.height
   );
 
-  const data = imageData.data;
+  const outputData = targetCtx.createImageData(
+    sourceCanvas.width,
+    sourceCanvas.height
+  );
 
-  for (let i = 0; i < binaryMask.length; i++) {
-    const pixelValue = binaryMask[i] === 1
-      ? 255
-      : 0;
+  for (let i = 0; i < imageData.data.length; i += 4) {
+    const red = imageData.data[i];
+    const green = imageData.data[i + 1];
+    const blue = imageData.data[i + 2];
 
-    const dataIndex = i * 4;
+    let value = 0;
 
-    data[dataIndex] = pixelValue;
-    data[dataIndex + 1] = pixelValue;
-    data[dataIndex + 2] = pixelValue;
-    data[dataIndex + 3] = 255;
+    switch (channelMode) {
+      case 'red':
+        value = red;
+        outputData.data[i] = red;
+        outputData.data[i + 1] = 0;
+        outputData.data[i + 2] = 0;
+        break;
+
+      case 'green':
+        value = green;
+        outputData.data[i] = 0;
+        outputData.data[i + 1] = green;
+        outputData.data[i + 2] = 0;
+        break;
+
+      case 'blue':
+        value = blue;
+        outputData.data[i] = 0;
+        outputData.data[i + 1] = 0;
+        outputData.data[i + 2] = blue;
+        break;
+
+      case 'grayscale':
+      default:
+        value = Math.round(
+          red * 0.299 +
+          green * 0.587 +
+          blue * 0.114
+        );
+
+        outputData.data[i] = value;
+        outputData.data[i + 1] = value;
+        outputData.data[i + 2] = value;
+        break;
+    }
+
+    outputData.data[i + 3] = 255;
   }
 
-  return imageData;
+  targetCtx.putImageData(outputData, 0, 0);
 }
-
 // ==============================
-// BINARY MASK RENDERER
+// BINARY MASK RENDER
 // ==============================
 
 function renderBinaryMaskToCanvas(
@@ -677,138 +742,33 @@ function renderBinaryMaskToCanvas(
     return;
   }
 
+  const ctx = targetCanvas.getContext('2d');
+
   targetCanvas.width = width;
   targetCanvas.height = height;
 
-  const ctx = targetCanvas.getContext('2d');
-
-  const imageData = createBinaryImageData(
-    binaryMask,
+  const imageData = ctx.createImageData(
     width,
     height
   );
+
+  for (let i = 0; i < binaryMask.length; i++) {
+    const value = binaryMask[i] === 1 ? 255 : 0;
+
+    const pixelIndex = i * 4;
+
+    imageData.data[pixelIndex] = value;
+    imageData.data[pixelIndex + 1] = value;
+    imageData.data[pixelIndex + 2] = value;
+    imageData.data[pixelIndex + 3] = 255;
+  }
 
   ctx.putImageData(imageData, 0, 0);
 }
 
 // ==============================
-// CHANNEL PREVIEW IMAGE DATA
-// ==============================
-
-function createChannelPreviewImageData(
-  sourceImageData,
-  channelMode
-) {
-  const previewImageData = new ImageData(
-    sourceImageData.width,
-    sourceImageData.height
-  );
-
-  const source = sourceImageData.data;
-  const output = previewImageData.data;
-
-  for (let i = 0; i < source.length; i += 4) {
-    const red = source[i];
-    const green = source[i + 1];
-    const blue = source[i + 2];
-
-
-    switch (channelMode) {
-      case 'red':
-        output[i] = red;
-        output[i + 1] = 0;
-        output[i + 2] = 0;
-        break;
-
-      case 'green':
-        output[i] = 0;
-        output[i + 1] = green;
-        output[i + 2] = 0;
-        break;
-
-      case 'blue':
-        output[i] = 0;
-        output[i + 1] = 0;
-        output[i + 2] = blue;
-        break;
-
-      case 'grayscale':
-      default:
-        const gray = Math.round(
-          red * 0.299 +
-          green * 0.587 +
-          blue * 0.114
-        );
-
-        output[i] = gray;
-        output[i + 1] = gray;
-        output[i + 2] = gray;
-        break;
-    }
-
-    output[i + 3] = 255;
-  }
-
-  return previewImageData;
-}
-
-// ==============================
-// CHANNEL PREVIEW RENDERER
-// ==============================
-
-function renderChannelPreview(
-  sourceCanvas,
-  targetCanvas,
-  channelMode
-) {
-  if (!sourceCanvas || !targetCanvas) {
-    return;
-  }
-
-  targetCanvas.width = sourceCanvas.width;
-  targetCanvas.height = sourceCanvas.height;
-
-  const sourceCtx = sourceCanvas.getContext('2d');
-  const targetCtx = targetCanvas.getContext('2d');
-
-  const sourceImageData = sourceCtx.getImageData(
-    0,
-    0,
-    sourceCanvas.width,
-    sourceCanvas.height
-  );
-
-  const previewImageData =
-    createChannelPreviewImageData(
-      sourceImageData,
-      channelMode
-    );
-
-  targetCtx.putImageData(
-    previewImageData,
-    0,
-    0
-  );
-}
-
-// ==============================
-// OVERLAY SVG RESET
-// ==============================
-
-function clearOverlaySvg() {
-  const svg = document.getElementById(
-    'overlaySvg'
-  );
-
-  if (!svg) {
-    return;
-  }
-
-  svg.innerHTML = '';
-}
-
-// ==============================
-// OVERLAY DRAWER
+// OVERLAY DRAWING
+// Fast rectangle-based overlay
 // ==============================
 
 function drawParticleOverlay(
@@ -816,9 +776,7 @@ function drawParticleOverlay(
   width,
   height
 ) {
-  const svg = document.getElementById(
-    'overlaySvg'
-  );
+  const svg = document.getElementById('overlaySvg');
 
   if (!svg) {
     return;
@@ -828,53 +786,28 @@ function drawParticleOverlay(
 
   svg.setAttribute('width', width);
   svg.setAttribute('height', height);
-  svg.setAttribute(
-    'viewBox',
-    `0 0 ${width} ${height}`
-  );
+  svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
 
   const settings = getCurrentSettings();
 
   particles.forEach((particle, index) => {
-    if (!particle.pixels || particle.pixels.length < 3) {
-      return;
-    }
-
-    const boundaryPoints = extractBoundaryPoints(
-      particle.pixels
-    );
-
-    if (!boundaryPoints.length) {
-      return;
-    }
-
-    const smoothedPoints = smoothBoundaryPoints(
-      boundaryPoints
-    );
-
-    const polygon = document.createElementNS(
+    const rect = document.createElementNS(
       'http://www.w3.org/2000/svg',
-      'polygon'
+      'rect'
     );
 
-    polygon.setAttribute(
-      'points',
-      smoothedPoints
-        .map(point => `${point.x},${point.y}`)
-        .join(' ')
-    );
+    rect.setAttribute('x', particle.minX);
+    rect.setAttribute('y', particle.minY);
+    rect.setAttribute('width', particle.width);
+    rect.setAttribute('height', particle.height);
+    rect.setAttribute('fill', 'none');
+    rect.setAttribute('stroke', '#00ffff');
+    rect.setAttribute('stroke-width', '1');
 
-    polygon.setAttribute('fill', 'none');
-    polygon.setAttribute('stroke', '#00ffff');
-    polygon.setAttribute('stroke-width', '1');
-    polygon.setAttribute('stroke-linejoin', 'round');
-    polygon.setAttribute('stroke-linecap', 'round');
-
-    svg.appendChild(polygon);
+    svg.appendChild(rect);
 
     if (
-      particle.area >=
-      settings.minimumOverlayArea
+      particle.area >= settings.minimumOverlayArea
     ) {
       const text = document.createElementNS(
         'http://www.w3.org/2000/svg',
@@ -884,12 +817,12 @@ function drawParticleOverlay(
       text.setAttribute('x', particle.centroidX);
       text.setAttribute('y', particle.centroidY);
       text.setAttribute('fill', '#00ffff');
-      text.setAttribute('font-size', '12');
-      text.setAttribute('font-weight', '700');
+      text.setAttribute('font-size', '10');
       text.setAttribute('text-anchor', 'middle');
       text.setAttribute('dominant-baseline', 'middle');
 
-      text.textContent = index + 1;
+      text.textContent =
+        particle.id || index + 1;
 
       svg.appendChild(text);
     }
@@ -897,424 +830,17 @@ function drawParticleOverlay(
 }
 
 // ==============================
-// BOUNDARY EXTRACTION
+// CLEAR OVERLAY SVG
 // ==============================
 
-function extractBoundaryPoints(pixels) {
-  const pointSet = new Set();
+function clearOverlaySvg() {
+  const svg = document.getElementById('overlaySvg');
 
-  pixels.forEach(pixel => {
-    pointSet.add(`${pixel.x},${pixel.y}`);
-  });
-
-  const boundary = [];
-
-  pixels.forEach(pixel => {
-    const neighbors = [
-      `${pixel.x - 1},${pixel.y}`,
-      `${pixel.x + 1},${pixel.y}`,
-      `${pixel.x},${pixel.y - 1}`,
-      `${pixel.x},${pixel.y + 1}`
-    ];
-
-    const isBoundary = neighbors.some(neighbor => {
-      return !pointSet.has(neighbor);
-    });
-
-    if (isBoundary) {
-      boundary.push({
-        x: pixel.x,
-        y: pixel.y
-      });
-    }
-  });
-
-  return boundary;
-}
-
-
-// ==============================
-// BOUNDARY SMOOTHING
-// ==============================
-
-function smoothBoundaryPoints(
-  boundaryPoints,
-  smoothingFactor = 2
-) {
-  if (
-    !boundaryPoints ||
-    boundaryPoints.length < 5
-  ) {
-    return boundaryPoints;
-  }
-
-  const smoothed = [];
-
-  for (let i = 0; i < boundaryPoints.length; i++) {
-    let totalX = 0;
-    let totalY = 0;
-    let count = 0;
-
-    for (
-      let offset = -smoothingFactor;
-      offset <= smoothingFactor;
-      offset++
-    ) {
-      let neighborIndex = i + offset;
-
-      if (neighborIndex < 0) {
-        neighborIndex = 0;
-      }
-
-      if (neighborIndex >= boundaryPoints.length) {
-        neighborIndex = boundaryPoints.length - 1;
-      }
-
-      totalX += boundaryPoints[neighborIndex].x;
-      totalY += boundaryPoints[neighborIndex].y;
-      count++;
-    }
-
-    smoothed.push({
-      x: totalX / count,
-      y: totalY / count
-    });
-  }
-
-  return smoothed;
-}
-
-// ==============================
-// CURRENT SETTINGS COLLECTOR
-// ==============================
-
-function getCurrentSettings() {
-  return {
-    channelMode:
-      document.getElementById('channelMode')?.value ||
-      'grayscale',
-
-    thresholdMode:
-      document.getElementById('thresholdMode')?.value ||
-      'otsu',
-
-    manualThresholdValue: Number(
-      document.getElementById('manualThresholdValue')?.value ||
-      128
-    ),
-
-    minimumOverlayArea: Number(
-      document.getElementById('minimumOverlayArea')?.value ||
-      50
-    ),
-
-    minParticleSize: Number(
-      document.getElementById('minParticleSize')?.value ||
-      0
-    ),
-
-    maxParticleSize: Number(
-      document.getElementById('maxParticleSize')?.value ||
-      999999
-    ),
-
-    circularityMin: Number(
-      document.getElementById('circularityMin')?.value ||
-      0
-    ),
-
-    circularityMax: Number(
-      document.getElementById('circularityMax')?.value ||
-      1
-    ),
-
-    invertThreshold:
-      document.getElementById('invertThreshold')?.checked ||
-      false,
-
-    excludeEdgeParticles:
-      document.getElementById('excludeEdgeParticles')?.checked ||
-      false,
-
-    useBackgroundPicker:
-      document.getElementById('useBackgroundPicker')?.checked ||
-      false,
-
-    backgroundPixel:
-      typeof selectedBackgroundPixel !== 'undefined'
-        ? selectedBackgroundPixel
-        : null
-  };
-}
-
-// ==============================
-// TABLE RESET
-// ==============================
-
-function resetResultsTable() {
-  const tableBody = document.getElementById(
-    'resultsTableBody'
-  );
-
-  if (!tableBody) {
+  if (!svg) {
     return;
   }
 
-  tableBody.innerHTML = `
-    <tr>
-      <td colspan="12" class="empty-table-message">
-        No analysis results available
-      </td>
-    </tr>
-  `;
-}
-
-// ==============================
-// TABLE POPULATOR
-// ==============================
-
-function populateResultsTable(particles) {
-  const tableBody = document.getElementById(
-    'resultsTableBody'
-  );
-
-  if (!tableBody) {
-    return;
+  while (svg.firstChild) {
+    svg.removeChild(svg.firstChild);
   }
-
-  if (!particles || particles.length === 0) {
-    resetResultsTable();
-    return;
-  }
-
-  tableBody.innerHTML = '';
-
-  particles.forEach((particle, index) => {
-    const row = document.createElement('tr');
-
-    row.innerHTML = `
-      <td>${index + 1}</td>
-      <td>${particle.area}</td>
-      <td>${particle.perimeter.toFixed(2)}</td>
-      <td>${particle.circularity.toFixed(3)}</td>
-      <td>${particle.feretDiameter.toFixed(2)}</td>
-      <td>${particle.aspectRatio.toFixed(2)}</td>
-      <td>${particle.meanRGB}</td>
-      <td>${particle.minRGB}</td>
-      <td>${particle.maxRGB}</td>
-      <td>${particle.centroidX.toFixed(2)}</td>
-      <td>${particle.centroidY.toFixed(2)}</td>
-      <td>${particle.touchesEdge ? 'Yes' : 'No'}</td>
-    `;
-
-    tableBody.appendChild(row);
-  });
 }
-
-// ==============================
-// SUMMARY UPDATE
-// ==============================
-
-function updateSummaryDisplay(result) {
-  updateSummaryValue(
-    'activeImageSummary',
-    result.filename || '-'
-  );
-
-  updateSummaryValue(
-    'particleCount',
-    result.particles?.length || 0
-  );
-
-  updateSummaryValue(
-    'coverageArea',
-    `${result.coveragePercent || 0}%`
-  );
-
-  updateSummaryValue(
-    'coveragePixelArea',
-    `${result.coveragePixels || 0} px`
-  );
-
-
-  updateSummaryValue(
-    'thresholdMethodLabel',
-    result.thresholdMode || '-'
-  );
-
-  updateSummaryValue(
-    'thresholdValueLabel',
-    result.thresholdValue || '-'
-  );
-
-  updateSummaryValue(
-    'channelModeLabel',
-    result.channelMode || '-'
-  );
-
-  updateSummaryValue(
-    'imageSizeLabel',
-    `${result.width || 0} × ${result.height || 0}`
-  );
-}
-
-function updateSummaryValue(id, value) {
-  const element = document.getElementById(id);
-
-  if (!element) {
-    return;
-  }
-
-  element.textContent = value;
-}
-
-// ==============================
-// SUMMARY RESET
-// ==============================
-
-function resetSummaryDisplay() {
-  updateSummaryValue('activeImageSummary', '-');
-  updateSummaryValue('particleCount', '0');
-  updateSummaryValue('coverageArea', '0%');
-  updateSummaryValue('coveragePixelArea', '0 px');
-  updateSummaryValue('thresholdMethodLabel', '-');
-  updateSummaryValue('thresholdValueLabel', '-');
-  updateSummaryValue('channelModeLabel', '-');
-  updateSummaryValue('imageSizeLabel', '-');
-}
-
-// ==============================
-// OVERLAY RESET
-// ==============================
-
-function resetOverlayCanvas() {
-  const overlayCanvas = document.getElementById(
-    'overlayCanvas'
-  );
-
-  if (!overlayCanvas) {
-    return;
-  }
-
-  const ctx = overlayCanvas.getContext('2d');
-
-  ctx.clearRect(
-    0,
-    0,
-    overlayCanvas.width,
-    overlayCanvas.height
-  );
-
-  clearOverlaySvg();
-}
-
-// ==============================
-// PREVIEW RESET
-// ==============================
-
-function resetPreviewCanvases() {
-  const canvasIds = [
-    'originalCanvas',
-    'channelCanvas',
-    'thresholdCanvas',
-    'overlayCanvas'
-  ];
-
-  canvasIds.forEach(canvasId => {
-    const canvas = document.getElementById(canvasId);
-
-    if (!canvas) {
-      return;
-    }
-
-    const ctx = canvas.getContext('2d');
-
-    ctx.clearRect(
-      0,
-      0,
-      canvas.width,
-      canvas.height
-    );
-  });
-
-  clearOverlaySvg();
-}
-
-// ==============================
-// FULL UI RESET
-// ==============================
-
-function resetAnalysisUI() {
-  resetPreviewCanvases();
-  resetOverlayCanvas();
-  resetResultsTable();
-  resetSummaryDisplay();
-}
-
-// ==============================
-// MANUAL THRESHOLD VISIBILITY
-// ==============================
-
-document.addEventListener('DOMContentLoaded', () => {
-  const thresholdMode = document.getElementById(
-    'thresholdMode'
-  );
-
-  const manualThresholdGroup = document.getElementById(
-    'manualThresholdGroup'
-  );
-
-  if (!thresholdMode || !manualThresholdGroup) {
-    return;
-  }
-
-  function updateManualThresholdVisibility() {
-    if (thresholdMode.value === 'manual') {
-      manualThresholdGroup.style.display = 'block';
-    } else {
-      manualThresholdGroup.style.display = 'none';
-    }
-  }
-
-  thresholdMode.addEventListener(
-    'change',
-    updateManualThresholdVisibility
-  );
-
-  updateManualThresholdVisibility();
-});
-
-// ==============================
-// THRESHOLD PREVIEW AUTO UPDATE
-// ==============================
-
-document.addEventListener('DOMContentLoaded', () => {
-  const triggerIds = [
-    'channelMode',
-    'thresholdMode',
-    'manualThresholdValue',
-    'invertThreshold'
-  ];
-
-  triggerIds.forEach(id => {
-    const element = document.getElementById(id);
-
-    if (!element) {
-      return;
-    }
-
-    element.addEventListener('change', () => {
-      if (
-        typeof renderBinaryPreview === 'function'
-      ) {
-        renderBinaryPreview();
-      }
-
-      if (
-        typeof renderSelectedChannelPreview === 'function'
-      ) {
-        renderSelectedChannelPreview();
-      }
-    });
-  });
-});
