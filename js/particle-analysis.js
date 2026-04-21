@@ -7,64 +7,55 @@ let uploadedImage = null;
 let uploadedImageName = '';
 let currentAnalysisMode = 'single';
 
-let originalCanvas = null;
-let channelCanvas = null;
-let thresholdCanvas = null;
-let overlayCanvas = null;
+const originalCanvas =
+  document.getElementById('originalCanvas');
 
-let originalCtx = null;
-let channelCtx = null;
-let thresholdCtx = null;
-let overlayCtx = null;
+const channelCanvas =
+  document.getElementById('channelCanvas');
+
+const thresholdCanvas =
+  document.getElementById('thresholdCanvas');
+
+const overlayCanvas =
+  document.getElementById('overlayCanvas');
+
+const originalCtx =
+  originalCanvas?.getContext('2d');
+
+const channelCtx =
+  channelCanvas?.getContext('2d');
+
+const thresholdCtx =
+  thresholdCanvas?.getContext('2d');
+
+const overlayCtx =
+  overlayCanvas?.getContext('2d');
 
 document.addEventListener('DOMContentLoaded', () => {
-  originalCanvas = document.getElementById('originalCanvas');
-  channelCanvas = document.getElementById('channelCanvas');
-  thresholdCanvas = document.getElementById('thresholdCanvas');
-  overlayCanvas = document.getElementById('overlayCanvas');
-
-  originalCtx = originalCanvas?.getContext('2d');
-  channelCtx = channelCanvas?.getContext('2d');
-  thresholdCtx = thresholdCanvas?.getContext('2d');
-  overlayCtx = overlayCanvas?.getContext('2d');
-
   initializeUpload();
   initializeModeButtons();
   initializeSettingsPersistence();
   initializeRunAnalysisButton();
   initializeThresholdModeVisibility();
-  initializeThresholdDescription();
-  resetResultsTable();
 });
 
-function initializeThresholdDescription() {
-  const thresholdMode = document.getElementById('thresholdMode');
-  const thresholdTooltip = document.getElementById('thresholdTooltip');
-
-  if (!thresholdMode || !thresholdTooltip) return;
-
-  function updateThresholdDescription() {
-    const selectedOption =
-      thresholdMode.options[thresholdMode.selectedIndex];
-
-    const description =
-      selectedOption.getAttribute('data-description');
-
-    thresholdTooltip.textContent =
-      description || 'No description available.';
-  }
-
-  thresholdMode.addEventListener('change', updateThresholdDescription);
-
-  updateThresholdDescription();
-}
+// ==============================
+// IMAGE UPLOAD
+// ==============================
 
 function initializeUpload() {
-  const uploadButton = document.getElementById('uploadButton');
-  const imageUpload = document.getElementById('imageUpload');
-  const uploadArea = document.getElementById('uploadArea');
+  const uploadButton =
+    document.getElementById('uploadButton');
 
-  if (!uploadButton || !imageUpload || !uploadArea) return;
+  const imageUpload =
+    document.getElementById('imageUpload');
+
+  const uploadArea =
+    document.getElementById('uploadArea');
+
+  if (!uploadButton || !imageUpload || !uploadArea) {
+    return;
+  }
 
   uploadButton.addEventListener('click', () => {
     imageUpload.click();
@@ -120,23 +111,27 @@ function handleImageFile(file) {
   const reader = new FileReader();
 
   reader.onload = event => {
-    const img = new Image();
+    const image = new Image();
 
-    img.onload = () => {
-      uploadedImage = img;
+    image.onload = () => {
+      uploadedImage = image;
 
-      renderOriginalImage(img);
+      renderOriginalImage(image);
       resetPreviewCanvases();
       updateImageUploadStatus(file.name);
       resetResultsTable();
-      updateSummary(0, 0);
+      clearOverlaySvg();
     };
 
-    img.src = event.target.result;
+    image.src = event.target.result;
   };
 
   reader.readAsDataURL(file);
 }
+
+// ==============================
+// RENDER IMAGE
+// ==============================
 
 function renderOriginalImage(image) {
   if (!originalCanvas || !originalCtx) return;
@@ -144,7 +139,13 @@ function renderOriginalImage(image) {
   originalCanvas.width = image.width;
   originalCanvas.height = image.height;
 
-  originalCtx.clearRect(0, 0, image.width, image.height);
+  originalCtx.clearRect(
+    0,
+    0,
+    image.width,
+    image.height
+  );
+
   originalCtx.drawImage(image, 0, 0);
 
   fitCanvasToContainer(originalCanvas);
@@ -165,13 +166,22 @@ function resetPreviewCanvases() {
     canvas.width = uploadedImage.width;
     canvas.height = uploadedImage.height;
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
   });
-
-  clearOverlaySvg();
 }
+
+// ==============================
+// MODE BUTTONS
+// ==============================
+
 function initializeModeButtons() {
-  const modeButtons = document.querySelectorAll('.sidebar-button');
+  const modeButtons =
+    document.querySelectorAll('.sidebar-button');
 
   modeButtons.forEach(button => {
     button.addEventListener('click', () => {
@@ -194,20 +204,12 @@ function initializeModeButtons() {
 
       resetResultsTable();
       clearOverlaySvg();
-      updateSummary(0, 0);
-
-      const uploadDescription =
-        document.querySelector('.upload-description');
-
-      if (uploadDescription) {
-        uploadDescription.textContent =
-          currentAnalysisMode === 'batch'
-            ? 'Upload multiple images for batch analysis'
-            : 'Supported image formats: JPG, PNG, BMP, TIFF';
-      }
     });
   });
 }
+// ==============================
+// SETTINGS
+// ==============================
 
 function initializeSettingsPersistence() {
   const settingIds = [
@@ -229,7 +231,10 @@ function initializeSettingsPersistence() {
 
     const savedValue = getSetting(id);
 
-    if (savedValue !== undefined && savedValue !== null) {
+    if (
+      savedValue !== undefined &&
+      savedValue !== null
+    ) {
       if (element.type === 'checkbox') {
         element.checked = savedValue;
       } else {
@@ -247,10 +252,6 @@ function initializeSettingsPersistence() {
 
       updateSummaryLabels();
       toggleManualThresholdVisibility();
-
-      if (id === 'thresholdMode') {
-        initializeThresholdDescription();
-      }
     });
   });
 
@@ -259,12 +260,12 @@ function initializeSettingsPersistence() {
 }
 
 function initializeThresholdModeVisibility() {
-  const thresholdModeElement =
+  const thresholdMode =
     document.getElementById('thresholdMode');
 
-  if (!thresholdModeElement) return;
+  if (!thresholdMode) return;
 
-  thresholdModeElement.addEventListener('change', () => {
+  thresholdMode.addEventListener('change', () => {
     toggleManualThresholdVisibility();
   });
 
@@ -273,18 +274,24 @@ function initializeThresholdModeVisibility() {
 
 function toggleManualThresholdVisibility() {
   const thresholdMode =
-    document.getElementById('thresholdMode')?.value;
+    document.getElementById('thresholdMode');
 
   const manualThresholdGroup =
     document.getElementById('manualThresholdGroup');
 
-  if (!manualThresholdGroup) return;
+  if (!thresholdMode || !manualThresholdGroup) {
+    return;
+  }
 
   manualThresholdGroup.style.display =
-    thresholdMode === 'manual'
+    thresholdMode.value === 'manual'
       ? 'block'
       : 'none';
 }
+
+// ==============================
+// RUN ANALYSIS
+// ==============================
 
 function initializeRunAnalysisButton() {
   const runAnalysisButton =
@@ -298,19 +305,21 @@ function initializeRunAnalysisButton() {
       return;
     }
 
-    if (!uploadedImage) {
-      alert('Please upload an image before analysis.');
-      return;
-    }
-
     runParticleAnalysis();
   });
 }
 
 function runParticleAnalysis() {
+  if (!uploadedImage) {
+    alert('Please upload an image before analysis.');
+    return;
+  }
+
   const settings = getCurrentSettings();
 
-  renderSelectedChannelPreview(settings.channelMode);
+  renderSelectedChannelPreview(
+    settings.channelMode
+  );
 
   const detectionResult = runDetectionPipeline(
     originalCanvas,
@@ -324,8 +333,6 @@ function runParticleAnalysis() {
     thresholdCanvas
   );
 
-  updateThresholdLabel(detectionResult.thresholdValue);
-
   const sourceImageData = originalCtx.getImageData(
     0,
     0,
@@ -333,16 +340,17 @@ function runParticleAnalysis() {
     originalCanvas.height
   );
 
-  let extractedParticles = detectionResult.particles.map(
-    particle => extractParticleFeatures(
-      particle,
-      sourceImageData,
-      originalCanvas.width,
-      originalCanvas.height
-    )
-  );
+  const extractedParticles =
+    detectionResult.particles.map(particle => {
+      return extractParticleFeatures(
+        particle,
+        sourceImageData,
+        originalCanvas.width,
+        originalCanvas.height
+      );
+    });
 
-  extractedParticles = extractedParticles.filter(particle => {
+  const filteredParticles = extractedParticles.filter(particle => {
     const validArea =
       particle.area >= settings.minParticleSize &&
       particle.area <= settings.maxParticleSize;
@@ -356,22 +364,29 @@ function runParticleAnalysis() {
         ? !particle.touchesEdge
         : true;
 
-    return validArea && validCircularity && validEdge;
+    return (
+      validArea &&
+      validCircularity &&
+      validEdge
+    );
   });
 
-  extractedParticles.forEach((particle, index) => {
-    particle.id = index + 1;
-  });
-
-  const totalArea = extractedParticles.reduce(
+  const totalArea = filteredParticles.reduce(
     (sum, particle) => sum + particle.area,
     0
   );
 
-  updateSummary(extractedParticles.length, totalArea);
-  populateResultsTable(extractedParticles);
-  drawParticleOverlay(extractedParticles);
-    storeAnalysisResults(extractedParticles, {
+  drawParticleOverlay(filteredParticles);
+  populateResultsTable(filteredParticles);
+  updateSummary(
+    filteredParticles.length,
+    totalArea
+  );
+    updateThresholdLabel(
+    detectionResult.thresholdValue
+  );
+
+  storeAnalysisResults(filteredParticles, {
     filename: uploadedImageName,
     analysisMode: currentAnalysisMode,
     thresholdMode: settings.thresholdMode,
@@ -383,11 +398,15 @@ function runParticleAnalysis() {
     maxParticleSize: settings.maxParticleSize,
     circularityMin: settings.circularityMin,
     circularityMax: settings.circularityMax,
-    detectedParticleCount: extractedParticles.length,
+    detectedParticleCount: filteredParticles.length,
     totalParticleArea: totalArea,
     coveragePercentage: calculateCoverage(totalArea)
   });
 }
+
+// ==============================
+// CHANNEL PREVIEW
+// ==============================
 
 function renderSelectedChannelPreview(channelMode) {
   if (!uploadedImage) return;
@@ -432,7 +451,12 @@ function renderSelectedChannelPreview(channelMode) {
 
       case 'grayscale':
       default:
-        const gray = Math.round((r + g + b) / 3);
+        const gray = Math.round(
+          (r * 0.299) +
+          (g * 0.587) +
+          (b * 0.114)
+        );
+
         data[i] = gray;
         data[i + 1] = gray;
         data[i + 2] = gray;
@@ -443,18 +467,22 @@ function renderSelectedChannelPreview(channelMode) {
   channelCtx.putImageData(imageData, 0, 0);
 }
 
+// ==============================
+// SUMMARY
+// ==============================
+
 function updateSummaryLabels() {
-  const channelMode =
-    document.getElementById('channelMode')?.value || 'grayscale';
-
-  const thresholdMode =
-    document.getElementById('thresholdMode')?.value || 'otsu';
-
   const channelModeLabel =
     document.getElementById('channelModeLabel');
 
   const thresholdMethodLabel =
     document.getElementById('thresholdMethodLabel');
+
+  const channelMode =
+    document.getElementById('channelMode')?.value || 'grayscale';
+
+  const thresholdMode =
+    document.getElementById('thresholdMode')?.value || 'otsu';
 
   if (channelModeLabel) {
     channelModeLabel.textContent = channelMode;
@@ -475,10 +503,13 @@ function updateThresholdLabel(thresholdValue) {
   if (!thresholdMethodLabel) return;
 
   thresholdMethodLabel.textContent =
-    `${thresholdMode.toUpperCase()} (${thresholdValue})`;
+    `${thresholdMode} (${thresholdValue})`;
 }
 
-function updateSummary(particleCount, totalArea) {
+function updateSummary(
+  particleCount,
+  totalArea
+) {
   const particleCountElement =
     document.getElementById('particleCount');
 
@@ -486,7 +517,8 @@ function updateSummary(particleCount, totalArea) {
     document.getElementById('coverageArea');
 
   if (particleCountElement) {
-    particleCountElement.textContent = particleCount;
+    particleCountElement.textContent =
+      particleCount;
   }
 
   if (coverageAreaElement) {
@@ -501,8 +533,13 @@ function calculateCoverage(totalArea) {
   const totalPixels =
     uploadedImage.width * uploadedImage.height;
 
-  return ((totalArea / totalPixels) * 100).toFixed(2);
+  return (
+    (totalArea / totalPixels) * 100
+  ).toFixed(2);
 }
+// ==============================
+// RESULTS TABLE
+// ==============================
 
 function resetResultsTable() {
   const resultsTableBody =
@@ -525,17 +562,18 @@ function populateResultsTable(particles) {
 
   if (!resultsTableBody) return;
 
+  resultsTableBody.innerHTML = '';
+
   if (!particles.length) {
     resetResultsTable();
     return;
   }
 
-  resultsTableBody.innerHTML = '';
-    particles.forEach(particle => {
+  particles.forEach((particle, index) => {
     const row = document.createElement('tr');
 
     row.innerHTML = `
-      <td>${particle.id}</td>
+      <td>${index + 1}</td>
       <td>${particle.area}</td>
       <td>${particle.perimeter}</td>
       <td>${particle.circularity}</td>
@@ -550,6 +588,10 @@ function populateResultsTable(particles) {
     resultsTableBody.appendChild(row);
   });
 }
+
+// ==============================
+// OVERLAY
+// ==============================
 
 function drawParticleOverlay(particles) {
   const overlaySvg =
@@ -574,41 +616,128 @@ function drawParticleOverlay(particles) {
     `0 0 ${uploadedImage.width} ${uploadedImage.height}`
   );
 
-  particles.forEach(particle => {
-    if (!particle.pixels || !particle.pixels.length) return;
+  particles.forEach((particle, index) => {
+    if (!particle.pixels || !particle.pixels.length) {
+      return;
+    }
+
+    const boundaryPoints =
+      extractBoundaryPoints(particle.pixels);
+
+    if (boundaryPoints.length < 3) {
+      return;
+    }
 
     const polygon = document.createElementNS(
       'http://www.w3.org/2000/svg',
       'polygon'
     );
 
-    const pointString = particle.pixels
-      .map(pixel => `${pixel.x},${pixel.y}`)
-      .join(' ');
+    polygon.setAttribute(
+      'points',
+      boundaryPoints
+        .map(point => `${point.x},${point.y}`)
+        .join(' ')
+    );
 
-    polygon.setAttribute('points', pointString);
     polygon.setAttribute('fill', 'none');
-    polygon.setAttribute('stroke', '#22d3ee');
+    polygon.setAttribute('stroke', '#00ffff');
     polygon.setAttribute('stroke-width', '1');
 
-    const text = document.createElementNS(
+    const label = document.createElementNS(
       'http://www.w3.org/2000/svg',
       'text'
     );
 
-    text.setAttribute('x', particle.centroidX);
-    text.setAttribute('y', particle.centroidY);
-    text.setAttribute('fill', '#22d3ee');
-    text.setAttribute('font-size', '10');
-    text.setAttribute('font-weight', '600');
-    text.setAttribute('text-anchor', 'middle');
-    text.setAttribute('dominant-baseline', 'middle');
-    text.textContent = particle.id;
+    label.setAttribute(
+      'x',
+      particle.centroidX
+    );
+
+    label.setAttribute(
+      'y',
+      particle.centroidY
+    );
+
+    label.setAttribute('fill', '#00ffff');
+    label.setAttribute('font-size', '10');
+    label.setAttribute('font-weight', 'bold');
+    label.setAttribute('text-anchor', 'middle');
+    label.setAttribute('dominant-baseline', 'middle');
+    label.textContent = index + 1;
 
     overlaySvg.appendChild(polygon);
-    overlaySvg.appendChild(text);
+    overlaySvg.appendChild(label);
   });
 }
+function extractBoundaryPoints(pixels) {
+  const pixelSet = new Set(
+    pixels.map(pixel => `${pixel.x},${pixel.y}`)
+  );
+
+  const boundary = [];
+
+  pixels.forEach(pixel => {
+    const neighbors = [
+      [pixel.x - 1, pixel.y],
+      [pixel.x + 1, pixel.y],
+      [pixel.x, pixel.y - 1],
+      [pixel.x, pixel.y + 1]
+    ];
+
+    const isBoundary = neighbors.some(([nx, ny]) => {
+      return !pixelSet.has(`${nx},${ny}`);
+    });
+
+    if (isBoundary) {
+      boundary.push({
+        x: pixel.x,
+        y: pixel.y
+      });
+    }
+  });
+
+  if (boundary.length < 3) {
+    return boundary;
+  }
+
+  const centroid = calculateBoundaryCentroid(boundary);
+
+  boundary.sort((a, b) => {
+    const angleA = Math.atan2(
+      a.y - centroid.y,
+      a.x - centroid.x
+    );
+
+    const angleB = Math.atan2(
+      b.y - centroid.y,
+      b.x - centroid.x
+    );
+
+    return angleA - angleB;
+  });
+
+  return boundary;
+}
+
+function calculateBoundaryCentroid(points) {
+  let sumX = 0;
+  let sumY = 0;
+
+  points.forEach(point => {
+    sumX += point.x;
+    sumY += point.y;
+  });
+
+  return {
+    x: sumX / points.length,
+    y: sumY / points.length
+  };
+}
+
+// ==============================
+// HELPERS
+// ==============================
 
 function getCurrentSettings() {
   return {
@@ -618,25 +747,30 @@ function getCurrentSettings() {
     thresholdMode:
       document.getElementById('thresholdMode')?.value || 'otsu',
 
-    manualThresholdValue: Number(
-      document.getElementById('manualThresholdValue')?.value || 128
-    ),
+    manualThresholdValue:
+      Number(
+        document.getElementById('manualThresholdValue')?.value || 128
+      ),
 
-    minParticleSize: Number(
-      document.getElementById('minParticleSize')?.value || 0
-    ),
+    minParticleSize:
+      Number(
+        document.getElementById('minParticleSize')?.value || 0
+      ),
 
-    maxParticleSize: Number(
-      document.getElementById('maxParticleSize')?.value || 999999
-    ),
+    maxParticleSize:
+      Number(
+        document.getElementById('maxParticleSize')?.value || 999999
+      ),
 
-    circularityMin: Number(
-      document.getElementById('circularityMin')?.value || 0
-    ),
+    circularityMin:
+      Number(
+        document.getElementById('circularityMin')?.value || 0
+      ),
 
-    circularityMax: Number(
-      document.getElementById('circularityMax')?.value || 1
-    ),
+    circularityMax:
+      Number(
+        document.getElementById('circularityMax')?.value || 1
+      ),
 
     invertThreshold:
       document.getElementById('invertThreshold')?.checked || false,
@@ -655,6 +789,7 @@ function updateImageUploadStatus(fileName) {
   uploadDescription.textContent =
     `Loaded image: ${fileName}`;
 }
+
 function clearOverlaySvg() {
   const overlaySvg =
     document.getElementById('overlaySvg');
