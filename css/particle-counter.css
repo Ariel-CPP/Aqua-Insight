@@ -118,6 +118,23 @@
   box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
 }
 
+.threshold-select-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.threshold-tooltip {
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 12px;
+  padding: 12px 14px;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  min-height: 72px;
+}
+
 .checkbox-group {
   display: flex;
   align-items: center;
@@ -142,7 +159,11 @@
   padding: 14px;
   border: none;
   border-radius: 14px;
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  background: linear-gradient(
+    135deg,
+    var(--accent-primary),
+    var(--accent-secondary)
+  );
   color: #00111f;
   font-size: 0.95rem;
   font-weight: 700;
@@ -199,7 +220,8 @@
   transition: var(--transition-fast);
 }
 
-.upload-area:hover {
+.upload-area:hover,
+.upload-area.dragover {
   border-color: rgba(56, 189, 248, 0.45);
   background: rgba(15, 23, 42, 0.85);
 }
@@ -232,11 +254,12 @@
 }
 
 /* =========================
-   PREVIEW GRID
+   PREVIEW
 ========================= */
 
 .preview-controls {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
 }
 
@@ -271,31 +294,50 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: grab;
+}
+
+.preview-canvas-container.dragging {
+  cursor: grabbing;
 }
 
 .preview-canvas-container canvas,
 .preview-canvas-container svg {
+  position: absolute;
+  top: 0;
+  left: 0;
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: contain;
   max-width: 100%;
   max-height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+  transition: transform 0.15s ease;
+  transform-origin: center center;
+  will-change: transform;
 }
 
 .overlay-container {
   position: relative;
 }
 
+#overlayCanvas {
+  z-index: 1;
+}
+
 #overlaySvg {
   position: absolute;
-  top: 0;
-  left: 0;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   pointer-events: none;
+  overflow: visible;
+  z-index: 5;
 }
 
 /* =========================
-   SUMMARY GRID
+   SUMMARY
 ========================= */
 
 .summary-grid {
@@ -319,7 +361,7 @@
 }
 
 .summary-value {
-  color: var(--text-primary);
+  color: #00ffff;
   font-size: 1.25rem;
   font-weight: 700;
 }
@@ -370,6 +412,20 @@
   padding: 30px;
 }
 
+.batch-result-row {
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.batch-result-row:hover {
+  background: rgba(0, 255, 255, 0.08) !important;
+}
+
+.active-batch-row {
+  background: rgba(0, 255, 255, 0.12) !important;
+  border-left: 3px solid #00ffff;
+}
+
 /* =========================
    RESPONSIVE
 ========================= */
@@ -413,48 +469,13 @@
   .summary-grid {
     grid-template-columns: 1fr;
   }
-}
-/* Add this section at the bottom of css/particle-counter.css */
 
-.preview-canvas-container {
-  cursor: grab;
-}
+  .preview-controls {
+    width: 100%;
+  }
 
-.preview-canvas-container.dragging {
-  cursor: grabbing;
-}
-
-.preview-canvas-container canvas,
-.preview-canvas-container svg {
-  transition: transform 0.15s ease;
-  will-change: transform;
-}
-.threshold-select-wrapper {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  .preview-control-button {
+    flex: 1;
+  }
 }
 
-.threshold-tooltip {
-  background: rgba(15, 23, 42, 0.95);
-  border: 1px solid rgba(56, 189, 248, 0.2);
-  border-radius: 12px;
-  padding: 12px 14px;
-  color: var(--text-secondary);
-  font-size: 0.82rem;
-  line-height: 1.5;
-}
-#thresholdCanvas {
-  display: block;
-  width: 100%;
-  height: 100%;
-  min-height: 280px;
-  background-color: #000000;
-  object-fit: contain;
-  image-rendering: pixelated;
-}
-
-.preview-panel canvas {
-  image-rendering: pixelated;
-}
