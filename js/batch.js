@@ -20,14 +20,6 @@ function initializeBatchMode() {
   if (!imageUpload) return;
 
   imageUpload.setAttribute('multiple', true);
-
-  imageUpload.addEventListener('change', (event) => {
-    const files = Array.from(event.target.files);
-
-    if (currentAnalysisMode === 'batch') {
-      handleBatchFiles(files);
-    }
-  });
 }
 
 // ==============================
@@ -46,12 +38,15 @@ function handleBatchFiles(files) {
 
   batchFiles = validFiles;
 
-  const uploadDescription = document.querySelector('.upload-description');
+  const uploadDescription =
+    document.querySelector('.upload-description');
 
   if (uploadDescription) {
     uploadDescription.textContent =
       `${batchFiles.length} image(s) loaded for batch analysis`;
   }
+
+  currentBatchPreviewIndex = 0;
 }
 
 // ==============================
@@ -89,7 +84,12 @@ async function runBatchAnalysis() {
   updateBatchSummary(totalParticles, totalArea);
   populateBatchResultsTable(batchResults);
 
-  alert(`Batch analysis completed for ${batchFiles.length} image(s).`);
+  currentBatchPreviewIndex = 0;
+  renderBatchPreviewImage();
+
+  alert(
+    `Batch analysis completed for ${batchFiles.length} image(s).`
+  );
 }
 
 // ==============================
@@ -100,7 +100,7 @@ function loadBatchImage(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
 
-    reader.onload = (event) => {
+    reader.onload = event => {
       const img = new Image();
 
       img.onload = () => resolve(img);
@@ -118,7 +118,11 @@ function loadBatchImage(file) {
 // ANALYZE SINGLE IMAGE IN BATCH
 // ==============================
 
-function analyzeBatchImage(image, filename, settings) {
+function analyzeBatchImage(
+  image,
+  filename,
+  settings
+) {
   const tempCanvas = document.createElement('canvas');
   const tempCtx = tempCanvas.getContext('2d');
 
@@ -139,32 +143,15 @@ function analyzeBatchImage(image, filename, settings) {
     settings
   );
 
-  const extractedParticles = detectionResult.particles.map(particle => {
-    const centroid = calculateParticleCentroid(particle.pixels);
-    const bounds = calculateParticleBounds(particle.pixels);
-    const perimeter = calculateParticlePerimeterSimple(particle.pixels);
-    const meanRGB = calculateParticleMeanRGBBatch(
-      particle.pixels,
-      imageData,
-      tempCanvas.width
-    );
-
-    const circularity = perimeter === 0
-      ? 0
-      : (4 * Math.PI * particle.pixels.length) /
-        (perimeter * perimeter);
-
-    return {
-      ...particle,
-      area: particle.pixels.length,
-      centroidX: centroid.x,
-      centroidY: centroid.y,
-      bounds,
-      perimeter,
-      circularity,
-      meanRGB
-    };
-  });
+  const extractedParticles =
+    detectionResult.particles.map(particle => {
+      return extractParticleFeatures(
+        particle,
+        imageData,
+        tempCanvas.width,
+        tempCanvas.height
+      );
+    });
 
   const filteredParticles = extractedParticles.filter(particle => {
     const validArea =
@@ -177,19 +164,20 @@ function analyzeBatchImage(image, filename, settings) {
 
     const validEdge =
       settings.excludeEdgeParticles
-        ? !isParticleTouchingEdgeBatch(
-            particle.bounds,
-            image.width,
-            image.height
-          )
+        ? !particle.touchesEdge
         : true;
 
-    return validArea && validCircularity && validEdge;
+    return (
+      validArea &&
+      validCircularity &&
+      validEdge
+    );
   });
 
-  const totalParticleArea = filteredParticles.reduce((sum, particle) => {
-    return sum + particle.area;
-  }, 0);
+  const totalParticleArea = filteredParticles.reduce(
+    (sum, particle) => sum + particle.area,
+    0
+  );
 
   return {
     filename,
@@ -199,6 +187,8 @@ function analyzeBatchImage(image, filename, settings) {
     totalParticleArea,
     imageWidth: image.width,
     imageHeight: image.height,
+    imageObject: image,
+    binaryMask: detectionResult.binaryMask,
     particles: filteredParticles
   };
 }
@@ -208,9 +198,14 @@ function analyzeBatchImage(image, filename, settings) {
 // ==============================
 
 function updateBatchSummary(totalParticles, totalArea) {
-  const particleCountElement = document.getElementById('particleCount');
-  const coverageAreaElement = document.getElementById('coverageArea');
-  const thresholdMethodLabelElement = document.getElementById('thresholdMethodLabel');
+  const particleCountElement =
+    document.getElementById('particleCount');
+
+  const coverageAreaElement =
+    document.getElementById('coverageArea');
+
+  const thresholdMethodLabelElement =
+    document.getElementById('thresholdMethodLabel');
 
   if (particleCountElement) {
     particleCountElement.textContent = totalParticles;
@@ -220,18 +215,21 @@ function updateBatchSummary(totalParticles, totalArea) {
     coverageAreaElement.textContent = '-';
   }
 
-  if (thresholdMethodLabelElement && batchResults.length > 0) {
+  if (
+    thresholdMethodLabelElement &&
+    batchResults.length > 0
+  ) {
     thresholdMethodLabelElement.textContent =
       `${batchResults[0].thresholdMode}`;
   }
 }
-
 // ==============================
 // TABLE DISPLAY
 // ==============================
 
 function populateBatchResultsTable(results) {
-  const resultsTableBody = document.getElementById('resultsTableBody');
+  const resultsTableBody =
+    document.getElementById('resultsTableBody');
 
   if (!resultsTableBody) return;
 
@@ -248,8 +246,14 @@ function populateBatchResultsTable(results) {
     return;
   }
 
-  results.forEach(result => {
+  results.forEach((result, index) => {
     const row = document.createElement('tr');
+
+    row.classList.add('batch-result-row');
+
+    if (index === currentBatchPreviewIndex) {
+      row.classList.add('active-batch-row');
+    }
 
     row.innerHTML = `
       <td>${result.filename}</td>
@@ -261,42 +265,27 @@ function populateBatchResultsTable(results) {
       </td>
     `;
 
+    row.addEventListener('click', () => {
+      currentBatchPreviewIndex = index;
+
+      renderBatchPreviewImage();
+      highlightActiveBatchRow();
+    });
+
     resultsTableBody.appendChild(row);
   });
 }
-// ==============================
-// HELPER FUNCTIONS
-// ==============================
 
-function calculateParticleMeanRGBBatch(pixels, imageData, imageWidth) {
-  let totalR = 0;
-  let totalG = 0;
-  let totalB = 0;
+function highlightActiveBatchRow() {
+  const rows = document.querySelectorAll('.batch-result-row');
 
-  pixels.forEach(pixel => {
-    const index = (pixel.y * imageWidth + pixel.x) * 4;
+  rows.forEach((row, index) => {
+    row.classList.remove('active-batch-row');
 
-    totalR += imageData.data[index];
-    totalG += imageData.data[index + 1];
-    totalB += imageData.data[index + 2];
+    if (index === currentBatchPreviewIndex) {
+      row.classList.add('active-batch-row');
+    }
   });
-
-  const count = pixels.length;
-
-  const meanR = Math.round(totalR / count);
-  const meanG = Math.round(totalG / count);
-  const meanB = Math.round(totalB / count);
-
-  return `(${meanR}, ${meanG}, ${meanB})`;
-}
-
-function isParticleTouchingEdgeBatch(bounds, imageWidth, imageHeight) {
-  return (
-    bounds.minX <= 0 ||
-    bounds.minY <= 0 ||
-    bounds.maxX >= imageWidth - 1 ||
-    bounds.maxY >= imageHeight - 1
-  );
 }
 
 // ==============================
@@ -335,7 +324,8 @@ function exportBatchResultsToXLS() {
     ]);
   });
 
-  const summarySheet = XLSX.utils.aoa_to_sheet(summaryRows);
+  const summarySheet =
+    XLSX.utils.aoa_to_sheet(summaryRows);
 
   summarySheet['!cols'] = [
     { wch: 40 },
@@ -360,7 +350,11 @@ function exportBatchResultsToXLS() {
         'Area',
         'Perimeter',
         'Circularity',
+        'Feret Diameter',
+        'Aspect Ratio',
         'Mean RGB',
+        'Min RGB',
+        'Max RGB',
         'Centroid X',
         'Centroid Y',
         'Touches Edge'
@@ -372,17 +366,15 @@ function exportBatchResultsToXLS() {
         particle.id,
         particle.area,
         particle.perimeter,
-        Number(particle.circularity.toFixed(4)),
+        particle.circularity,
+        particle.feretDiameter,
+        particle.aspectRatio,
         particle.meanRGB,
+        particle.minRGB,
+        particle.maxRGB,
         Number(particle.centroidX.toFixed(2)),
         Number(particle.centroidY.toFixed(2)),
-        isParticleTouchingEdgeBatch(
-          particle.bounds,
-          result.imageWidth,
-          result.imageHeight
-        )
-          ? 'Yes'
-          : 'No'
+        particle.touchesEdge ? 'Yes' : 'No'
       ]);
     });
 
@@ -391,23 +383,29 @@ function exportBatchResultsToXLS() {
       .substring(0, 28);
 
     if (!sheetName.trim()) {
-      sheetName = `Image_${Math.random().toString(36).substring(2, 8)}`;
+      sheetName =
+        `Image_${Math.random().toString(36).substring(2, 8)}`;
     }
 
-    const particleSheet = XLSX.utils.aoa_to_sheet(particleRows);
+    const particleSheet =
+      XLSX.utils.aoa_to_sheet(particleRows);
 
     particleSheet['!cols'] = [
       { wch: 12 },
       { wch: 12 },
       { wch: 12 },
       { wch: 14 },
+      { wch: 16 },
+      { wch: 14 },
+      { wch: 18 },
+      { wch: 18 },
       { wch: 18 },
       { wch: 14 },
       { wch: 14 },
       { wch: 14 }
     ];
 
-    XLSX.utils.book_append_sheet(
+       XLSX.utils.book_append_sheet(
       workbook,
       particleSheet,
       sheetName
@@ -425,3 +423,4 @@ function exportBatchResultsToXLS() {
 
   XLSX.writeFile(workbook, exportName);
 }
+  
