@@ -1,24 +1,91 @@
+```javascript
 // ==============================
 // AQUA INSIGHT MAIN SCRIPT
 // Version 0.1
 // ==============================
 
+let uploadedImages = [];
+let currentImageIndex = 0;
+let allAnalysisResults = [];
+
+let selectedBackgroundPixel = null;
+let selectedBackgroundPosition = null;
+
+let originalCanvas = null;
+let originalCtx = null;
+
+let channelCanvas = null;
+let channelCtx = null;
+
+let thresholdCanvas = null;
+let thresholdCtx = null;
+
+let overlayCanvas = null;
+let overlayCtx = null;
+
+// ==============================
+// INITIALIZATION
+// ==============================
+
 document.addEventListener('DOMContentLoaded', () => {
+  initializeCanvasReferences();
   initializeNavigation();
   initializeDropdowns();
   initializeActiveLinks();
-  initializeLocalStorage();
-  initializeSmoothScroll();
   initializeThresholdDescriptions();
+  initializeImageUpload();
+  initializeImageNavigation();
+  initializeAnalysisControls();
+  initializeBackgroundPicker();
+  initializeSettingsPersistence();
 });
+
+// ==============================
+// CANVAS REFERENCES
+// ==============================
+
+function initializeCanvasReferences() {
+  originalCanvas = document.getElementById(
+    'originalCanvas'
+  );
+
+  channelCanvas = document.getElementById(
+    'channelCanvas'
+  );
+
+  thresholdCanvas = document.getElementById(
+    'thresholdCanvas'
+  );
+
+  overlayCanvas = document.getElementById(
+    'overlayCanvas'
+  );
+
+  if (originalCanvas) {
+    originalCtx = originalCanvas.getContext('2d');
+  }
+
+  if (channelCanvas) {
+    channelCtx = channelCanvas.getContext('2d');
+  }
+
+  if (thresholdCanvas) {
+    thresholdCtx = thresholdCanvas.getContext('2d');
+  }
+
+  if (overlayCanvas) {
+    overlayCtx = overlayCanvas.getContext('2d');
+  }
+}
 
 // ==============================
 // NAVIGATION
 // ==============================
 
 function initializeNavigation() {
-  const navLinks =
-    document.querySelectorAll('.nav-link');
+  const navLinks = document.querySelectorAll(
+    '.nav-link'
+  );
 
   navLinks.forEach(link => {
     link.addEventListener('click', () => {
@@ -31,19 +98,19 @@ function initializeNavigation() {
   });
 }
 
-// ==============================
-// DROPDOWN MENU
-// ==============================
-
 function initializeDropdowns() {
-  const dropdowns =
-    document.querySelectorAll('.dropdown');
+  const dropdowns = document.querySelectorAll(
+    '.dropdown'
+  );
 
   dropdowns.forEach(dropdown => {
-    const button =
-      dropdown.querySelector('.dropdown-button');
+    const button = dropdown.querySelector(
+      '.dropdown-button'
+    );
 
-    if (!button) return;
+    if (!button) {
+      return;
+    }
 
     button.addEventListener('click', event => {
       event.stopPropagation();
@@ -60,27 +127,26 @@ function initializeDropdowns() {
 }
 
 function closeAllDropdowns() {
-  const dropdowns =
-    document.querySelectorAll('.dropdown');
+  const dropdowns = document.querySelectorAll(
+    '.dropdown'
+  );
 
   dropdowns.forEach(dropdown => {
     dropdown.classList.remove('dropdown-open');
   });
 }
 
-// ==============================
-// ACTIVE LINKS
-// ==============================
-
 function initializeActiveLinks() {
   const currentPath =
     window.location.pathname.split('/').pop();
 
-  const navLinks =
-    document.querySelectorAll('.nav-link');
+  const navLinks = document.querySelectorAll(
+    '.nav-link'
+  );
 
-  const dropdownLinks =
-    document.querySelectorAll('.dropdown-menu a');
+  const dropdownLinks = document.querySelectorAll(
+    '.dropdown-menu a'
+  );
 
   navLinks.forEach(link => {
     const href = link.getAttribute('href');
@@ -112,75 +178,17 @@ function initializeActiveLinks() {
 }
 
 // ==============================
-// LOCAL STORAGE
-// ==============================
-
-function initializeLocalStorage() {
-  const defaultSettings = {
-    channelMode: 'grayscale',
-    thresholdMode: 'otsu',
-    manualThresholdValue: 128,
-    minimumOverlayArea: 50,
-    minParticleSize: 0,
-    maxParticleSize: 999999,
-    circularityMin: 0,
-    circularityMax: 1,
-    invertThreshold: false,
-    excludeEdgeParticles: false,
-    useBackgroundPicker: false
-  };
-
-  const existingSettings =
-    localStorage.getItem('aquaInsightSettings');
-
-  if (!existingSettings) {
-    localStorage.setItem(
-      'aquaInsightSettings',
-      JSON.stringify(defaultSettings)
-    );
-  }
-}
-
-// ==============================
-// SMOOTH SCROLL
-// ==============================
-
-function initializeSmoothScroll() {
-  const internalLinks =
-    document.querySelectorAll('a[href^="#"]');
-
-  internalLinks.forEach(link => {
-    link.addEventListener('click', event => {
-      const targetId =
-        link.getAttribute('href');
-
-      if (!targetId || targetId === '#') return;
-
-      const targetElement =
-        document.querySelector(targetId);
-
-      if (!targetElement) return;
-
-      event.preventDefault();
-
-      targetElement.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start'
-      });
-    });
-  });
-}
-
-// ==============================
 // THRESHOLD DESCRIPTION
 // ==============================
 
 function initializeThresholdDescriptions() {
-  const thresholdMode =
-    document.getElementById('thresholdMode');
+  const thresholdMode = document.getElementById(
+    'thresholdMode'
+  );
 
-  const thresholdDescription =
-    document.getElementById('thresholdDescription');
+  const thresholdDescription = document.getElementById(
+    'thresholdDescription'
+  );
 
   if (!thresholdMode || !thresholdDescription) {
     return;
@@ -188,27 +196,27 @@ function initializeThresholdDescriptions() {
 
   const descriptions = {
     otsu:
-      'Automatically separates foreground and background by maximizing the variance between pixel intensity classes.',
+      'Automatically separates foreground and background by maximizing variance between intensity classes.',
 
     mean:
-      'Uses the average grayscale intensity of the image as the threshold value.',
+      'Uses the average image intensity as the threshold value.',
 
     triangle:
-      'Uses the triangle method, suitable for skewed histograms and images with a strong background peak.',
+      'Uses the triangle method and is suitable for asymmetric histograms.',
 
     minerror:
-      'Uses minimum error thresholding to find the best separation between foreground and background distributions.',
+      'Uses minimum error thresholding to find the best separation between foreground and background.',
 
     manual:
-      'Uses the exact threshold value entered manually in the threshold input field.'
+      'Uses the threshold value entered manually by the user.'
   };
 
   function updateThresholdDescription() {
-    const selectedMode = thresholdMode.value;
+    const mode = thresholdMode.value;
 
     thresholdDescription.textContent =
-      descriptions[selectedMode] ||
-      'Select a threshold mode to view its description.';
+      descriptions[mode] ||
+      'Select a threshold method.';
   }
 
   thresholdMode.addEventListener(
@@ -218,94 +226,4 @@ function initializeThresholdDescriptions() {
 
   updateThresholdDescription();
 }
-
-// ==============================
-// SETTINGS HELPERS
-// ==============================
-
-function saveSetting(key, value) {
-  const settings = JSON.parse(
-    localStorage.getItem('aquaInsightSettings')
-  ) || {};
-
-  settings[key] = value;
-
-  localStorage.setItem(
-    'aquaInsightSettings',
-    JSON.stringify(settings)
-  );
-}
-
-function getSetting(key) {
-  const settings = JSON.parse(
-    localStorage.getItem('aquaInsightSettings')
-  ) || {};
-
-  return settings[key];
-}
-
-function getAllSettings() {
-  return JSON.parse(
-    localStorage.getItem('aquaInsightSettings')
-  ) || {};
-}
-
-// ==============================
-// SUMMARY HELPERS
-// ==============================
-
-function updateSummaryValue(elementId, value) {
-  const element =
-    document.getElementById(elementId);
-
-  if (!element) return;
-
-  element.textContent = value;
-}
-
-function clearSummaryDisplay() {
-  updateSummaryValue(
-    'activeImageSummary',
-    '-'
-  );
-
-  updateSummaryValue(
-    'particleCount',
-    '0'
-  );
-
-  updateSummaryValue(
-    'coverageArea',
-    '0%'
-  );
-
-  updateSummaryValue(
-    'coveragePixelArea',
-    '0 px'
-  );
-
-  updateSummaryValue(
-    'thresholdMethodLabel',
-    '-'
-  );
-
-  updateSummaryValue(
-    'channelModeLabel',
-    '-'
-  );
-
-  updateSummaryValue(
-    'thresholdValueLabel',
-    '-'
-  );
-
-  updateSummaryValue(
-    'imageSizeLabel',
-    '-'
-  );
-}
-
-console.log(
-  'Aqua Insight initialized successfully.'
-);
-
+```
