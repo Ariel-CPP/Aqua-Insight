@@ -494,7 +494,7 @@ function resetResultsTable() {
 
   resultsTableBody.innerHTML = `
     <tr>
-      <td colspan="6" class="empty-table-message">
+      <td colspan="10" class="empty-table-message">
         No particles detected.
       </td>
     </tr>
