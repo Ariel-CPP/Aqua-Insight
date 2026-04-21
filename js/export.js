@@ -6,16 +6,17 @@
 let latestParticleResults = [];
 let latestAnalysisMetadata = {};
 
-// ==============================
-// INITIALIZATION
-// ==============================
-
 document.addEventListener('DOMContentLoaded', () => {
   initializeExportButton();
 });
 
+// ==============================
+// EXPORT BUTTON
+// ==============================
+
 function initializeExportButton() {
-  const exportButton = document.getElementById('exportResultsButton');
+  const exportButton =
+    document.getElementById('exportResultsButton');
 
   if (!exportButton) return;
 
@@ -38,7 +39,10 @@ function initializeExportButton() {
 // STORE RESULTS
 // ==============================
 
-function storeAnalysisResults(particles, metadata) {
+function storeAnalysisResults(
+  particles,
+  metadata
+) {
   latestParticleResults = particles;
   latestAnalysisMetadata = metadata;
 }
@@ -68,7 +72,8 @@ function exportParticleResultsToXLS() {
     ['Coverage Percentage', latestAnalysisMetadata.coveragePercentage || 0]
   ];
 
-  const metadataSheet = XLSX.utils.aoa_to_sheet(metadataRows);
+  const metadataSheet =
+    XLSX.utils.aoa_to_sheet(metadataRows);
 
   metadataSheet['!cols'] = [
     { wch: 30 },
@@ -92,9 +97,9 @@ function exportParticleResultsToXLS() {
     ]
   ];
 
-  latestParticleResults.forEach(particle => {
+  latestParticleResults.forEach((particle, index) => {
     particleRows.push([
-      particle.id,
+      index + 1,
       particle.area,
       particle.perimeter,
       particle.circularity,
@@ -109,7 +114,8 @@ function exportParticleResultsToXLS() {
     ]);
   });
 
-  const particleSheet = XLSX.utils.aoa_to_sheet(particleRows);
+  const particleSheet =
+    XLSX.utils.aoa_to_sheet(particleRows);
 
   particleSheet['!cols'] = [
     { wch: 12 },
@@ -143,7 +149,6 @@ function exportParticleResultsToXLS() {
     generateSingleExportFileName()
   );
 }
-
 // ==============================
 // FILE NAME GENERATION
 // ==============================
