@@ -1,3 +1,4 @@
+```javascript
 // ==============================
 // DETECTION ENGINE
 // Aqua Insight Version 0.1
@@ -16,43 +17,18 @@ function runDetectionPipeline(sourceCanvas, settings) {
     height
   );
 
-  const grayscale = extractChannelData(
+  const channelData = extractChannelData(
     imageData,
     settings.channelMode
   );
 
-  let thresholdValue = 128;
-
-  switch (settings.thresholdMode) {
-    case 'mean':
-      thresholdValue =
-        calculateMeanThreshold(grayscale);
-      break;
-
-    case 'triangle':
-      thresholdValue =
-        calculateTriangleThreshold(grayscale);
-      break;
-
-    case 'minerror':
-      thresholdValue =
-        calculateMinimumErrorThreshold(grayscale);
-      break;
-
-    case 'manual':
-      thresholdValue =
-        Number(settings.manualThresholdValue || 128);
-      break;
-
-    case 'otsu':
-    default:
-      thresholdValue =
-        calculateOtsuThreshold(grayscale);
-      break;
-  }
+  const thresholdValue = calculateThresholdValue(
+    channelData,
+    settings
+  );
 
   let binaryMask = applyThreshold(
-    grayscale,
+    channelData,
     width,
     height,
     thresholdValue,
@@ -66,17 +42,17 @@ function runDetectionPipeline(sourceCanvas, settings) {
     height
   );
 
-  const particles = connectedComponentLabeling(
+  const labeledParticles = connectedComponentLabeling(
     binaryMask,
     width,
     height
   );
 
   return {
-    grayscale,
+    channelData,
     binaryMask,
     thresholdValue,
-    particles
+    particles: labeledParticles
   };
 }
 
@@ -90,119 +66,173 @@ function extractChannelData(
 ) {
   const data = imageData.data;
 
-  const channel =
-    new Uint8ClampedArray(data.length / 4);
+  const output = new Uint8ClampedArray(
+    data.length / 4
+  );
 
   for (
-    let i = 0, j = 0;
-    i < data.length;
-    i += 4, j++
+    let pixelIndex = 0, channelIndex = 0;
+    pixelIndex < data.length;
+    pixelIndex += 4, channelIndex++
   ) {
-    const r = data[i];
-    const g = data[i + 1];
-    const b = data[i + 2];
+    const red = data[pixelIndex];
+    const green = data[pixelIndex + 1];
+    const blue = data[pixelIndex + 2];
 
     switch (channelMode) {
       case 'red':
-        channel[j] = r;
+        output[channelIndex] = red;
         break;
 
       case 'green':
-        channel[j] = g;
+        output[channelIndex] = green;
         break;
 
       case 'blue':
-        channel[j] = b;
+        output[channelIndex] = blue;
         break;
 
       case 'grayscale':
       default:
-        channel[j] = Math.round(
-          (r * 0.299) +
-          (g * 0.587) +
-          (b * 0.114)
+        output[channelIndex] = Math.round(
+          red * 0.299 +
+          green * 0.587 +
+          blue * 0.114
         );
         break;
     }
   }
 
-  return channel;
+  return output;
 }
 
 // ==============================
-// THRESHOLD METHODS
+// THRESHOLD CONTROLLER
+// ==============================
+
+function calculateThresholdValue(
+  grayscale,
+  settings
+) {
+  switch (settings.thresholdMode) {
+    case 'mean':
+      return calculateMeanThreshold(grayscale);
+
+    case 'triangle':
+      return calculateTriangleThreshold(grayscale);
+
+    case 'minerror':
+      return calculateMinimumErrorThreshold(grayscale);
+
+    case 'manual':
+      return Number(
+        settings.manualThresholdValue || 128
+      );
+
+    case 'otsu':
+    default:
+      return calculateOtsuThreshold(grayscale);
+  }
+}
+
+// ==============================
+// HISTOGRAM UTILITY
+// ==============================
+
+function buildHistogram(grayscale) {
+  const histogram = new Array(256).fill(0);
+
+  for (let i = 0; i < grayscale.length; i++) {
+    histogram[grayscale[i]]++;
+  }
+
+  return histogram;
+}
+
+// ==============================
+// OTSU THRESHOLD
 // ==============================
 
 function calculateOtsuThreshold(grayscale) {
-  const histogram = new Array(256).fill(0);
+  const histogram = buildHistogram(grayscale);
 
-  grayscale.forEach(value => {
-    histogram[value]++;
-  });
+  const totalPixels = grayscale.length;
 
-  const total = grayscale.length;
-
-  let sum = 0;
+  let totalIntensity = 0;
 
   for (let i = 0; i < 256; i++) {
-    sum += i * histogram[i];
+    totalIntensity += i * histogram[i];
   }
 
-  let sumBackground = 0;
-  let weightBackground = 0;
-  let maxVariance = 0;
-  let threshold = 0;
+  let backgroundWeight = 0;
+  let foregroundWeight = 0;
 
-  for (let i = 0; i < 256; i++) {
-    weightBackground += histogram[i];
+  let backgroundIntensity = 0;
 
-    if (weightBackground === 0) continue;
+  let bestVariance = -1;
+  let bestThreshold = 128;
 
-    const weightForeground =
-      total - weightBackground;
+  for (let threshold = 0; threshold < 256; threshold++) {
+    backgroundWeight += histogram[threshold];
 
-    if (weightForeground === 0) break;
+    if (backgroundWeight === 0) {
+      continue;
+    }
 
-    sumBackground += i * histogram[i];
+    foregroundWeight =
+      totalPixels - backgroundWeight;
 
-    const meanBackground =
-      sumBackground / weightBackground;
+    if (foregroundWeight === 0) {
+      break;
+    }
 
-    const meanForeground =
-      (sum - sumBackground) / weightForeground;
+    backgroundIntensity +=
+      threshold * histogram[threshold];
 
-    const variance =
-      weightBackground *
-      weightForeground *
+    const backgroundMean =
+      backgroundIntensity / backgroundWeight;
+
+    const foregroundMean =
+      (totalIntensity - backgroundIntensity) /
+      foregroundWeight;
+
+    const betweenClassVariance =
+      backgroundWeight *
+      foregroundWeight *
       Math.pow(
-        meanBackground - meanForeground,
+        backgroundMean - foregroundMean,
         2
       );
 
-    if (variance > maxVariance) {
-      maxVariance = variance;
-      threshold = i;
+    if (betweenClassVariance > bestVariance) {
+      bestVariance = betweenClassVariance;
+      bestThreshold = threshold;
     }
   }
 
-  return threshold;
+  return bestThreshold;
 }
+
+// ==============================
+// MEAN THRESHOLD
+// ==============================
 
 function calculateMeanThreshold(grayscale) {
-  const total = grayscale.reduce(
-    (sum, value) => sum + value,
-    0
-  );
+  let sum = 0;
 
-  return Math.round(total / grayscale.length);
+  for (let i = 0; i < grayscale.length; i++) {
+    sum += grayscale[i];
+  }
+
+  return Math.round(sum / grayscale.length);
 }
 
-function calculateTriangleThreshold(grayscale) {
-  const histogram = new Array(256).fill(0);
+// ==============================
+// TRIANGLE THRESHOLD
+// ==============================
 
-  grayscale.forEach(value => {
-    histogram[value]++;
-  });
+function calculateTriangleThreshold(grayscale) {
+  const histogram = buildHistogram(grayscale);
 
   let peakIndex = 0;
 
@@ -212,44 +242,61 @@ function calculateTriangleThreshold(grayscale) {
     }
   }
 
-  let left = 0;
-  let right = 255;
+```javascript
+  let leftBoundary = 0;
+  let rightBoundary = 255;
 
-  while (left < 255 && histogram[left] === 0) {
-    left++;
+  while (
+    leftBoundary < 255 &&
+    histogram[leftBoundary] === 0
+  ) {
+    leftBoundary++;
   }
 
-  while (right > 0 && histogram[right] === 0) {
-    right--;
+  while (
+    rightBoundary > 0 &&
+    histogram[rightBoundary] === 0
+  ) {
+    rightBoundary--;
   }
 
   let maxDistance = -1;
-  let threshold = peakIndex;
+  let bestThreshold = peakIndex;
 
-  for (let i = left; i <= right; i++) {
+  for (
+    let intensity = leftBoundary;
+    intensity <= rightBoundary;
+    intensity++
+  ) {
     const distance = Math.abs(
-      ((right - left) * (peakIndex - i)) -
-      ((peakIndex - left) * (right - i))
+      (
+        (rightBoundary - leftBoundary) *
+        (peakIndex - intensity)
+      ) -
+      (
+        (peakIndex - leftBoundary) *
+        (rightBoundary - intensity)
+      )
     );
 
     if (distance > maxDistance) {
       maxDistance = distance;
-      threshold = i;
+      bestThreshold = intensity;
     }
   }
 
-  return threshold;
+  return bestThreshold;
 }
 
-function calculateMinimumErrorThreshold(grayscale) {
-  const histogram = new Array(256).fill(0);
+// ==============================
+// MINIMUM ERROR THRESHOLD
+// ==============================
 
-  grayscale.forEach(value => {
-    histogram[value]++;
-  });
+function calculateMinimumErrorThreshold(grayscale) {
+  const histogram = buildHistogram(grayscale);
 
   let bestThreshold = 128;
-  let smallestError = Infinity;
+  let minimumDifference = Infinity;
 
   for (let threshold = 1; threshold < 255; threshold++) {
     let backgroundCount = 0;
@@ -281,12 +328,12 @@ function calculateMinimumErrorThreshold(grayscale) {
     const foregroundMean =
       foregroundSum / foregroundCount;
 
-    const error = Math.abs(
+    const meanDifference = Math.abs(
       foregroundMean - backgroundMean
     );
 
-    if (error < smallestError) {
-      smallestError = error;
+    if (meanDifference < minimumDifference) {
+      minimumDifference = meanDifference;
       bestThreshold = threshold;
     }
   }
@@ -295,7 +342,7 @@ function calculateMinimumErrorThreshold(grayscale) {
 }
 
 // ==============================
-// THRESHOLD APPLICATION
+// APPLY THRESHOLD
 // ==============================
 
 function applyThreshold(
@@ -306,25 +353,26 @@ function applyThreshold(
   invertThreshold,
   backgroundPixel
 ) {
-  const binaryMask =
-    new Uint8Array(width * height);
+  const binaryMask = new Uint8Array(
+    width * height
+  );
 
   for (let i = 0; i < grayscale.length; i++) {
-    const value = grayscale[i];
+    const pixelValue = grayscale[i];
 
     let isForeground = invertThreshold
-      ? value < thresholdValue
-      : value >= thresholdValue;
+      ? pixelValue < thresholdValue
+      : pixelValue >= thresholdValue;
 
     if (
       backgroundPixel !== null &&
       backgroundPixel !== undefined
     ) {
       const difference = Math.abs(
-        value - backgroundPixel
+        pixelValue - backgroundPixel
       );
 
-      if (difference < 10) {
+      if (difference <= 10) {
         isForeground = false;
       }
     }
@@ -336,7 +384,7 @@ function applyThreshold(
 }
 
 // ==============================
-// MORPHOLOGICAL FILTER
+// MORPHOLOGICAL OPENING
 // ==============================
 
 function morphologicalOpening(
@@ -359,64 +407,87 @@ function morphologicalOpening(
   return dilated;
 }
 
-function erosion(binaryMask, width, height) {
-  const output =
-    new Uint8Array(width * height);
+// ==============================
+// EROSION
+// ==============================
+
+function erosion(
+  binaryMask,
+  width,
+  height
+) {
+  const output = new Uint8Array(
+    width * height
+  );
 
   for (let y = 1; y < height - 1; y++) {
     for (let x = 1; x < width - 1; x++) {
-      let keep = 1;
-
-          for (let ky = -1; ky <= 1; ky++) {
-        for (let kx = -1; kx <= 1; kx++) {
-          const index =
-            (y + ky) * width + (x + kx);
-
-          if (binaryMask[index] === 0) {
-            keep = 0;
-            break;
-          }
-        }
-
-        if (!keep) break;
-      }
-
-      output[y * width + x] = keep;
-    }
-  }
-
-  return output;
-}
-
-function dilation(binaryMask, width, height) {
-  const output =
-    new Uint8Array(width * height);
-
-  for (let y = 1; y < height - 1; y++) {
-    for (let x = 1; x < width - 1; x++) {
-      let fill = 0;
+      let keepPixel = true;
 
       for (let ky = -1; ky <= 1; ky++) {
         for (let kx = -1; kx <= 1; kx++) {
-          const index =
+          const neighborIndex =
             (y + ky) * width + (x + kx);
 
-          if (binaryMask[index] === 1) {
-            fill = 1;
+          if (binaryMask[neighborIndex] === 0) {
+            keepPixel = false;
             break;
           }
         }
 
-        if (fill) break;
+        if (!keepPixel) {
+          break;
+        }
       }
 
-      output[y * width + x] = fill;
+      output[y * width + x] = keepPixel ? 1 : 0;
     }
   }
 
   return output;
 }
 
+// ==============================
+// DILATION
+// ==============================
+
+function dilation(
+  binaryMask,
+  width,
+  height
+) {
+  const output = new Uint8Array(
+    width * height
+  );
+
+  for (let y = 1; y < height - 1; y++) {
+    for (let x = 1; x < width - 1; x++) {
+      let fillPixel = false;
+
+      for (let ky = -1; ky <= 1; ky++) {
+        for (let kx = -1; kx <= 1; kx++) {
+          const neighborIndex =
+            (y + ky) * width + (x + kx);
+
+          if (binaryMask[neighborIndex] === 1) {
+            fillPixel = true;
+            break;
+          }
+        }
+
+        if (fillPixel) {
+          break;
+        }
+      }
+
+      output[y * width + x] = fillPixel ? 1 : 0;
+    }
+  }
+
+  return output;
+}
+
+```javascript
 // ==============================
 // CONNECTED COMPONENT LABELING
 // ==============================
@@ -426,8 +497,9 @@ function connectedComponentLabeling(
   width,
   height
 ) {
-  const visited =
-    new Uint8Array(width * height);
+  const visited = new Uint8Array(
+    width * height
+  );
 
   const particles = [];
 
@@ -438,78 +510,24 @@ function connectedComponentLabeling(
       const index = y * width + x;
 
       if (
-        binaryMask[index] === 1 &&
-        visited[index] === 0
+        binaryMask[index] === 0 ||
+        visited[index] === 1
       ) {
-        const pixels = [];
-        const queue = [[x, y]];
+        continue;
+      }
 
-        visited[index] = 1;
+      const particle = floodFillParticle(
+        binaryMask,
+        visited,
+        width,
+        height,
+        x,
+        y,
+        particleId
+      );
 
-        while (queue.length > 0) {
-          const [currentX, currentY] =
-            queue.shift();
-
-          pixels.push({
-            x: currentX,
-            y: currentY
-          });
-
-          for (
-            let offsetY = -1;
-            offsetY <= 1;
-            offsetY++
-          ) {
-            for (
-              let offsetX = -1;
-              offsetX <= 1;
-              offsetX++
-            ) {
-              if (
-                offsetX === 0 &&
-                offsetY === 0
-              ) {
-                continue;
-              }
-
-              const nextX =
-                currentX + offsetX;
-
-              const nextY =
-                currentY + offsetY;
-
-              if (
-                nextX < 0 ||
-                nextY < 0 ||
-                nextX >= width ||
-                nextY >= height
-              ) {
-                continue;
-              }
-
-              const nextIndex =
-                nextY * width + nextX;
-
-              if (
-                binaryMask[nextIndex] === 1 &&
-                visited[nextIndex] === 0
-              ) {
-                visited[nextIndex] = 1;
-
-                queue.push([
-                  nextX,
-                  nextY
-                ]);
-              }
-            }
-          }
-        }
-
-        particles.push({
-          id: particleId,
-          pixels
-        });
-
+      if (particle.pixels.length > 0) {
+        particles.push(particle);
         particleId++;
       }
     }
@@ -519,26 +537,389 @@ function connectedComponentLabeling(
 }
 
 // ==============================
+// FLOOD FILL PARTICLE EXTRACTION
+// ==============================
+
+function floodFillParticle(
+  binaryMask,
+  visited,
+  width,
+  height,
+  startX,
+  startY,
+  particleId
+) {
+  const stack = [];
+
+  stack.push({
+    x: startX,
+    y: startY
+  });
+
+  const pixels = [];
+
+  let touchesEdge = false;
+
+  let minX = startX;
+  let minY = startY;
+  let maxX = startX;
+  let maxY = startY;
+
+  while (stack.length > 0) {
+    const current = stack.pop();
+
+    const x = current.x;
+    const y = current.y;
+
+    if (
+      x < 0 ||
+      y < 0 ||
+      x >= width ||
+      y >= height
+    ) {
+      continue;
+    }
+
+    const index = y * width + x;
+
+    if (
+      visited[index] === 1 ||
+      binaryMask[index] === 0
+    ) {
+      continue;
+    }
+
+    visited[index] = 1;
+
+    pixels.push({ x, y });
+
+    if (
+      x === 0 ||
+      y === 0 ||
+      x === width - 1 ||
+      y === height - 1
+    ) {
+      touchesEdge = true;
+    }
+
+    if (x < minX) minX = x;
+    if (y < minY) minY = y;
+    if (x > maxX) maxX = x;
+    if (y > maxY) maxY = y;
+
+    // 8-connectivity neighbors
+    stack.push({ x: x - 1, y: y - 1 });
+    stack.push({ x: x, y: y - 1 });
+    stack.push({ x: x + 1, y: y - 1 });
+    stack.push({ x: x - 1, y: y });
+    stack.push({ x: x + 1, y: y });
+    stack.push({ x: x - 1, y: y + 1 });
+    stack.push({ x: x, y: y + 1 });
+    stack.push({ x: x + 1, y: y + 1 });
+  }
+
+  return {
+    id: particleId,
+    pixels,
+    area: pixels.length,
+    touchesEdge,
+    minX,
+    minY,
+    maxX,
+    maxY,
+    width: maxX - minX + 1,
+    height: maxY - minY + 1
+  };
+}
+
+// ==============================
+// BINARY MASK TO IMAGE DATA
+// ==============================
+
+function createBinaryImageData(
+  binaryMask,
+  width,
+  height
+) {
+  const imageData = new ImageData(
+    width,
+    height
+  );
+
+  const data = imageData.data;
+
+  for (let i = 0; i < binaryMask.length; i++) {
+    const pixelValue = binaryMask[i] === 1
+      ? 255
+      : 0;
+
+    const dataIndex = i * 4;
+
+    data[dataIndex] = pixelValue;
+    data[dataIndex + 1] = pixelValue;
+    data[dataIndex + 2] = pixelValue;
+    data[dataIndex + 3] = 255;
+  }
+
+  return imageData;
+}
+
+// ==============================
+// BINARY MASK RENDERER
+// ==============================
+
+function renderBinaryMaskToCanvas(
+  binaryMask,
+  width,
+  height,
+  targetCanvas
+) {
+  if (!targetCanvas) {
+    return;
+  }
+
+  targetCanvas.width = width;
+  targetCanvas.height = height;
+
+  const ctx = targetCanvas.getContext('2d');
+
+  const imageData = createBinaryImageData(
+    binaryMask,
+    width,
+    height
+  );
+
+  ctx.putImageData(imageData, 0, 0);
+}
+
+// ==============================
+// CHANNEL PREVIEW IMAGE DATA
+// ==============================
+
+function createChannelPreviewImageData(
+  sourceImageData,
+  channelMode
+) {
+  const previewImageData = new ImageData(
+    sourceImageData.width,
+    sourceImageData.height
+  );
+
+  const source = sourceImageData.data;
+  const output = previewImageData.data;
+
+  for (let i = 0; i < source.length; i += 4) {
+    const red = source[i];
+    const green = source[i + 1];
+    const blue = source[i + 2];
+
+```javascript
+    switch (channelMode) {
+      case 'red':
+        output[i] = red;
+        output[i + 1] = 0;
+        output[i + 2] = 0;
+        break;
+
+      case 'green':
+        output[i] = 0;
+        output[i + 1] = green;
+        output[i + 2] = 0;
+        break;
+
+      case 'blue':
+        output[i] = 0;
+        output[i + 1] = 0;
+        output[i + 2] = blue;
+        break;
+
+      case 'grayscale':
+      default:
+        const gray = Math.round(
+          red * 0.299 +
+          green * 0.587 +
+          blue * 0.114
+        );
+
+        output[i] = gray;
+        output[i + 1] = gray;
+        output[i + 2] = gray;
+        break;
+    }
+
+    output[i + 3] = 255;
+  }
+
+  return previewImageData;
+}
+
+// ==============================
+// CHANNEL PREVIEW RENDERER
+// ==============================
+
+function renderChannelPreview(
+  sourceCanvas,
+  targetCanvas,
+  channelMode
+) {
+  if (!sourceCanvas || !targetCanvas) {
+    return;
+  }
+
+  targetCanvas.width = sourceCanvas.width;
+  targetCanvas.height = sourceCanvas.height;
+
+  const sourceCtx = sourceCanvas.getContext('2d');
+  const targetCtx = targetCanvas.getContext('2d');
+
+  const sourceImageData = sourceCtx.getImageData(
+    0,
+    0,
+    sourceCanvas.width,
+    sourceCanvas.height
+  );
+
+  const previewImageData =
+    createChannelPreviewImageData(
+      sourceImageData,
+      channelMode
+    );
+
+  targetCtx.putImageData(
+    previewImageData,
+    0,
+    0
+  );
+}
+
+// ==============================
+// OVERLAY SVG RESET
+// ==============================
+
+function clearOverlaySvg() {
+  const svg = document.getElementById(
+    'overlaySvg'
+  );
+
+  if (!svg) {
+    return;
+  }
+
+  svg.innerHTML = '';
+}
+
+// ==============================
+// OVERLAY DRAWER
+// ==============================
+
+function drawParticleOverlay(
+  particles,
+  width,
+  height
+) {
+  const svg = document.getElementById(
+    'overlaySvg'
+  );
+
+  if (!svg) {
+    return;
+  }
+
+  clearOverlaySvg();
+
+  svg.setAttribute('width', width);
+  svg.setAttribute('height', height);
+  svg.setAttribute(
+    'viewBox',
+    `0 0 ${width} ${height}`
+  );
+
+  const settings = getCurrentSettings();
+
+  particles.forEach((particle, index) => {
+    if (!particle.pixels || particle.pixels.length < 3) {
+      return;
+    }
+
+    const boundaryPoints = extractBoundaryPoints(
+      particle.pixels
+    );
+
+    if (!boundaryPoints.length) {
+      return;
+    }
+
+    const smoothedPoints = smoothBoundaryPoints(
+      boundaryPoints
+    );
+
+    const polygon = document.createElementNS(
+      'http://www.w3.org/2000/svg',
+      'polygon'
+    );
+
+    polygon.setAttribute(
+      'points',
+      smoothedPoints
+        .map(point => `${point.x},${point.y}`)
+        .join(' ')
+    );
+
+    polygon.setAttribute('fill', 'none');
+    polygon.setAttribute('stroke', '#00ffff');
+    polygon.setAttribute('stroke-width', '1');
+    polygon.setAttribute('stroke-linejoin', 'round');
+    polygon.setAttribute('stroke-linecap', 'round');
+
+    svg.appendChild(polygon);
+
+    if (
+      particle.area >=
+      settings.minimumOverlayArea
+    ) {
+      const text = document.createElementNS(
+        'http://www.w3.org/2000/svg',
+        'text'
+      );
+
+      text.setAttribute('x', particle.centroidX);
+      text.setAttribute('y', particle.centroidY);
+      text.setAttribute('fill', '#00ffff');
+      text.setAttribute('font-size', '12');
+      text.setAttribute('font-weight', '700');
+      text.setAttribute('text-anchor', 'middle');
+      text.setAttribute('dominant-baseline', 'middle');
+
+      text.textContent = index + 1;
+
+      svg.appendChild(text);
+    }
+  });
+}
+
+// ==============================
 // BOUNDARY EXTRACTION
 // ==============================
 
 function extractBoundaryPoints(pixels) {
-  const pixelSet = new Set(
-    pixels.map(pixel => `${pixel.x},${pixel.y}`)
-  );
+  const pointSet = new Set();
+
+  pixels.forEach(pixel => {
+    pointSet.add(`${pixel.x},${pixel.y}`);
+  });
 
   const boundary = [];
 
   pixels.forEach(pixel => {
     const neighbors = [
-      [pixel.x - 1, pixel.y],
-      [pixel.x + 1, pixel.y],
-      [pixel.x, pixel.y - 1],
-      [pixel.x, pixel.y + 1]
+      `${pixel.x - 1},${pixel.y}`,
+      `${pixel.x + 1},${pixel.y}`,
+      `${pixel.x},${pixel.y - 1}`,
+      `${pixel.x},${pixel.y + 1}`
     ];
 
-    const isBoundary = neighbors.some(([nx, ny]) => {
-      return !pixelSet.has(`${nx},${ny}`);
+    const isBoundary = neighbors.some(neighbor => {
+      return !pointSet.has(neighbor);
     });
 
     if (isBoundary) {
@@ -549,71 +930,55 @@ function extractBoundaryPoints(pixels) {
     }
   });
 
-  if (boundary.length < 3) {
-    return boundary;
-  }
-
-  const centroid =
-    calculateBoundaryCentroid(boundary);
-
-  boundary.sort((a, b) => {
-    const angleA = Math.atan2(
-      a.y - centroid.y,
-      a.x - centroid.x
-    );
-
-    const angleB = Math.atan2(
-      b.y - centroid.y,
-      b.x - centroid.x
-    );
-
-    return angleA - angleB;
-  });
-
-  return smoothBoundary(boundary);
+  return boundary;
 }
 
-function calculateBoundaryCentroid(points) {
-  let sumX = 0;
-  let sumY = 0;
+```javascript
+// ==============================
+// BOUNDARY SMOOTHING
+// ==============================
 
-  points.forEach(point => {
-    sumX += point.x;
-    sumY += point.y;
-  });
-
-  return {
-    x: sumX / points.length,
-    y: sumY / points.length
-  };
-}
-
-function smoothBoundary(boundary) {
-  if (boundary.length < 5) {
-    return boundary;
+function smoothBoundaryPoints(
+  boundaryPoints,
+  smoothingFactor = 2
+) {
+  if (
+    !boundaryPoints ||
+    boundaryPoints.length < 5
+  ) {
+    return boundaryPoints;
   }
 
   const smoothed = [];
 
-  for (let i = 0; i < boundary.length; i++) {
-    const previous =
-      boundary[
-        (i - 1 + boundary.length) %
-        boundary.length
-      ];
+  for (let i = 0; i < boundaryPoints.length; i++) {
+    let totalX = 0;
+    let totalY = 0;
+    let count = 0;
 
-    const current = boundary[i];
+    for (
+      let offset = -smoothingFactor;
+      offset <= smoothingFactor;
+      offset++
+    ) {
+      let neighborIndex = i + offset;
 
-    const next =
-      boundary[
-        (i + 1) % boundary.length
-      ];
+      if (neighborIndex < 0) {
+        neighborIndex = 0;
+      }
+
+      if (neighborIndex >= boundaryPoints.length) {
+        neighborIndex = boundaryPoints.length - 1;
+      }
+
+      totalX += boundaryPoints[neighborIndex].x;
+      totalY += boundaryPoints[neighborIndex].y;
+      count++;
+    }
 
     smoothed.push({
-      x:
-        (previous.x + current.x + next.x) / 3,
-      y:
-        (previous.y + current.y + next.y) / 3
+      x: totalX / count,
+      y: totalY / count
     });
   }
 
@@ -621,34 +986,336 @@ function smoothBoundary(boundary) {
 }
 
 // ==============================
-// BINARY PREVIEW RENDER
+// CURRENT SETTINGS COLLECTOR
 // ==============================
 
-function renderBinaryMaskToCanvas(
-  binaryMask,
-  width,
-  height,
-  canvas
-) {
-  const ctx = canvas.getContext('2d');
+function getCurrentSettings() {
+  return {
+    channelMode:
+      document.getElementById('channelMode')?.value ||
+      'grayscale',
 
-  canvas.width = width;
-  canvas.height = height;
+    thresholdMode:
+      document.getElementById('thresholdMode')?.value ||
+      'otsu',
 
-  const imageData = ctx.createImageData(
-    width,
-    height
+    manualThresholdValue: Number(
+      document.getElementById('manualThresholdValue')?.value ||
+      128
+    ),
+
+    minimumOverlayArea: Number(
+      document.getElementById('minimumOverlayArea')?.value ||
+      50
+    ),
+
+    minParticleSize: Number(
+      document.getElementById('minParticleSize')?.value ||
+      0
+    ),
+
+    maxParticleSize: Number(
+      document.getElementById('maxParticleSize')?.value ||
+      999999
+    ),
+
+    circularityMin: Number(
+      document.getElementById('circularityMin')?.value ||
+      0
+    ),
+
+    circularityMax: Number(
+      document.getElementById('circularityMax')?.value ||
+      1
+    ),
+
+    invertThreshold:
+      document.getElementById('invertThreshold')?.checked ||
+      false,
+
+    excludeEdgeParticles:
+      document.getElementById('excludeEdgeParticles')?.checked ||
+      false,
+
+    useBackgroundPicker:
+      document.getElementById('useBackgroundPicker')?.checked ||
+      false,
+
+    backgroundPixel:
+      typeof selectedBackgroundPixel !== 'undefined'
+        ? selectedBackgroundPixel
+        : null
+  };
+}
+
+// ==============================
+// TABLE RESET
+// ==============================
+
+function resetResultsTable() {
+  const tableBody = document.getElementById(
+    'resultsTableBody'
   );
 
-  for (let i = 0; i < binaryMask.length; i++) {
-    const value =
-      binaryMask[i] === 1 ? 255 : 0;
-
-    imageData.data[i * 4] = value;
-    imageData.data[i * 4 + 1] = value;
-    imageData.data[i * 4 + 2] = value;
-    imageData.data[i * 4 + 3] = 255;
+  if (!tableBody) {
+    return;
   }
 
-  ctx.putImageData(imageData, 0, 0);
+  tableBody.innerHTML = `
+    <tr>
+      <td colspan="12" class="empty-table-message">
+        No analysis results available
+      </td>
+    </tr>
+  `;
 }
+
+// ==============================
+// TABLE POPULATOR
+// ==============================
+
+function populateResultsTable(particles) {
+  const tableBody = document.getElementById(
+    'resultsTableBody'
+  );
+
+  if (!tableBody) {
+    return;
+  }
+
+  if (!particles || particles.length === 0) {
+    resetResultsTable();
+    return;
+  }
+
+  tableBody.innerHTML = '';
+
+  particles.forEach((particle, index) => {
+    const row = document.createElement('tr');
+
+    row.innerHTML = `
+      <td>${index + 1}</td>
+      <td>${particle.area}</td>
+      <td>${particle.perimeter.toFixed(2)}</td>
+      <td>${particle.circularity.toFixed(3)}</td>
+      <td>${particle.feretDiameter.toFixed(2)}</td>
+      <td>${particle.aspectRatio.toFixed(2)}</td>
+      <td>${particle.meanRGB}</td>
+      <td>${particle.minRGB}</td>
+      <td>${particle.maxRGB}</td>
+      <td>${particle.centroidX.toFixed(2)}</td>
+      <td>${particle.centroidY.toFixed(2)}</td>
+      <td>${particle.touchesEdge ? 'Yes' : 'No'}</td>
+    `;
+
+    tableBody.appendChild(row);
+  });
+}
+
+// ==============================
+// SUMMARY UPDATE
+// ==============================
+
+function updateSummaryDisplay(result) {
+  updateSummaryValue(
+    'activeImageSummary',
+    result.filename || '-'
+  );
+
+  updateSummaryValue(
+    'particleCount',
+    result.particles?.length || 0
+  );
+
+  updateSummaryValue(
+    'coverageArea',
+    `${result.coveragePercent || 0}%`
+  );
+
+  updateSummaryValue(
+    'coveragePixelArea',
+    `${result.coveragePixels || 0} px`
+  );
+
+```javascript
+  updateSummaryValue(
+    'thresholdMethodLabel',
+    result.thresholdMode || '-'
+  );
+
+  updateSummaryValue(
+    'thresholdValueLabel',
+    result.thresholdValue || '-'
+  );
+
+  updateSummaryValue(
+    'channelModeLabel',
+    result.channelMode || '-'
+  );
+
+  updateSummaryValue(
+    'imageSizeLabel',
+    `${result.width || 0} × ${result.height || 0}`
+  );
+}
+
+function updateSummaryValue(id, value) {
+  const element = document.getElementById(id);
+
+  if (!element) {
+    return;
+  }
+
+  element.textContent = value;
+}
+
+// ==============================
+// SUMMARY RESET
+// ==============================
+
+function resetSummaryDisplay() {
+  updateSummaryValue('activeImageSummary', '-');
+  updateSummaryValue('particleCount', '0');
+  updateSummaryValue('coverageArea', '0%');
+  updateSummaryValue('coveragePixelArea', '0 px');
+  updateSummaryValue('thresholdMethodLabel', '-');
+  updateSummaryValue('thresholdValueLabel', '-');
+  updateSummaryValue('channelModeLabel', '-');
+  updateSummaryValue('imageSizeLabel', '-');
+}
+
+// ==============================
+// OVERLAY RESET
+// ==============================
+
+function resetOverlayCanvas() {
+  const overlayCanvas = document.getElementById(
+    'overlayCanvas'
+  );
+
+  if (!overlayCanvas) {
+    return;
+  }
+
+  const ctx = overlayCanvas.getContext('2d');
+
+  ctx.clearRect(
+    0,
+    0,
+    overlayCanvas.width,
+    overlayCanvas.height
+  );
+
+  clearOverlaySvg();
+}
+
+// ==============================
+// PREVIEW RESET
+// ==============================
+
+function resetPreviewCanvases() {
+  const canvasIds = [
+    'originalCanvas',
+    'channelCanvas',
+    'thresholdCanvas',
+    'overlayCanvas'
+  ];
+
+  canvasIds.forEach(canvasId => {
+    const canvas = document.getElementById(canvasId);
+
+    if (!canvas) {
+      return;
+    }
+
+    const ctx = canvas.getContext('2d');
+
+    ctx.clearRect(
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
+  });
+
+  clearOverlaySvg();
+}
+
+// ==============================
+// FULL UI RESET
+// ==============================
+
+function resetAnalysisUI() {
+  resetPreviewCanvases();
+  resetOverlayCanvas();
+  resetResultsTable();
+  resetSummaryDisplay();
+}
+
+// ==============================
+// MANUAL THRESHOLD VISIBILITY
+// ==============================
+
+document.addEventListener('DOMContentLoaded', () => {
+  const thresholdMode = document.getElementById(
+    'thresholdMode'
+  );
+
+  const manualThresholdGroup = document.getElementById(
+    'manualThresholdGroup'
+  );
+
+  if (!thresholdMode || !manualThresholdGroup) {
+    return;
+  }
+
+  function updateManualThresholdVisibility() {
+    if (thresholdMode.value === 'manual') {
+      manualThresholdGroup.style.display = 'block';
+    } else {
+      manualThresholdGroup.style.display = 'none';
+    }
+  }
+
+  thresholdMode.addEventListener(
+    'change',
+    updateManualThresholdVisibility
+  );
+
+  updateManualThresholdVisibility();
+});
+
+// ==============================
+// THRESHOLD PREVIEW AUTO UPDATE
+// ==============================
+
+document.addEventListener('DOMContentLoaded', () => {
+  const triggerIds = [
+    'channelMode',
+    'thresholdMode',
+    'manualThresholdValue',
+    'invertThreshold'
+  ];
+
+  triggerIds.forEach(id => {
+    const element = document.getElementById(id);
+
+    if (!element) {
+      return;
+    }
+
+    element.addEventListener('change', () => {
+      if (
+        typeof renderBinaryPreview === 'function'
+      ) {
+        renderBinaryPreview();
+      }
+
+      if (
+        typeof renderSelectedChannelPreview === 'function'
+      ) {
+        renderSelectedChannelPreview();
+      }
+    });
+  });
+});
