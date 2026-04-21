@@ -10,6 +10,7 @@ function runDetectionPipeline(sourceCanvas, settings) {
   const height = sourceCanvas.height;
 
   const imageData = ctx.getImageData(0, 0, width, height);
+
   const grayscale = extractChannelData(
     imageData,
     settings.channelMode
@@ -31,7 +32,7 @@ function runDetectionPipeline(sourceCanvas, settings) {
       break;
 
     case 'manual':
-      thresholdValue = settings.manualThresholdValue;
+      thresholdValue = Number(settings.manualThresholdValue || 128);
       break;
 
     case 'otsu':
@@ -73,36 +74,38 @@ function runDetectionPipeline(sourceCanvas, settings) {
 
 function extractChannelData(imageData, channelMode) {
   const data = imageData.data;
-  const grayscale = new Uint8ClampedArray(data.length / 4);
+  const channel = new Uint8ClampedArray(data.length / 4);
 
   for (let i = 0, j = 0; i < data.length; i += 4, j++) {
-    const red = data[i];
-    const green = data[i + 1];
-    const blue = data[i + 2];
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
 
     switch (channelMode) {
       case 'red':
-        grayscale[j] = red;
+        channel[j] = r;
         break;
 
       case 'green':
-        grayscale[j] = green;
+        channel[j] = g;
         break;
 
       case 'blue':
-        grayscale[j] = blue;
+        channel[j] = b;
         break;
 
       case 'grayscale':
       default:
-        grayscale[j] = Math.round(
-          (red + green + blue) / 3
+        channel[j] = Math.round(
+          (r * 0.299) +
+          (g * 0.587) +
+          (b * 0.114)
         );
         break;
     }
   }
 
-  return grayscale;
+  return channel;
 }
 
 // ==============================
@@ -112,9 +115,9 @@ function extractChannelData(imageData, channelMode) {
 function calculateOtsuThreshold(grayscale) {
   const histogram = new Array(256).fill(0);
 
-  for (let i = 0; i < grayscale.length; i++) {
-    histogram[grayscale[i]]++;
-  }
+  grayscale.forEach(value => {
+    histogram[value]++;
+  });
 
   const total = grayscale.length;
 
@@ -126,8 +129,6 @@ function calculateOtsuThreshold(grayscale) {
 
   let sumBackground = 0;
   let weightBackground = 0;
-  let weightForeground = 0;
-
   let maxVariance = 0;
   let threshold = 0;
 
@@ -136,23 +137,25 @@ function calculateOtsuThreshold(grayscale) {
 
     if (weightBackground === 0) continue;
 
-    weightForeground = total - weightBackground;
+    const weightForeground = total - weightBackground;
 
     if (weightForeground === 0) break;
 
     sumBackground += i * histogram[i];
 
-    const meanBackground = sumBackground / weightBackground;
+    const meanBackground =
+      sumBackground / weightBackground;
+
     const meanForeground =
       (sum - sumBackground) / weightForeground;
 
-    const betweenClassVariance =
+    const variance =
       weightBackground *
       weightForeground *
       Math.pow(meanBackground - meanForeground, 2);
 
-    if (betweenClassVariance > maxVariance) {
-      maxVariance = betweenClassVariance;
+    if (variance > maxVariance) {
+      maxVariance = variance;
       threshold = i;
     }
   }
@@ -176,35 +179,35 @@ function calculateTriangleThreshold(grayscale) {
     histogram[value]++;
   });
 
-  let left = 0;
-  let right = 255;
   let peak = 0;
 
-  for (let i = 0; i < 256; i++) {
+  for (let i = 1; i < 256; i++) {
     if (histogram[i] > histogram[peak]) {
       peak = i;
     }
-
-    if (histogram[i] > 0 && left === 0) {
-      left = i;
-    }
-
-    if (histogram[i] > 0) {
-      right = i;
-    }
   }
 
-  let maxDistance = -1;
-  let threshold = peak;
+  let left = 0;
+  let right = 255;
 
-  for (let i = left; i <= right; i++) {
-    const distance = Math.abs(
+  while (left < 255 && histogram[left] === 0) {
+    left++;
+  }
+
+  while (right > 0 && histogram[right] === 0) {
+    right--;
+  }
+
+  let bestDistance = -1;
+  let threshold = peak;
+    for (let i = left; i <= right; i++) {
+    const numerator = Math.abs(
       ((right - left) * (peak - i)) -
       ((peak - left) * (right - i))
     );
 
-    if (distance > maxDistance) {
-      maxDistance = distance;
+    if (numerator > bestDistance) {
+      bestDistance = numerator;
       threshold = i;
     }
   }
@@ -220,11 +223,12 @@ function calculateMinimumErrorThreshold(grayscale) {
   });
 
   let bestThreshold = 128;
-  let minimumError = Infinity;
+  let smallestDifference = Infinity;
 
   for (let threshold = 1; threshold < 255; threshold++) {
     let backgroundCount = 0;
     let foregroundCount = 0;
+
     let backgroundSum = 0;
     let foregroundSum = 0;
 
@@ -242,15 +246,18 @@ function calculateMinimumErrorThreshold(grayscale) {
       continue;
     }
 
-    const backgroundMean = backgroundSum / backgroundCount;
-    const foregroundMean = foregroundSum / foregroundCount;
+    const backgroundMean =
+      backgroundSum / backgroundCount;
 
-    const error = Math.abs(
-      backgroundMean - foregroundMean
+    const foregroundMean =
+      foregroundSum / foregroundCount;
+
+    const difference = Math.abs(
+      foregroundMean - backgroundMean
     );
 
-    if (error < minimumError) {
-      minimumError = error;
+    if (difference < smallestDifference) {
+      smallestDifference = difference;
       bestThreshold = threshold;
     }
   }
@@ -259,7 +266,7 @@ function calculateMinimumErrorThreshold(grayscale) {
 }
 
 // ==============================
-// APPLY THRESHOLD
+// THRESHOLD APPLICATION
 // ==============================
 
 function applyThreshold(
@@ -267,38 +274,41 @@ function applyThreshold(
   width,
   height,
   thresholdValue,
-  invert
+  invertThreshold
 ) {
   const binaryMask = new Uint8Array(width * height);
 
   for (let i = 0; i < grayscale.length; i++) {
-    const isForeground = invert
+    const foreground = invertThreshold
       ? grayscale[i] < thresholdValue
       : grayscale[i] >= thresholdValue;
 
-    binaryMask[i] = isForeground ? 1 : 0;
+    binaryMask[i] = foreground ? 1 : 0;
   }
 
   return binaryMask;
 }
+
 // ==============================
 // MORPHOLOGICAL OPENING
 // ==============================
 
-function morphologicalOpening(binaryMask, width, height) {
+function morphologicalOpening(
+  binaryMask,
+  width,
+  height
+) {
   const eroded = erosion(
     binaryMask,
     width,
     height
   );
 
-  const dilated = dilation(
+  return dilation(
     eroded,
     width,
     height
   );
-
-  return dilated;
 }
 
 function erosion(binaryMask, width, height) {
@@ -306,7 +316,7 @@ function erosion(binaryMask, width, height) {
 
   for (let y = 1; y < height - 1; y++) {
     for (let x = 1; x < width - 1; x++) {
-      let keepPixel = 1;
+      let keep = 1;
 
       for (let ky = -1; ky <= 1; ky++) {
         for (let kx = -1; kx <= 1; kx++) {
@@ -314,12 +324,15 @@ function erosion(binaryMask, width, height) {
             (y + ky) * width + (x + kx);
 
           if (binaryMask[index] === 0) {
-            keepPixel = 0;
+            keep = 0;
+            break;
           }
         }
+
+        if (!keep) break;
       }
 
-      output[y * width + x] = keepPixel;
+      output[y * width + x] = keep;
     }
   }
 
@@ -331,7 +344,7 @@ function dilation(binaryMask, width, height) {
 
   for (let y = 1; y < height - 1; y++) {
     for (let x = 1; x < width - 1; x++) {
-      let fillPixel = 0;
+      let fill = 0;
 
       for (let ky = -1; ky <= 1; ky++) {
         for (let kx = -1; kx <= 1; kx++) {
@@ -339,21 +352,22 @@ function dilation(binaryMask, width, height) {
             (y + ky) * width + (x + kx);
 
           if (binaryMask[index] === 1) {
-            fillPixel = 1;
+            fill = 1;
+            break;
           }
         }
+
+        if (fill) break;
       }
 
-      output[y * width + x] = fillPixel;
+      output[y * width + x] = fill;
     }
   }
 
   return output;
 }
-
 // ==============================
 // CONNECTED COMPONENT LABELING
-// 8-CONNECTIVITY
 // ==============================
 
 function connectedComponentLabeling(
@@ -374,17 +388,60 @@ function connectedComponentLabeling(
         binaryMask[index] === 1 &&
         visited[index] === 0
       ) {
-        const particle = floodFillParticle(
-          binaryMask,
-          visited,
-          width,
-          height,
-          x,
-          y,
-          particleId
-        );
+        const pixels = [];
 
-        particles.push(particle);
+        const queue = [[x, y]];
+        visited[index] = 1;
+
+        while (queue.length > 0) {
+          const [currentX, currentY] = queue.shift();
+
+          pixels.push({
+            x: currentX,
+            y: currentY
+          });
+
+          for (let offsetY = -1; offsetY <= 1; offsetY++) {
+            for (let offsetX = -1; offsetX <= 1; offsetX++) {
+              if (offsetX === 0 && offsetY === 0) {
+                continue;
+              }
+
+              const nextX = currentX + offsetX;
+              const nextY = currentY + offsetY;
+
+              if (
+                nextX < 0 ||
+                nextY < 0 ||
+                nextX >= width ||
+                nextY >= height
+              ) {
+                continue;
+              }
+
+              const nextIndex =
+                nextY * width + nextX;
+
+              if (
+                binaryMask[nextIndex] === 1 &&
+                visited[nextIndex] === 0
+              ) {
+                visited[nextIndex] = 1;
+
+                queue.push([
+                  nextX,
+                  nextY
+                ]);
+              }
+            }
+          }
+        }
+
+        particles.push({
+          id: particleId,
+          pixels
+        });
+
         particleId++;
       }
     }
@@ -393,56 +450,8 @@ function connectedComponentLabeling(
   return particles;
 }
 
-function floodFillParticle(
-  binaryMask,
-  visited,
-  width,
-  height,
-  startX,
-  startY,
-  particleId
-) {
-  const stack = [[startX, startY]];
-  const pixels = [];
-
-  visited[startY * width + startX] = 1;
-
-  while (stack.length > 0) {
-    const [x, y] = stack.pop();
-
-    pixels.push({ x, y });
-
-    for (let ny = y - 1; ny <= y + 1; ny++) {
-      for (let nx = x - 1; nx <= x + 1; nx++) {
-        if (
-          nx >= 0 &&
-          ny >= 0 &&
-          nx < width &&
-          ny < height
-        ) {
-          const neighborIndex =
-            ny * width + nx;
-
-          if (
-            binaryMask[neighborIndex] === 1 &&
-            visited[neighborIndex] === 0
-          ) {
-            visited[neighborIndex] = 1;
-            stack.push([nx, ny]);
-          }
-        }
-      }
-    }
-  }
-
-  return {
-    id: particleId,
-    pixels
-  };
-}
-
 // ==============================
-// FEATURE EXTRACTION
+// PARTICLE FEATURE EXTRACTION
 // ==============================
 
 function extractParticleFeatures(
@@ -463,24 +472,20 @@ function extractParticleFeatures(
     imageHeight
   );
 
-  const circularity = perimeter === 0
-    ? 0
-    : Number(
+  const circularity = perimeter > 0
+    ? Number(
         (
           (4 * Math.PI * area) /
           (perimeter * perimeter)
         ).toFixed(4)
-      );
+      )
+    : 0;
 
-  const feretDiameter = calculateFeretDiameter(
-    bounds
-  );
+  const feretDiameter = calculateFeretDiameter(bounds);
 
-  const aspectRatio = calculateAspectRatio(
-    bounds
-  );
+  const aspectRatio = calculateAspectRatio(bounds);
 
-  const centroid = calculateParticleCentroidFromPixels(
+  const centroid = calculateParticleCentroid(
     particle.pixels
   );
 
@@ -498,6 +503,8 @@ function extractParticleFeatures(
 
   return {
     id: particle.id,
+    pixels: particle.pixels,
+    bounds,
     area,
     perimeter,
     circularity,
@@ -508,11 +515,10 @@ function extractParticleFeatures(
     meanRGB: rgbStats.mean,
     minRGB: rgbStats.min,
     maxRGB: rgbStats.max,
-    touchesEdge,
-    bounds,
-    pixels: particle.pixels
+    touchesEdge
   };
 }
+
 function calculateParticlePerimeter(
   pixels,
   imageWidth,
@@ -523,8 +529,7 @@ function calculateParticlePerimeter(
   );
 
   let perimeter = 0;
-
-  pixels.forEach(pixel => {
+    pixels.forEach(pixel => {
     const neighbors = [
       [pixel.x - 1, pixel.y],
       [pixel.x + 1, pixel.y],
@@ -533,16 +538,16 @@ function calculateParticlePerimeter(
     ];
 
     neighbors.forEach(([nx, ny]) => {
-      const outsideImage =
+      const outside =
         nx < 0 ||
         ny < 0 ||
         nx >= imageWidth ||
         ny >= imageHeight;
 
-      const neighborMissing =
+      const missingNeighbor =
         !pixelSet.has(`${nx},${ny}`);
 
-      if (outsideImage || neighborMissing) {
+      if (outside || missingNeighbor) {
         perimeter++;
       }
     });
@@ -574,7 +579,7 @@ function calculateAspectRatio(bounds) {
   );
 }
 
-function calculateParticleCentroidFromPixels(pixels) {
+function calculateParticleCentroid(pixels) {
   let sumX = 0;
   let sumY = 0;
 
@@ -647,54 +652,6 @@ function getParticleBounds(pixels) {
     maxY: Math.max(...yValues)
   };
 }
-
-// ==============================
-// SIMPLE HELPER FUNCTIONS
-// ==============================
-
-function calculateParticleCentroid(pixels) {
-  let sumX = 0;
-  let sumY = 0;
-
-  pixels.forEach(pixel => {
-    sumX += pixel.x;
-    sumY += pixel.y;
-  });
-
-  return {
-    x: sumX / pixels.length,
-    y: sumY / pixels.length
-  };
-}
-
-function calculateParticleBounds(pixels) {
-  return getParticleBounds(pixels);
-}
-
-function calculateParticlePerimeterSimple(pixels) {
-  const pixelSet = new Set(
-    pixels.map(pixel => `${pixel.x},${pixel.y}`)
-  );
-
-  let perimeter = 0;
-
-  pixels.forEach(pixel => {
-    const neighbors = [
-      [pixel.x - 1, pixel.y],
-      [pixel.x + 1, pixel.y],
-      [pixel.x, pixel.y - 1],
-      [pixel.x, pixel.y + 1]
-    ];
-
-    neighbors.forEach(([nx, ny]) => {
-      if (!pixelSet.has(`${nx},${ny}`)) {
-        perimeter++;
-      }
-    });
-  });
-
-  return perimeter;
-}
 // ==============================
 // BINARY MASK RENDER
 // ==============================
@@ -716,7 +673,8 @@ function renderBinaryMaskToCanvas(
   );
 
   for (let i = 0; i < binaryMask.length; i++) {
-    const value = binaryMask[i] === 1 ? 255 : 0;
+    const value =
+      binaryMask[i] === 1 ? 255 : 0;
 
     imageData.data[i * 4] = value;
     imageData.data[i * 4 + 1] = value;
