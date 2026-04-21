@@ -241,7 +241,7 @@ function calculateTriangleThreshold(grayscale) {
     }
   }
 
-```javascript
+
   let leftBoundary = 0;
   let rightBoundary = 255;
 
@@ -486,7 +486,7 @@ function dilation(
   return output;
 }
 
-```javascript
+
 // ==============================
 // CONNECTED COMPONENT LABELING
 // ==============================
@@ -712,7 +712,7 @@ function createChannelPreviewImageData(
     const green = source[i + 1];
     const blue = source[i + 2];
 
-```javascript
+
     switch (channelMode) {
       case 'red':
         output[i] = red;
@@ -932,7 +932,7 @@ function extractBoundaryPoints(pixels) {
   return boundary;
 }
 
-```javascript
+
 // ==============================
 // BOUNDARY SMOOTHING
 // ==============================
@@ -1136,7 +1136,7 @@ function updateSummaryDisplay(result) {
     `${result.coveragePixels || 0} px`
   );
 
-```javascript
+
   updateSummaryValue(
     'thresholdMethodLabel',
     result.thresholdMode || '-'
