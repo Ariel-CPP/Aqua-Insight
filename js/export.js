@@ -7,7 +7,7 @@ let latestParticleResults = [];
 let latestAnalysisMetadata = {};
 
 // ==============================
-// INITIALIZE EXPORT BUTTON
+// INITIALIZATION
 // ==============================
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -20,6 +20,11 @@ function initializeExportButton() {
   if (!exportButton) return;
 
   exportButton.addEventListener('click', () => {
+    if (currentAnalysisMode === 'batch') {
+      exportBatchResultsToXLS();
+      return;
+    }
+
     if (!latestParticleResults.length) {
       alert('No analysis results available for export.');
       return;
@@ -39,13 +44,12 @@ function storeAnalysisResults(particles, metadata) {
 }
 
 // ==============================
-// EXPORT TO XLS
+// SINGLE ANALYSIS EXPORT
 // ==============================
 
 function exportParticleResultsToXLS() {
   const workbook = XLSX.utils.book_new();
 
-  // Metadata Sheet
   const metadataRows = [
     ['Aqua Insight Version', '0.1'],
     ['Filename', latestAnalysisMetadata.filename || '-'],
@@ -60,12 +64,17 @@ function exportParticleResultsToXLS() {
     ['Circularity Minimum', latestAnalysisMetadata.circularityMin || 0],
     ['Circularity Maximum', latestAnalysisMetadata.circularityMax || 1],
     ['Detected Particle Count', latestAnalysisMetadata.detectedParticleCount || 0],
-    ['Total Particle Area', latestAnalysisMetadata.totalParticleArea || 0]
+    ['Total Particle Area', latestAnalysisMetadata.totalParticleArea || 0],
+    ['Coverage Percentage', latestAnalysisMetadata.coveragePercentage || 0]
   ];
 
   const metadataSheet = XLSX.utils.aoa_to_sheet(metadataRows);
 
-  // Particle Results Sheet
+  metadataSheet['!cols'] = [
+    { wch: 30 },
+    { wch: 30 }
+  ];
+
   const particleRows = [
     [
       'Particle ID',
@@ -102,17 +111,11 @@ function exportParticleResultsToXLS() {
 
   const particleSheet = XLSX.utils.aoa_to_sheet(particleRows);
 
-  // Auto column width
-  metadataSheet['!cols'] = [
-    { wch: 30 },
-    { wch: 30 }
-  ];
-
   particleSheet['!cols'] = [
     { wch: 12 },
     { wch: 12 },
     { wch: 12 },
-    { wch: 12 },
+    { wch: 14 },
     { wch: 16 },
     { wch: 14 },
     { wch: 18 },
@@ -123,19 +126,29 @@ function exportParticleResultsToXLS() {
     { wch: 14 }
   ];
 
-  XLSX.utils.book_append_sheet(workbook, metadataSheet, 'Metadata');
-  XLSX.utils.book_append_sheet(workbook, particleSheet, 'Particle Results');
+  XLSX.utils.book_append_sheet(
+    workbook,
+    metadataSheet,
+    'Metadata'
+  );
 
-  const exportFileName = generateExportFileName();
+  XLSX.utils.book_append_sheet(
+    workbook,
+    particleSheet,
+    'Particle Results'
+  );
 
-  XLSX.writeFile(workbook, exportFileName);
+  XLSX.writeFile(
+    workbook,
+    generateSingleExportFileName()
+  );
 }
 
 // ==============================
 // FILE NAME GENERATION
 // ==============================
 
-function generateExportFileName() {
+function generateSingleExportFileName() {
   const baseName = uploadedImageName
     ? uploadedImageName.replace(/\.[^/.]+$/, '')
     : 'particle-analysis';
