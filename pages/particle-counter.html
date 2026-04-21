@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
   <title>Particle Counter | Aqua Insight</title>
 
   <link rel="stylesheet" href="../css/style.css" />
@@ -10,6 +11,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
   <link
     href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
     rel="stylesheet"
@@ -28,7 +30,9 @@
     <nav class="main-nav">
       <ul>
         <li>
-          <a href="../index.html" class="nav-link">Home</a>
+          <a href="../index.html" class="nav-link">
+            Home
+          </a>
         </li>
 
         <li class="dropdown">
@@ -38,12 +42,16 @@
           </button>
 
           <div class="dropdown-menu">
-            <a href="particle-counter.html">Particle Counter</a>
+            <a href="particle-counter.html">
+              Particle Counter
+            </a>
           </div>
         </li>
 
         <li>
-          <a href="contact.html" class="nav-link">Contact Us</a>
+          <a href="contact.html" class="nav-link">
+            Contact Us
+          </a>
         </li>
       </ul>
     </nav>
@@ -52,22 +60,18 @@
   <main class="feature-layout">
 
     <aside class="feature-sidebar">
+
       <div class="sidebar-card">
-        <h3 class="sidebar-title">Particle Counter</h3>
+        <h3 class="sidebar-title">
+          Particle Counter
+        </h3>
 
         <nav class="sidebar-menu">
           <button
             class="sidebar-button active"
-            data-mode="single"
+            data-mode="analysis"
           >
-            Single Analysis
-          </button>
-
-          <button
-            class="sidebar-button"
-            data-mode="batch"
-          >
-            Batch Analysis
+            Analysis
           </button>
         </nav>
       </div>
@@ -78,18 +82,33 @@
         </h4>
 
         <div class="settings-group">
-          <label for="channelMode">Channel Mode</label>
+          <label for="channelMode">
+            Channel Mode
+          </label>
 
           <select id="channelMode">
-            <option value="grayscale">Grayscale</option>
-            <option value="red">Red Channel</option>
-            <option value="green">Green Channel</option>
-            <option value="blue">Blue Channel</option>
+            <option value="grayscale">
+              Grayscale
+            </option>
+
+            <option value="red">
+              Red Channel
+            </option>
+
+            <option value="green">
+              Green Channel
+            </option>
+
+            <option value="blue">
+              Blue Channel
+            </option>
           </select>
         </div>
 
         <div class="settings-group">
-          <label for="thresholdMode">Threshold Mode</label>
+          <label for="thresholdMode">
+            Threshold Mode
+          </label>
 
           <div class="threshold-select-wrapper">
             <select id="thresholdMode">
@@ -141,19 +160,24 @@
           />
         </div>
 
-        <div class="checkbox-group">
-          <input
-            type="checkbox"
-            id="ignoreBackgroundParticles"
-          />
-          <label for="ignoreBackgroundParticles">
-            Ignore Background Region
+        <div class="settings-group">
+          <label for="minimumOverlayArea">
+            Minimum Area For Label Display
           </label>
+
+          <input
+            type="number"
+            id="minimumOverlayArea"
+            value="50"
+            min="1"
+          />
         </div>
 
-        <div class="settings-row">
+                <div class="settings-row">
           <div class="settings-group">
-            <label for="minParticleSize">Min Size</label>
+            <label for="minParticleSize">
+              Minimum Particle Size
+            </label>
 
             <input
               type="number"
@@ -164,13 +188,15 @@
           </div>
 
           <div class="settings-group">
-            <label for="maxParticleSize">Max Size</label>
+            <label for="maxParticleSize">
+              Maximum Particle Size
+            </label>
 
             <input
               type="number"
               id="maxParticleSize"
               value="999999"
-              min="0"
+              min="1"
             />
           </div>
         </div>
@@ -178,7 +204,7 @@
         <div class="settings-row">
           <div class="settings-group">
             <label for="circularityMin">
-              Circularity Min
+              Circularity Minimum
             </label>
 
             <input
@@ -193,7 +219,7 @@
 
           <div class="settings-group">
             <label for="circularityMax">
-              Circularity Max
+              Circularity Maximum
             </label>
 
             <input
@@ -207,11 +233,12 @@
           </div>
         </div>
 
-                <div class="checkbox-group">
+        <div class="checkbox-group">
           <input
             type="checkbox"
             id="invertThreshold"
           />
+
           <label for="invertThreshold">
             Invert Threshold
           </label>
@@ -222,14 +249,51 @@
             type="checkbox"
             id="excludeEdgeParticles"
           />
+
           <label for="excludeEdgeParticles">
             Exclude Edge Particles
           </label>
         </div>
 
+        <div class="checkbox-group">
+          <input
+            type="checkbox"
+            id="useBackgroundPicker"
+          />
+
+          <label for="useBackgroundPicker">
+            Use Background Pixel Selection
+          </label>
+        </div>
+
+        <div class="background-picker-info">
+          <div class="background-color-preview">
+            <span id="backgroundColorIndicator"></span>
+          </div>
+
+          <div class="background-picker-text">
+            <span class="background-label">
+              Selected Background Pixel
+            </span>
+
+            <span id="backgroundPixelValue">
+              No pixel selected
+            </span>
+          </div>
+        </div>
+
+        <button
+          class="secondary-button"
+          id="resetBackgroundButton"
+          type="button"
+        >
+          Reset Background Selection
+        </button>
+
         <button
           class="analyze-button"
           id="runAnalysisButton"
+          type="button"
         >
           Run Analysis
         </button>
@@ -248,23 +312,194 @@
             type="file"
             id="imageUpload"
             accept="image/*"
+            multiple
             hidden
           />
 
           <button
             class="upload-button"
             id="uploadButton"
+            type="button"
           >
             Upload Image
           </button>
 
           <p class="upload-description">
-            Supported image formats: JPG, PNG, BMP, TIFF
+            Upload one or multiple images for particle analysis
           </p>
+
+          <div class="image-navigation-info">
+            <span id="activeImageLabel">
+              No image loaded
+            </span>
+          </div>
         </div>
       </div>
 
+              <div class="settings-row">
+          <div class="settings-group">
+            <label for="minParticleSize">
+              Minimum Particle Size
+            </label>
+
+            <input
+              type="number"
+              id="minParticleSize"
+              value="0"
+              min="0"
+            />
+          </div>
+
+          <div class="settings-group">
+            <label for="maxParticleSize">
+              Maximum Particle Size
+            </label>
+
+            <input
+              type="number"
+              id="maxParticleSize"
+              value="999999"
+              min="1"
+            />
+          </div>
+        </div>
+
+        <div class="settings-row">
+          <div class="settings-group">
+            <label for="circularityMin">
+              Circularity Minimum
+            </label>
+
+            <input
+              type="number"
+              id="circularityMin"
+              value="0"
+              min="0"
+              max="1"
+              step="0.01"
+            />
+          </div>
+
+          <div class="settings-group">
+            <label for="circularityMax">
+              Circularity Maximum
+            </label>
+
+            <input
+              type="number"
+              id="circularityMax"
+              value="1"
+              min="0"
+              max="1"
+              step="0.01"
+            />
+          </div>
+        </div>
+
+        <div class="checkbox-group">
+          <input
+            type="checkbox"
+            id="invertThreshold"
+          />
+
+          <label for="invertThreshold">
+            Invert Threshold
+          </label>
+        </div>
+
+        <div class="checkbox-group">
+          <input
+            type="checkbox"
+            id="excludeEdgeParticles"
+          />
+
+          <label for="excludeEdgeParticles">
+            Exclude Edge Particles
+          </label>
+        </div>
+
+        <div class="checkbox-group">
+          <input
+            type="checkbox"
+            id="useBackgroundPicker"
+          />
+
+          <label for="useBackgroundPicker">
+            Use Background Pixel Selection
+          </label>
+        </div>
+
+        <div class="background-picker-info">
+          <div class="background-color-preview">
+            <span id="backgroundColorIndicator"></span>
+          </div>
+
+          <div class="background-picker-text">
+            <span class="background-label">
+              Selected Background Pixel
+            </span>
+
+            <span id="backgroundPixelValue">
+              No pixel selected
+            </span>
+          </div>
+        </div>
+
+        <button
+          class="secondary-button"
+          id="resetBackgroundButton"
+          type="button"
+        >
+          Reset Background Selection
+        </button>
+
+        <button
+          class="analyze-button"
+          id="runAnalysisButton"
+          type="button"
+        >
+          Run Analysis
+        </button>
+      </div>
+    </aside>
+
+    <section class="feature-content">
+
       <div class="content-card">
+        <div class="card-header">
+          <h2>Image Upload</h2>
+        </div>
+
+        <div class="upload-area" id="uploadArea">
+          <input
+            type="file"
+            id="imageUpload"
+            accept="image/*"
+            multiple
+            hidden
+          />
+
+          <button
+            class="upload-button"
+            id="uploadButton"
+            type="button"
+          >
+            Upload Image
+          </button>
+
+          <p class="upload-description">
+            Upload one or multiple images for particle analysis
+          </p>
+
+          <div class="image-navigation-info">
+            <span id="activeImageLabel">
+              No image loaded
+            </span>
+          </div>
+        </div>
+      </div>
+
+            <div class="content-card">
         <div class="card-header">
           <h2>Analysis Preview</h2>
 
@@ -272,36 +507,41 @@
             <button
               class="preview-control-button"
               id="zoomInButton"
+              type="button"
             >
-              +
+              Zoom In
             </button>
 
             <button
               class="preview-control-button"
               id="zoomOutButton"
+              type="button"
             >
-              −
+              Zoom Out
             </button>
 
             <button
               class="preview-control-button"
               id="resetZoomButton"
+              type="button"
             >
-              Reset
+              Reset View
             </button>
 
             <button
               class="preview-control-button"
               id="previousBatchImageButton"
+              type="button"
             >
-              Previous
+              Previous Image
             </button>
 
             <button
               class="preview-control-button"
               id="nextBatchImageButton"
+              type="button"
             >
-              Next
+              Next Image
             </button>
           </div>
         </div>
@@ -311,8 +551,18 @@
           <div class="preview-panel">
             <h3>Original Image</h3>
 
-            <div class="preview-canvas-container">
+            <div
+              class="preview-canvas-container"
+              id="originalCanvasContainer"
+            >
               <canvas id="originalCanvas"></canvas>
+
+              <svg id="originalOverlaySvg"></svg>
+
+              <div
+                class="background-selection-marker"
+                id="backgroundSelectionMarker"
+              ></div>
             </div>
           </div>
 
@@ -335,7 +585,9 @@
           <div class="preview-panel">
             <h3>Final Overlay</h3>
 
-            <div class="preview-canvas-container overlay-container">
+            <div
+              class="preview-canvas-container overlay-container"
+            >
               <canvas id="overlayCanvas"></canvas>
               <svg id="overlaySvg"></svg>
             </div>
@@ -350,6 +602,20 @@
         </div>
 
         <div class="summary-grid">
+
+          <div class="summary-item">
+            <span class="summary-label">
+              Active Image
+            </span>
+
+            <span
+              class="summary-value"
+              id="activeImageSummary"
+            >
+              -
+            </span>
+          </div>
+
           <div class="summary-item">
             <span class="summary-label">
               Detected Particles
@@ -365,7 +631,7 @@
 
           <div class="summary-item">
             <span class="summary-label">
-              Coverage Area
+              Coverage Area (%)
             </span>
 
             <span
@@ -376,7 +642,29 @@
             </span>
           </div>
 
-                    <div class="summary-item">
+          <div class="summary-item">
+            <span class="summary-label">
+              Coverage Area (Pixels)
+            </span>
+
+            <span
+              class="summary-value"
+              id="coveragePixelArea"
+            >
+              0 px
+            </span>
+          </div>
+        </div>
+      </div>
+
+            <div class="content-card">
+        <div class="card-header">
+          <h2>Analysis Metadata</h2>
+        </div>
+
+        <div class="summary-grid">
+
+          <div class="summary-item">
             <span class="summary-label">
               Threshold Method
             </span>
@@ -401,6 +689,32 @@
               Grayscale
             </span>
           </div>
+
+          <div class="summary-item">
+            <span class="summary-label">
+              Threshold Value
+            </span>
+
+            <span
+              class="summary-value"
+              id="thresholdValueLabel"
+            >
+              -
+            </span>
+          </div>
+
+          <div class="summary-item">
+            <span class="summary-label">
+              Image Size
+            </span>
+
+            <span
+              class="summary-value"
+              id="imageSizeLabel"
+            >
+              -
+            </span>
+          </div>
         </div>
       </div>
 
@@ -411,6 +725,7 @@
           <button
             class="export-button"
             id="exportResultsButton"
+            type="button"
           >
             Export XLS
           </button>
@@ -423,13 +738,16 @@
           >
             <thead>
               <tr>
-                <th>ID</th>
+                <th>No</th>
+                <th>Particle ID</th>
                 <th>Area</th>
                 <th>Perimeter</th>
                 <th>Circularity</th>
                 <th>Feret Diameter</th>
                 <th>Aspect Ratio</th>
                 <th>Mean RGB</th>
+                <th>Min RGB</th>
+                <th>Max RGB</th>
                 <th>Centroid X</th>
                 <th>Centroid Y</th>
                 <th>Touches Edge</th>
@@ -439,7 +757,7 @@
             <tbody id="resultsTableBody">
               <tr>
                 <td
-                  colspan="10"
+                  colspan="13"
                   class="empty-table-message"
                 >
                   No analysis results available.
@@ -458,7 +776,6 @@
   <script src="../js/main.js"></script>
   <script src="../js/detection.js"></script>
   <script src="../js/particle-analysis.js"></script>
-  <script src="../js/batch.js"></script>
   <script src="../js/export.js"></script>
   <script src="../js/zoom-pan.js"></script>
 
