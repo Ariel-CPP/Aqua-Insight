@@ -1,4 +1,3 @@
-```javascript
 // ==============================
 // EXPORT MODULE
 // Aqua Insight Version 0.1
