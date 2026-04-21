@@ -587,3 +587,220 @@
     min-height: 280px;
   }
 }
+
+/* ==============================
+   RESPONSIVE IMPROVEMENTS
+   Add to particle-counter.css
+   ============================== */
+
+.feature-layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 20px;
+  padding: 20px;
+  min-height: calc(100vh - 140px);
+}
+
+.feature-sidebar {
+  width: 100%;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.feature-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+.content-card,
+.sidebar-card {
+  padding: 18px;
+  border-radius: 18px;
+}
+
+.preview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.preview-panel {
+  min-width: 0;
+}
+
+.preview-panel h3 {
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.preview-canvas-container {
+  position: relative;
+  width: 100%;
+  min-height: 240px;
+  max-height: 420px;
+  overflow: hidden;
+  border-radius: 14px;
+}
+
+.preview-canvas-container canvas,
+.preview-canvas-container svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.summary-item {
+  padding: 14px;
+}
+
+.summary-label {
+  font-size: 11px;
+}
+
+.summary-value {
+  font-size: 14px;
+}
+
+.results-table {
+  font-size: 12px;
+}
+
+.results-table th,
+.results-table td {
+  padding: 10px 12px;
+  white-space: nowrap;
+}
+
+.preview-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.preview-control-button,
+.export-button,
+.upload-button,
+.analyze-button,
+.secondary-button {
+  padding: 10px 14px;
+  font-size: 13px;
+}
+
+.settings-group label,
+.checkbox-group label,
+.sidebar-section-title {
+  font-size: 12px;
+}
+
+.settings-group input,
+.settings-group select {
+  font-size: 13px;
+  padding: 10px 12px;
+}
+
+/* ==============================
+   LARGE LAPTOP
+   ============================== */
+
+@media (max-width: 1400px) {
+  .feature-layout {
+    grid-template-columns: 290px 1fr;
+    gap: 16px;
+    padding: 16px;
+  }
+
+  .feature-sidebar {
+    max-width: 290px;
+  }
+
+  .preview-canvas-container {
+    min-height: 220px;
+    max-height: 360px;
+  }
+
+  .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ==============================
+   TABLET LANDSCAPE / SMALL LAPTOP
+   ============================== */
+
+@media (max-width: 1100px) {
+  .feature-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .feature-sidebar {
+    max-width: 100%;
+  }
+
+  .preview-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .settings-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ==============================
+   TABLET PORTRAIT
+   ============================== */
+
+@media (max-width: 768px) {
+  .main-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 16px;
+  }
+
+  .main-nav ul {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .feature-layout {
+    padding: 12px;
+  }
+
+  .preview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .preview-canvas-container {
+    min-height: 220px;
+    max-height: 300px;
+  }
+
+  .preview-controls {
+    flex-direction: column;
+  }
+
+  .preview-control-button,
+  .export-button,
+  .upload-button,
+  .analyze-button,
+  .secondary-button {
+    width: 100%;
+  }
+}
