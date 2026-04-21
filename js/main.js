@@ -274,7 +274,17 @@ function loadUploadedImages(files) {
   currentImageIndex = 0;
   allAnalysisResults = [];
 
-  resetAnalysisUI();
+  if (typeof resetResultsTable === 'function') {
+    resetResultsTable();
+  }
+
+  if (typeof resetSummaryDisplay === 'function') {
+    resetSummaryDisplay();
+  }
+
+  if (typeof clearOverlaySvg === 'function') {
+    clearOverlaySvg();
+  }
 
   let loadedCount = 0;
 
