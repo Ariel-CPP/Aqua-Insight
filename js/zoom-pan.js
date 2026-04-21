@@ -1,5 +1,5 @@
 // ==============================
-// ZOOM AND PAN MODULE
+// PARTICLE ZOOM PAN MODULE
 // Aqua Insight Version 0.1
 // ==============================
 
@@ -7,32 +7,27 @@ let currentZoom = 1;
 let currentTranslateX = 0;
 let currentTranslateY = 0;
 
-const zoomStep = 0.1;
-const minZoom = 0.5;
-const maxZoom = 5;
-
 let isDragging = false;
 let dragStartX = 0;
 let dragStartY = 0;
 
-// Batch preview navigation
+const minZoom = 0.25;
+const maxZoom = 8;
+const zoomStep = 0.1;
+
 let currentBatchPreviewIndex = 0;
 
-// ==============================
-// INITIALIZATION
-// ==============================
-
 document.addEventListener('DOMContentLoaded', () => {
-  initializeZoomControls();
-  initializePanControls();
-  initializeBatchPreviewNavigation();
+  initializeZoomPan();
+  initializeZoomButtons();
+  initializeBatchNavigation();
 });
 
 // ==============================
-// ZOOM CONTROLS
+// ZOOM BUTTONS
 // ==============================
 
-function initializeZoomControls() {
+function initializeZoomButtons() {
   const zoomInButton =
     document.getElementById('zoomInButton');
 
@@ -44,23 +39,25 @@ function initializeZoomControls() {
 
   if (zoomInButton) {
     zoomInButton.addEventListener('click', () => {
-      currentZoom = Math.min(
-        currentZoom + zoomStep,
-        maxZoom
-      );
+      currentZoom += zoomStep;
 
-      applyZoomAndPan();
+      if (currentZoom > maxZoom) {
+        currentZoom = maxZoom;
+      }
+
+      applyZoomPanTransform();
     });
   }
 
   if (zoomOutButton) {
     zoomOutButton.addEventListener('click', () => {
-      currentZoom = Math.max(
-        currentZoom - zoomStep,
-        minZoom
-      );
+      currentZoom -= zoomStep;
 
-      applyZoomAndPan();
+      if (currentZoom < minZoom) {
+        currentZoom = minZoom;
+      }
+
+      applyZoomPanTransform();
     });
   }
 
@@ -72,20 +69,23 @@ function initializeZoomControls() {
 }
 
 // ==============================
-// PAN CONTROLS
+// PAN AND SCROLL ZOOM
 // ==============================
 
-function initializePanControls() {
-  const previewContainers = document.querySelectorAll(
+function initializeZoomPan() {
+  const containers = document.querySelectorAll(
     '.preview-canvas-container'
   );
 
-  previewContainers.forEach(container => {
+  containers.forEach(container => {
     container.addEventListener('mousedown', event => {
       isDragging = true;
 
-      dragStartX = event.clientX - currentTranslateX;
-      dragStartY = event.clientY - currentTranslateY;
+      dragStartX =
+        event.clientX - currentTranslateX;
+
+      dragStartY =
+        event.clientY - currentTranslateY;
 
       container.classList.add('dragging');
     });
@@ -99,7 +99,7 @@ function initializePanControls() {
       currentTranslateY =
         event.clientY - dragStartY;
 
-      applyZoomAndPan();
+      applyZoomPanTransform();
     });
 
     container.addEventListener('mouseup', () => {
@@ -116,18 +116,20 @@ function initializePanControls() {
       event.preventDefault();
 
       if (event.deltaY < 0) {
-        currentZoom = Math.min(
-          currentZoom + zoomStep,
-          maxZoom
-        );
+        currentZoom += zoomStep;
       } else {
-        currentZoom = Math.max(
-          currentZoom - zoomStep,
-          minZoom
-        );
+        currentZoom -= zoomStep;
       }
 
-      applyZoomAndPan();
+      if (currentZoom < minZoom) {
+        currentZoom = minZoom;
+      }
+
+      if (currentZoom > maxZoom) {
+        currentZoom = maxZoom;
+      }
+
+      applyZoomPanTransform();
     });
   });
 }
@@ -136,91 +138,90 @@ function initializePanControls() {
 // APPLY TRANSFORM
 // ==============================
 
-function applyZoomAndPan() {
-  const previewElements = document.querySelectorAll(
+function applyZoomPanTransform() {
+  const targets = document.querySelectorAll(
     '.preview-canvas-container canvas, .preview-canvas-container svg'
   );
 
-  previewElements.forEach(element => {
-    element.style.transform = `
-      translate(${currentTranslateX}px, ${currentTranslateY}px)
-      scale(${currentZoom})
-    `;
+  targets.forEach(target => {
+    target.style.transform =
+      `translate(${currentTranslateX}px, ${currentTranslateY}px) scale(${currentZoom})`;
 
-    element.style.transformOrigin = 'center center';
-    element.style.transition = isDragging
-      ? 'none'
-      : 'transform 0.15s ease';
+    target.style.transformOrigin = 'center center';
+
+    if (!isDragging) {
+      target.style.transition =
+        'transform 0.15s ease';
+    } else {
+      target.style.transition = 'none';
+    }
   });
 }
-
-// ==============================
-// RESET
-// ==============================
 
 function resetZoomAndPan() {
   currentZoom = 1;
   currentTranslateX = 0;
   currentTranslateY = 0;
 
-  applyZoomAndPan();
+  applyZoomPanTransform();
 }
-
 // ==============================
-// BATCH PREVIEW NAVIGATION
+// BATCH NAVIGATION
 // ==============================
 
-function initializeBatchPreviewNavigation() {
-  createBatchNavigationButtons();
+function initializeBatchNavigation() {
+  const previousButton =
+    document.getElementById('previousBatchImageButton');
+
+  const nextButton =
+    document.getElementById('nextBatchImageButton');
+
+  if (previousButton) {
+    previousButton.addEventListener('click', () => {
+      showPreviousBatchImage();
+    });
+  }
+
+  if (nextButton) {
+    nextButton.addEventListener('click', () => {
+      showNextBatchImage();
+    });
+  }
 }
-
-function createBatchNavigationButtons() {
-  const previewCard = document.querySelector(
-    '.preview-controls'
-  );
-
-  if (!previewCard) return;
-
-  const previousButton = document.createElement('button');
-  previousButton.id = 'previousBatchImageButton';
-  previousButton.className = 'preview-control-button';
-  previousButton.textContent = 'Previous';
-
-  const nextButton = document.createElement('button');
-  nextButton.id = 'nextBatchImageButton';
-  nextButton.className = 'preview-control-button';
-  nextButton.textContent = 'Next';
-
-  previousButton.addEventListener('click', () => {
-    showPreviousBatchImage();
-  });
-
-  nextButton.addEventListener('click', () => {
-    showNextBatchImage();
-  });
-
-  previewCard.appendChild(previousButton);
-  previewCard.appendChild(nextButton);
-}
-
-// ==============================
-// BATCH IMAGE DISPLAY
-// ==============================
 
 function showPreviousBatchImage() {
-  if (!batchResults.length) return;
+  if (
+    typeof batchResults === 'undefined' ||
+    !batchResults.length
+  ) {
+    return;
+  }
 
   currentBatchPreviewIndex--;
 
   if (currentBatchPreviewIndex < 0) {
-    currentBatchPreviewIndex = batchResults.length - 1;
+    currentBatchPreviewIndex =
+      batchResults.length - 1;
   }
 
-  renderBatchPreviewImage();
+  if (typeof renderBatchPreviewImage === 'function') {
+    renderBatchPreviewImage();
+  }
+
+  if (typeof highlightActiveBatchRow === 'function') {
+    highlightActiveBatchRow();
+  }
+
+  resetZoomAndPan();
 }
 
 function showNextBatchImage() {
-  if (!batchResults.length) return;
+  if (
+    typeof batchResults === 'undefined' ||
+    !batchResults.length
+  ) {
+    return;
+  }
 
   currentBatchPreviewIndex++;
 
@@ -228,102 +229,12 @@ function showNextBatchImage() {
     currentBatchPreviewIndex = 0;
   }
 
-  renderBatchPreviewImage();
-}
-function renderBatchPreviewImage() {
-  if (!batchResults.length) return;
-
-  const result = batchResults[currentBatchPreviewIndex];
-
-  if (!result || !result.imageObject) return;
-
-  const image = result.imageObject;
-
-  // Original
-  originalCanvas.width = image.width;
-  originalCanvas.height = image.height;
-  originalCtx.clearRect(0, 0, image.width, image.height);
-  originalCtx.drawImage(image, 0, 0);
-
-  // Channel Preview
-  uploadedImage = image;
-  uploadedImageName = result.filename;
-
-  renderSelectedChannelPreview(
-    document.getElementById('channelMode')?.value || 'grayscale'
-  );
-
-  // Threshold Preview
-  thresholdCanvas.width = image.width;
-  thresholdCanvas.height = image.height;
-
-  renderBinaryMaskToCanvas(
-    result.binaryMask,
-    image.width,
-    image.height,
-    thresholdCanvas
-  );
-
-  // Overlay Preview
-  overlayCanvas.width = image.width;
-  overlayCanvas.height = image.height;
-
-  overlayCtx.clearRect(
-    0,
-    0,
-    overlayCanvas.width,
-    overlayCanvas.height
-  );
-
-  overlayCtx.drawImage(image, 0, 0);
-
-  drawParticleOverlay(result.particles);
-
-  // Summary
-  const particleCountElement =
-    document.getElementById('particleCount');
-
-  const coverageAreaElement =
-    document.getElementById('coverageArea');
-
-  const thresholdMethodLabel =
-    document.getElementById('thresholdMethodLabel');
-
-  if (particleCountElement) {
-    particleCountElement.textContent =
-      result.detectedParticleCount;
+  if (typeof renderBatchPreviewImage === 'function') {
+    renderBatchPreviewImage();
   }
 
-  if (coverageAreaElement) {
-    const totalPixels =
-      result.imageWidth * result.imageHeight;
-
-    const coverage =
-      totalPixels > 0
-        ? (
-            (result.totalParticleArea / totalPixels) *
-            100
-          ).toFixed(2)
-        : '0.00';
-
-    coverageAreaElement.textContent = `${coverage}%`;
-  }
-
-  if (thresholdMethodLabel) {
-    thresholdMethodLabel.textContent =
-      `${result.thresholdMode} (${result.thresholdValue})`;
-  }
-
-  // Results table for selected image
-  populateResultsTable(result.particles);
-
-  // Upload label
-  const uploadDescription =
-    document.querySelector('.upload-description');
-
-  if (uploadDescription) {
-    uploadDescription.textContent =
-      `Viewing batch image ${currentBatchPreviewIndex + 1} of ${batchResults.length}: ${result.filename}`;
+  if (typeof highlightActiveBatchRow === 'function') {
+    highlightActiveBatchRow();
   }
 
   resetZoomAndPan();
