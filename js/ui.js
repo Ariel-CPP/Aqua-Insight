@@ -5,7 +5,7 @@ const UI = (() => {
   triangle: 'Triangle is useful for images with dominant background and small object regions.',
   yen: 'Yen maximizes the separation between foreground and background using entropy-based histogram analysis.',
   li: 'Li iteratively estimates the optimal threshold based on minimum cross-entropy between foreground and background.',
-  minimum-error: 'Minimum Error is suitable for complex intensity distributions.',
+  'minimum-error': 'Minimum Error is suitable for complex intensity distributions.',
   manual: 'Manual threshold allows you to define minimum and maximum threshold values.'
 };
 
