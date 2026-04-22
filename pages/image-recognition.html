@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image Recognition - Aqua Insight</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  >
+
+  <link rel="stylesheet" href="../css/global.css">
+  <link rel="stylesheet" href="../css/image-recognition.css">
+</head>
+
+<body class="recognition-page">
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="logo-group">
+        <div class="logo-icon">AI</div>
+
+        <div>
+          <h1>Aqua Insight</h1>
+          <p>Image Recognition Module</p>
+        </div>
+      </div>
+
+      <div class="version-chip">
+        Version 0.1
+      </div>
+    </div>
+
+    <div class="topbar-right">
+      <div class="dropdown-wrapper">
+        <button class="topbar-button">
+          Features
+        </button>
+
+        <div class="dropdown-menu">
+          <a href="../index.html">Home</a>
+          <a href="./particle-counter.html">Particle Counter</a>
+          <a href="./image-recognition.html">Image Recognition</a>
+          <a href="./contact.html">Contact</a>
+        </div>
+      </div>
+
+      <button
+        class="topbar-button"
+        onclick="window.location.href='../index.html'"
+      >
+        Back to Home
+      </button>
+    </div>
+  </header>
+
+  <div class="background-glow glow-left"></div>
+  <div class="background-glow glow-right"></div>
+
+  <div class="recognition-layout">
+    <aside class="recognition-sidebar">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-icon">IR</div>
+
+        <div>
+          <h1>Image Recognition</h1>
+          <p>Template Based Object Detection</p>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">
+          Image Upload
+        </div>
+
+        <div class="sidebar-button-group">
+          <button
+            id="uploadRecognitionImageButton"
+            class="analysis-button"
+          >
+            Upload Image
+          </button>
+
+          <input
+            type="file"
+            id="recognitionImageInput"
+            accept="image/png,image/jpeg,image/jpg"
+            hidden
+          >
+
+          <button
+            id="previousRecognitionImageButton"
+            class="secondary-analysis-button"
+          >
+            Previous Image
+          </button>
+
+          <button
+            id="nextRecognitionImageButton"
+            class="secondary-analysis-button"
+          >
+            Next Image
+          </button>
+        </div>
+      </div>
+            <div class="sidebar-section">
+        <div class="sidebar-section-title">
+          Recognition Settings
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" for="similarityThreshold">
+            Similarity Threshold
+          </label>
+
+          <input
+            type="range"
+            id="similarityThreshold"
+            min="0.1"
+            max="1"
+            step="0.05"
+            value="0.75"
+            class="control-range"
+          >
+
+          <div
+            id="similarityThresholdValue"
+            class="control-description"
+          >
+            0.75
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" for="minimumObjectSize">
+            Minimum Object Size
+          </label>
+
+          <input
+            type="number"
+            id="minimumObjectSize"
+            class="control-input"
+            min="10"
+            value="20"
+          >
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" for="maximumObjectSize">
+            Maximum Object Size
+          </label>
+
+          <input
+            type="number"
+            id="maximumObjectSize"
+            class="control-input"
+            min="20"
+            value="300"
+          >
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" for="overlapTolerance">
+            Overlap Tolerance
+          </label>
+
+          <input
+            type="range"
+            id="overlapTolerance"
+            min="0"
+            max="1"
+            step="0.05"
+            value="0.3"
+            class="control-range"
+          >
+
+          <div
+            id="overlapToleranceValue"
+            class="control-description"
+          >
+            0.30
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">
+          Feature Weight
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" for="colorWeight">
+            Color Importance
+          </label>
+
+          <input
+            type="range"
+            id="colorWeight"
+            min="0"
+            max="1"
+            step="0.05"
+            value="0.3"
+            class="control-range"
+          >
+
+          <div
+            id="colorWeightValue"
+            class="control-description"
+          >
+            0.30
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" for="shapeWeight">
+            Shape Importance
+          </label>
+
+          <input
+            type="range"
+            id="shapeWeight"
+            min="0"
+            max="1"
+            step="0.05"
+            value="0.4"
+            class="control-range"
+          >
+
+          <div
+            id="shapeWeightValue"
+            class="control-description"
+          >
+            0.40
+          </div>
+        </div>
+                <div class="control-group">
+          <label class="control-label" for="textureWeight">
+            Texture Importance
+          </label>
+
+          <input
+            type="range"
+            id="textureWeight"
+            min="0"
+            max="1"
+            step="0.05"
+            value="0.3"
+            class="control-range"
+          >
+
+          <div
+            id="textureWeightValue"
+            class="control-description"
+          >
+            0.30
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">
+          Recognition Categories
+        </div>
+
+        <div
+          id="recognitionCategoryList"
+          class="recognition-category-list"
+        >
+          <div class="empty-state-small">
+            No category created
+          </div>
+        </div>
+
+        <div class="sidebar-button-group">
+          <button
+            id="addRecognitionCategoryButton"
+            class="analysis-button"
+          >
+            Add Category
+          </button>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">
+          Recognition Actions
+        </div>
+
+        <div class="sidebar-button-group">
+          <button
+            id="runRecognitionButton"
+            class="analysis-button"
+          >
+            Run Recognition
+          </button>
+
+          <button
+            id="resetRecognitionButton"
+            class="secondary-analysis-button"
+          >
+            Reset Recognition
+          </button>
+
+          <button
+            id="exportRecognitionPngButton"
+            class="secondary-analysis-button"
+          >
+            Export PNG
+          </button>
+
+          <button
+            id="exportRecognitionXlsxButton"
+            class="secondary-analysis-button"
+          >
+            Export XLSX
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <main class="recognition-content">
+      <div class="recognition-toolbar">
+        <div class="toolbar-left">
+          <div class="toolbar-title">
+            <h2 id="recognitionCurrentImageName">
+              No Image Selected
+            </h2>
+
+            <p>
+              Template based object recognition dashboard
+            </p>
+          </div>
+        </div>
+
+        <div class="toolbar-right">
+          <div
+            id="recognitionImageCounter"
+            class="toolbar-chip"
+          >
+            0 / 0 Images
+          </div>
+
+          <div
+            id="recognitionStatusChip"
+            class="toolbar-chip"
+          >
+            Waiting for Image
+          </div>
+        </div>
+      </div>
+            <div
+        id="recognitionUploadDropzone"
+        class="upload-dropzone"
+      >
+        <div class="upload-icon">
+          ⬆
+        </div>
+
+        <h3>
+          Upload Recognition Image
+        </h3>
+
+        <p>
+          Upload an image and create up to 3 categories. Each category can
+          contain 3 to 10 selected sample regions.
+        </p>
+      </div>
+
+      <div class="summary-grid">
+        <div class="summary-card">
+          <div class="summary-card-label">
+            Total Objects
+          </div>
+
+          <div
+            id="recognitionTotalObjects"
+            class="summary-card-value"
+          >
+            0
+          </div>
+
+          <div class="summary-card-subtext">
+            Total detected objects
+          </div>
+        </div>
+
+        <div class="summary-card">
+          <div class="summary-card-label">
+            Total Categories
+          </div>
+
+          <div
+            id="recognitionTotalCategories"
+            class="summary-card-value"
+          >
+            0
+          </div>
+
+          <div class="summary-card-subtext">
+            Number of active categories
+          </div>
+        </div>
+
+        <div class="summary-card">
+          <div class="summary-card-label">
+            Average Confidence
+          </div>
+
+          <div
+            id="recognitionAverageConfidence"
+            class="summary-card-value"
+          >
+            0%
+          </div>
+
+          <div class="summary-card-subtext">
+            Mean confidence score
+          </div>
+        </div>
+
+        <div class="summary-card">
+          <div class="summary-card-label">
+            Dominant Category
+          </div>
+
+          <div
+            id="recognitionDominantCategory"
+            class="summary-card-value"
+          >
+            -
+          </div>
+
+          <div class="summary-card-subtext">
+            Category with highest count
+          </div>
+        </div>
+      </div>
+
+      <div class="canvas-grid">
+        <div class="canvas-card">
+          <div class="canvas-card-header">
+            <div class="canvas-card-title">
+              <h3>Original Image</h3>
+              <p>Uploaded image preview</p>
+            </div>
+
+            <div
+              id="recognitionOriginalCanvasStatus"
+              class="canvas-status-chip"
+            >
+              Waiting
+            </div>
+          </div>
+
+          <div
+            id="recognitionOriginalCanvasWrapper"
+            class="canvas-wrapper"
+          >
+            <canvas id="recognitionOriginalCanvas"></canvas>
+          </div>
+                    <div class="canvas-toolbar">
+            <div class="canvas-info-text">
+              Original Image View
+            </div>
+          </div>
+        </div>
+
+        <div class="canvas-card">
+          <div class="canvas-card-header">
+            <div class="canvas-card-title">
+              <h3>Sample Selection</h3>
+              <p>Selected training regions</p>
+            </div>
+
+            <div
+              id="recognitionSampleCanvasStatus"
+              class="canvas-status-chip"
+            >
+              Waiting
+            </div>
+          </div>
+
+          <div
+            id="recognitionSampleCanvasWrapper"
+            class="canvas-wrapper"
+          >
+            <canvas id="recognitionSampleCanvas"></canvas>
+          </div>
+
+          <div class="canvas-toolbar">
+            <div class="canvas-info-text">
+              Rectangle Sample Selection
+            </div>
+          </div>
+        </div>
+
+        <div class="canvas-card">
+          <div class="canvas-card-header">
+            <div class="canvas-card-title">
+              <h3>Recognition Heatmap</h3>
+              <p>Similarity score distribution</p>
+            </div>
+
+            <div
+              id="recognitionHeatmapCanvasStatus"
+              class="canvas-status-chip"
+            >
+              Waiting
+            </div>
+          </div>
+
+          <div
+            id="recognitionHeatmapCanvasWrapper"
+            class="canvas-wrapper"
+          >
+            <canvas id="recognitionHeatmapCanvas"></canvas>
+          </div>
+
+          <div class="canvas-toolbar">
+            <div class="canvas-info-text">
+              Similarity Visualization
+            </div>
+          </div>
+        </div>
+
+        <div class="canvas-card">
+          <div class="canvas-card-header">
+            <div class="canvas-card-title">
+              <h3>Final Detection Overlay</h3>
+              <p>Detected object visualization</p>
+            </div>
+
+            <div
+              id="recognitionOverlayCanvasStatus"
+              class="canvas-status-chip"
+            >
+              Waiting
+            </div>
+          </div>
+
+          <div
+            id="recognitionOverlayCanvasWrapper"
+            class="canvas-wrapper"
+          >
+            <canvas id="recognitionOverlayCanvas"></canvas>
+          </div>
+                    <div class="canvas-toolbar">
+            <div class="canvas-info-text">
+              Final Recognition Result
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <section class="results-section">
+        <div class="results-layout">
+          <div class="classification-summary-card">
+            <div class="card-section-header">
+              <h3>Recognition Summary</h3>
+            </div>
+
+            <div
+              id="recognitionSummaryContainer"
+              class="summary-list"
+            >
+              <div class="empty-state">
+                <div class="empty-state-icon">
+                  ⌬
+                </div>
+
+                <h3>No Recognition Result</h3>
+
+                <p>
+                  Run recognition to view category summary.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="results-table-card">
+            <div class="card-section-header">
+              <h3>Recognition Results</h3>
+            </div>
+
+            <div class="results-table-toolbar">
+              <div class="results-toolbar-left">
+                <input
+                  type="text"
+                  id="recognitionSearchInput"
+                  class="search-input"
+                  placeholder="Search detected object..."
+                >
+              </div>
+
+              <div class="results-toolbar-right">
+                <select
+                  id="recognitionSortSelect"
+                  class="sort-select"
+                >
+                  <option value="id-asc">ID Ascending</option>
+                  <option value="id-desc">ID Descending</option>
+                  <option value="confidence-desc">Confidence Descending</option>
+                  <option value="confidence-asc">Confidence Ascending</option>
+                  <option value="similarity-desc">Similarity Descending</option>
+                  <option value="similarity-asc">Similarity Ascending</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="results-table-wrapper">
+              <table class="results-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Category</th>
+                    <th>Confidence</th>
+                    <th>Similarity</th>
+                    <th>Area</th>
+                    <th>Width</th>
+                    <th>Height</th>
+                    <th>X</th>
+                    <th>Y</th>
+                  </tr>
+                </thead>
+
+                <tbody id="recognitionResultsTableBody">
+                  <tr>
+                    <td colspan="9">
+                      <div class="empty-state">
+                        <div class="empty-state-icon">
+                          ∅
+                        </div>
+
+                        <h3>No Detection Result</h3>
+
+                        <p>
+                          Run recognition to populate the result table.
+                        </p>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+    <div
+    id="recognitionSampleModal"
+    class="background-modal"
+  >
+    <div class="background-modal-card">
+      <div class="background-modal-header">
+        <div>
+          <h2>Select Recognition Sample</h2>
+
+          <p>
+            Drag a rectangle around the object you want to use as a template.
+          </p>
+        </div>
+
+        <button
+          id="closeRecognitionSampleModalButton"
+          class="icon-button"
+        >
+          ✕
+        </button>
+      </div>
+
+      <div class="background-modal-body">
+        <div class="background-selection-wrapper">
+          <canvas
+            id="recognitionSampleSelectionCanvas"
+            class="background-selection-canvas"
+          ></canvas>
+        </div>
+
+        <div class="background-sidebar">
+          <div class="background-info-card">
+            <h3>Current Category</h3>
+
+            <p id="recognitionCurrentCategoryName">
+              No category selected
+            </p>
+          </div>
+
+          <div class="background-info-card">
+            <h3>Selected Samples</h3>
+
+            <div
+              id="recognitionSampleCount"
+              class="background-point-counter"
+            >
+              0 / 10 Samples
+            </div>
+          </div>
+
+          <div class="background-info-card">
+            <h3>Sample Preview</h3>
+
+            <div
+              id="recognitionSamplePreviewList"
+              class="background-color-preview"
+            ></div>
+          </div>
+
+          <div class="background-action-group">
+            <button
+              id="saveRecognitionSampleButton"
+              class="analysis-button"
+            >
+              Save Sample
+            </button>
+
+            <button
+              id="clearRecognitionSampleButton"
+              class="secondary-analysis-button"
+            >
+              Clear Selection
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+    <div
+    id="recognitionNotificationContainer"
+    class="notification-container"
+  ></div>
+
+  <div
+    id="recognitionLoadingOverlay"
+    class="loading-overlay"
+  >
+    <div class="loading-card">
+      <div class="loading-spinner"></div>
+
+      <h3>
+        Processing Recognition
+      </h3>
+
+      <p id="recognitionLoadingText">
+        Please wait while the system processes the image.
+      </p>
+    </div>
+  </div>
+
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+
+  <script src="../js/recognition-utils.js"></script>
+  <script src="../js/recognition-ui.js"></script>
+  <script src="../js/recognition-detection.js"></script>
+  <script src="../js/recognition-export.js"></script>
+  <script src="../js/image-recognition.js"></script>
+</body>
+</html>
