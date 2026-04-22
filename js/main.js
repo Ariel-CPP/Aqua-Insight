@@ -120,7 +120,11 @@ function updateCurrentImageView() {
     UI.openBackgroundModal();
     renderBackgroundSelectionCanvas(currentImage.image);
   }
+const statusChip = document.getElementById('analysisStatusChip');
 
+if (statusChip) {
+  statusChip.textContent = 'Background Required';
+}
   if (currentImage.analysis) {
     restoreAnalysisResult(currentImage.analysis);
   } else {
@@ -176,7 +180,12 @@ function bindActionEvents() {
   runAnalysisButton.addEventListener('click', async () => {
     await runParticleAnalysis();
   });
+const statusChip = document.getElementById('analysisStatusChip');
 
+if (statusChip) {
+  statusChip.textContent = 'Analysis Complete';
+}
+  
   resetBackgroundButton.addEventListener('click', () => {
     const currentImage = getCurrentImage();
 
@@ -234,7 +243,11 @@ function bindActionEvents() {
     }
 
     UI.closeBackgroundModal();
+const statusChip = document.getElementById('analysisStatusChip');
 
+if (statusChip) {
+  statusChip.textContent = 'Ready for Analysis';
+}
     UI.showNotification(
       'success',
       'Background Saved',
