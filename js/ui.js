@@ -26,7 +26,7 @@ const UI = (() => {
       return;
     }
 
-    imageCounter.textContent = `${currentIndex + 1} / ${totalImages}`;
+    imageCounter.textContent = `${currentIndex + 1} / ${totalImages} Images`;
   }
 
   function updateCurrentImageName(fileName) {
@@ -304,7 +304,7 @@ function renderBackgroundColorPreview(points) {
   }
 
   function bindResultTableRowClick(onRowClick) {
-    const tableBody = document.getElementById('resultTableBody');
+    const tableBody = document.getElementById('resultsTableBody');
 
     if (!tableBody) return;
 
