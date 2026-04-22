@@ -7,15 +7,10 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-  <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
-    rel="stylesheet"
-  >
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="css/global.css">
 </head>
-
 <body>
   <div class="background-glow glow-left"></div>
   <div class="background-glow glow-right"></div>
@@ -27,26 +22,29 @@
 
         <div>
           <h1>Aqua Insight</h1>
-          <p>Web Based Image Analysis Platform</p>
+          <p>Scientific Imaging Platform</p>
         </div>
-      </div>
-
-      <div class="version-chip">
-        Version 0.1
       </div>
     </div>
 
     <div class="topbar-right">
+      <div class="version-chip">
+        Version 0.1
+      </div>
+
       <div class="dropdown-wrapper">
         <button class="topbar-button">
           Features
         </button>
 
         <div class="dropdown-menu">
-          <a href="index.html">Home</a>
-          <a href="pages/particle-counter.html">Particle Counter</a>
-          <a href="pages/image-recognition.html">Image Recognition</a>
-          <a href="pages/contact.html">Contact</a>
+          <a href="pages/particle-counter.html">
+            Particle Counter
+          </a>
+
+          <a href="#development">
+            Development Features
+          </a>
         </div>
       </div>
 
@@ -59,408 +57,212 @@
     </div>
   </header>
 
-  <main class="home-page">
-    <section class="hero-section">
-      <div class="hero-grid">
-        <div class="hero-content">
-          <div class="hero-badge">
-            Aqua Insight Platform
-          </div>
+  <main class="home-container">
+    <section class="hero-section glass-card">
+      <span class="hero-badge">
+        Welcome to Aqua Insight
+      </span>
 
-          <h1>
-            Scientific Image Analysis for Aquaculture and Laboratory Research
-          </h1>
+      <h1>
+        Scientific Image Analysis Platform for Aquaculture
+      </h1>
 
-          <p>
-            Aqua Insight is a modular image analysis platform built for
-            particle counting, object recognition, threshold analysis,
-            overlay visualization, and future laboratory workflows.
-          </p>
+      <p class="hero-description">
+        Aqua Insight is a lightweight web-based platform designed
+        for scientific image analysis in aquaculture, histology,
+        microscopy, and particle-based color quantification.
+      </p>
 
-          <div class="hero-actions">
-            <button
-              class="primary-button"
-              onclick="window.location.href='pages/particle-counter.html'"
-            >
-              Open Particle Counter
-            </button>
+      <div class="hero-actions">
+        <button
+          class="primary-button"
+          onclick="window.location.href='pages/particle-counter.html'"
+        >
+          Open Particle Counter
+        </button>
 
-            <button
-              class="secondary-button"
-              onclick="window.location.href='pages/image-recognition.html'"
-            >
-              Open Image Recognition
-            </button>
-          </div>
-        </div>
-
-        <div class="hero-panel">
-          <div class="hero-panel-card">
-            <div class="hero-panel-label">
-              Active Modules
-            </div>
-
-            <div class="hero-panel-value">
-              2
-            </div>
-
-            <div class="hero-panel-subtext">
-              Currently available image analysis systems
-            </div>
-          </div>
-
-          <div class="hero-panel-card">
-            <div class="hero-panel-label">
-              Development Modules
-            </div>
-
-            <div class="hero-panel-value">
-              3
-            </div>
-
-            <div class="hero-panel-subtext">
-              Additional systems planned for future releases
-            </div>
-          </div>
-        </div>
+        <button class="secondary-button">
+          Documentation
+        </button>
       </div>
     </section>
+        <section class="content-grid">
+      <div class="glass-card section-card">
+        <div class="section-header">
+          <h2>Current System Overview</h2>
+          <span class="feature-chip active-chip">
+            Operational
+          </span>
+        </div>
 
-    <section class="section-block">
-      <div class="section-header">
-        <h2>Current Features</h2>
-        <p>
-          Modules currently available in Aqua Insight Version 0.1
+        <p class="section-description">
+          Aqua Insight is built as a growing image analysis platform.
+          The system is designed to remain lightweight and fully web-based,
+          while supporting future expansion for additional scientific
+          image processing workflows.
         </p>
+
+        <div class="overview-grid">
+          <div class="overview-item">
+            <h3>1</h3>
+            <p>Active Feature</p>
+          </div>
+
+          <div class="overview-item">
+            <h3>5</h3>
+            <p>Development Features</p>
+          </div>
+
+          <div class="overview-item">
+            <h3>0.1</h3>
+            <p>Current Version</p>
+          </div>
+        </div>
       </div>
 
-      <div class="feature-grid">
-        <div class="feature-card">
-          <div class="feature-card-header">
-            <div class="feature-icon">
-              PC
+      <div class="glass-card section-card">
+        <div class="section-header">
+          <h2>Currently Active</h2>
+          <span class="feature-chip active-chip">
+            Active
+          </span>
+        </div>
+
+        <div class="module-card active-module">
+          <div class="module-header">
+            <div>
+              <h3>Particle Counter</h3>
+              <p>
+                Threshold-based particle analysis with automatic
+                classification and background exclusion.
+              </p>
             </div>
 
-            <div class="feature-status active">
+            <span class="feature-chip active-chip">
               Active
-            </div>
+            </span>
           </div>
 
-          <h3>Particle Counter</h3>
-
-          <p>
-            Detect, classify, and count particles using thresholding,
-            morphology filtering, background removal, and overlay analysis.
-          </p>
-
-          <div class="feature-tags">
-            <span class="feature-tag">Particle Count</span>
-            <span class="feature-tag">Thresholding</span>
-            <span class="feature-tag">Overlay</span>
-          </div>
+          <ul class="module-feature-list">
+            <li>Single and batch image analysis</li>
+            <li>Background exclusion workflow</li>
+            <li>Automatic thresholding methods</li>
+            <li>Particle numbering and overlay rendering</li>
+            <li>Coverage percentage calculation</li>
+            <li>Mean RGB calculation</li>
+            <li>Circularity calculation</li>
+            <li>Overlay PNG export</li>
+            <li>XLSX export</li>
+          </ul>
 
           <button
-            class="feature-button"
+            class="primary-button module-button"
             onclick="window.location.href='pages/particle-counter.html'"
           >
             Open Feature
           </button>
         </div>
-
-        <div class="feature-card">
-          <div class="feature-card-header">
-            <div class="feature-icon">
-              IR
-            </div>
-
-            <div class="feature-status active">
-              Active
-            </div>
-          </div>
-
-          <h3>Image Recognition</h3>
-
-          <p>
-            Detect repeated objects using user-defined sample templates,
-            similarity scoring, and multi-category recognition.
-          </p>
-
-          <div class="feature-tags">
-            <span class="feature-tag">Template Matching</span>
-            <span class="feature-tag">Object Detection</span>
-            <span class="feature-tag">Multi Category</span>
-          </div>
-
-          <button
-            class="feature-button"
-            onclick="window.location.href='pages/image-recognition.html'"
-          >
-            Open Feature
-          </button>
-        </div>
       </div>
     </section>
-        <section class="section-block">
+        <section
+      class="glass-card section-card development-section"
+      id="development"
+    >
       <div class="section-header">
-        <h2>Upcoming Features</h2>
-        <p>
-          Planned modules for future Aqua Insight releases
-        </p>
+        <h2>Features in Development</h2>
+
+        <span class="feature-chip development-chip">
+          In Development
+        </span>
       </div>
 
-      <div class="feature-grid upcoming-grid">
-        <div class="feature-card">
-          <div class="feature-card-header">
-            <div class="feature-icon">
-              BD
-            </div>
+      <p class="section-description">
+        The platform is designed as a continuously growing system.
+        Additional modules will be added over time to support more
+        advanced scientific image analysis workflows.
+      </p>
 
-            <div class="feature-status development">
-              Development
-            </div>
-          </div>
-
-          <h3>Batch Detection</h3>
-
-          <p>
-            Analyze multiple images simultaneously with automated result
-            aggregation, summary generation, and export.
-          </p>
-
-          <div class="feature-tags">
-            <span class="feature-tag">Batch Mode</span>
-            <span class="feature-tag">Multi Image</span>
-            <span class="feature-tag">Report Export</span>
-          </div>
-
-          <button class="feature-button disabled-button">
-            Coming Soon
-          </button>
-        </div>
-
-        <div class="feature-card">
-          <div class="feature-card-header">
-            <div class="feature-icon">
-              AI
-            </div>
-
-            <div class="feature-status development">
-              Development
-            </div>
-          </div>
-
-          <h3>AI Assisted Classification</h3>
-
-          <p>
-            Future intelligent classification engine for automatic object,
-            morphology, and particle recognition.
-          </p>
-
-          <div class="feature-tags">
-            <span class="feature-tag">Artificial Intelligence</span>
-            <span class="feature-tag">Prediction</span>
-            <span class="feature-tag">Classification</span>
-          </div>
-
-          <button class="feature-button disabled-button">
-            Coming Soon
-          </button>
-        </div>
-
-        <div class="feature-card">
-          <div class="feature-card-header">
-            <div class="feature-icon">
-              RP
-            </div>
-
-            <div class="feature-status development">
-              Development
-            </div>
-          </div>
-
-          <h3>Automatic Report Builder</h3>
-
-          <p>
-            Generate PDF, XLSX, and PNG reports automatically from completed
-            image analysis workflows.
-          </p>
-
-          <div class="feature-tags">
-            <span class="feature-tag">PDF Export</span>
-            <span class="feature-tag">Auto Report</span>
-            <span class="feature-tag">Summary Builder</span>
-          </div>
-
-          <button class="feature-button disabled-button">
-            Coming Soon
-          </button>
-        </div>
-
-        <div class="feature-card">
-          <div class="feature-card-header">
-            <div class="feature-icon">
-              HM
-            </div>
-
-            <div class="feature-status development">
-              Development
-            </div>
-          </div>
-
-          <h3>Advanced Heatmap Analysis</h3>
-
-          <p>
-            Generate density maps, clustering maps, and region intensity
-            analysis from biological and laboratory images.
-          </p>
-
-          <div class="feature-tags">
-            <span class="feature-tag">Heatmap</span>
-            <span class="feature-tag">Density Map</span>
-            <span class="feature-tag">Clustering</span>
-          </div>
-
-          <button class="feature-button disabled-button">
-            Coming Soon
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <section class="section-block">
-      <div class="section-header">
-        <h2>Platform Overview</h2>
-        <p>
-          Aqua Insight is designed as a growing modular system.
-        </p>
-      </div>
-
-      <div class="overview-grid">
-        <div class="overview-card">
-          <h3>Current Active Modules</h3>
-
-          <ul>
-            <li>Particle Counter</li>
-            <li>Image Recognition</li>
-            <li>PNG Export</li>
-            <li>XLSX Export</li>
-            <li>Multi Image Navigation</li>
-          </ul>
-        </div>
-                <div class="overview-card">
-          <h3>Future Development</h3>
-
-          <ul>
-            <li>Batch Detection</li>
-            <li>AI Assisted Classification</li>
-            <li>Automatic Report Builder</li>
-            <li>Cloud Project Storage</li>
-            <li>Advanced Heatmap Analysis</li>
-          </ul>
-        </div>
-
-        <div class="overview-card">
-          <h3>Target Applications</h3>
-
-          <ul>
-            <li>Aquaculture Research</li>
-            <li>Histology Image Analysis</li>
-            <li>Microscopy and Particle Counting</li>
-            <li>Laboratory Image Documentation</li>
-            <li>Template Based Object Recognition</li>
-          </ul>
-        </div>
-      </div>
-    </section>
-
-    <section class="section-block">
-      <div class="section-header">
-        <h2>Quick Access</h2>
-        <p>
-          Open the most commonly used Aqua Insight modules directly.
-        </p>
-      </div>
-
-      <div class="quick-access-grid">
-        <button
-          class="quick-access-card"
-          onclick="window.location.href='pages/particle-counter.html'"
-        >
-          <div class="quick-access-icon">
-            PC
-          </div>
-
-          <div class="quick-access-content">
-            <h3>Particle Counter</h3>
+      <div class="development-grid">
+        <div class="development-item">
+          <div>
+            <h3>Color Distribution Mapping</h3>
             <p>
-              Threshold based object counting and particle analysis
+              Visualize dominant color regions and intensity
+              distribution across images.
             </p>
           </div>
-        </button>
 
-        <button
-          class="quick-access-card"
-          onclick="window.location.href='pages/image-recognition.html'"
-        >
-          <div class="quick-access-icon">
-            IR
-          </div>
+          <span class="feature-chip development-chip">
+            Development
+          </span>
+        </div>
 
-          <div class="quick-access-content">
-            <h3>Image Recognition</h3>
+        <div class="development-item">
+          <div>
+            <h3>Area Heatmap</h3>
             <p>
-              Template based object detection and matching
+              Generate spatial heatmaps to visualize dense
+              particle regions and color concentration.
             </p>
           </div>
-        </button>
+
+          <span class="feature-chip development-chip">
+            Development
+          </span>
+        </div>
+
+        <div class="development-item">
+          <div>
+            <h3>Histology Segmentation</h3>
+            <p>
+              Segment histological structures and tissue regions
+              from stained images.
+            </p>
+          </div>
+
+          <span class="feature-chip development-chip">
+            Development
+          </span>
+        </div>
+
+        <div class="development-item">
+          <div>
+            <h3>Machine Learning Classification</h3>
+            <p>
+              Use trained models for automatic particle type
+              prediction and classification.
+            </p>
+          </div>
+
+          <span class="feature-chip development-chip">
+            Development
+          </span>
+        </div>
+                <div class="development-item">
+          <div>
+            <h3>Cloud Dataset Storage</h3>
+            <p>
+              Save images, results, overlays, and metadata
+              to cloud-connected storage.
+            </p>
+          </div>
+
+          <span class="feature-chip development-chip">
+            Development
+          </span>
+        </div>
       </div>
     </section>
+
+    <footer class="footer-section">
+      <p>
+        Aqua Insight Version 0.1
+      </p>
+
+      <p>
+        Scientific Image Analysis Platform for Aquaculture
+      </p>
+    </footer>
   </main>
-
-  <footer class="footer">
-    <div class="footer-left">
-      <div class="logo-group">
-        <div class="logo-icon">AI</div>
-
-        <div>
-          <h1>Aqua Insight</h1>
-          <p>Scientific Image Analysis Platform</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="footer-right">
-      <div class="footer-column">
-        <h4>Features</h4>
-
-        <a href="pages/particle-counter.html">
-          Particle Counter
-        </a>
-
-        <a href="pages/image-recognition.html">
-          Image Recognition
-        </a>
-      </div>
-            <div class="footer-column">
-        <h4>Navigation</h4>
-
-        <a href="index.html">
-          Home
-        </a>
-
-        <a href="pages/contact.html">
-          Contact
-        </a>
-      </div>
-
-      <div class="footer-column">
-        <h4>Status</h4>
-
-        <span>Version 0.1</span>
-        <span>2 Active Modules</span>
-        <span>3 Planned Modules</span>
-      </div>
-    </div>
-  </footer>
 </body>
 </html>
