@@ -1,189 +1,265 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Aqua Insight</title>
 
-  <!-- Main CSS -->
-  <link rel="stylesheet" href="css/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
-  <!-- Google Font -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/global.css">
 </head>
 <body>
+  <div class="background-glow glow-left"></div>
+  <div class="background-glow glow-right"></div>
 
-  <!-- Header -->
-  <header class="main-header">
-    <div class="header-left">
+  <header class="topbar">
+    <div class="topbar-left">
       <div class="logo-group">
-        <h1 class="app-title">Aqua Insight</h1>
-        <span class="version-badge">Version 0.1</span>
+        <div class="logo-icon">AI</div>
+
+        <div>
+          <h1>Aqua Insight</h1>
+          <p>Scientific Imaging Platform</p>
+        </div>
       </div>
     </div>
 
-    <nav class="main-nav">
-      <ul>
-        <li><a href="index.html" class="nav-link active">Home</a></li>
+    <div class="topbar-right">
+      <div class="version-chip">
+        Version 0.1
+      </div>
 
-        <li class="dropdown">
-          <button class="dropdown-button">
-            Features
-            <span class="dropdown-arrow">▼</span>
-          </button>
+      <div class="dropdown-wrapper">
+        <button class="topbar-button">
+          Features
+        </button>
 
-          <div class="dropdown-menu">
-            <a href="pages/particle-counter.html">Particle Counter</a>
-          </div>
-        </li>
+        <div class="dropdown-menu">
+          <a href="pages/particle-counter.html">
+            Particle Counter
+          </a>
 
-        <li><a href="pages/contact.html" class="nav-link">Contact Us</a></li>
-      </ul>
-    </nav>
-  </header>
-
-  <!-- Main Content -->
-  <main class="home-container">
-
-    <!-- Hero Section -->
-    <section class="hero-section">
-      <div class="hero-content">
-        <p class="hero-tag">Scientific Image Analysis Platform</p>
-        <h2>Welcome to Aqua Insight</h2>
-        <p class="hero-description">
-          Aqua Insight is a browser-based scientific image analysis platform designed
-          for practical laboratory workflows, aquaculture research, histology, particle
-          detection, morphometric analysis, and other image-based scientific applications.
-        </p>
-
-        <div class="hero-buttons">
-          <a href="pages/particle-counter.html" class="primary-button">
-            Open Particle Counter
+          <a href="#development">
+            Development Features
           </a>
         </div>
       </div>
-    </section>
 
-    <!-- About Section -->
-    <section class="content-section">
-      <div class="section-header">
-        <h3>What Aqua Insight Can Do</h3>
-      </div>
-
-      <div class="card-grid">
-        <div class="info-card">
-          <h4>Scientific Image Analysis</h4>
-          <p>
-            Analyze scientific images directly in the browser without requiring
-            software installation, backend processing, or external servers.
-          </p>
-        </div>
-
-        <div class="info-card">
-          <h4>Particle Counter Analysis</h4>
-          <p>
-            Detect, outline, label, measure, and export particle information
-            using thresholding, connected component labeling, contour detection,
-            and morphological filtering.
-          </p>
-        </div>
-
-        <div class="info-card">
-          <h4>Interactive Preview Workflow</h4>
-          <p>
-            Visualize each image processing stage including original image,
-            selected channel, threshold result, and final contour overlay.
-          </p>
-        </div>
-
-        <div class="info-card">
-          <h4>Batch Processing</h4>
-          <p>
-            Process multiple images simultaneously using shared parameters
-            and export combined or individual analysis results.
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <!-- Available Features -->
-    <section class="content-section">
-      <div class="section-header">
-        <h3>Currently Available Feature</h3>
-      </div>
-
-      <div class="feature-list">
-        <div class="feature-item active-feature">
-          <div class="feature-status available">Available</div>
-          <div class="feature-content">
-            <h4>Particle Counter</h4>
-            <p>
-              Analyze particle count, area, perimeter, circularity,
-              Feret diameter, aspect ratio, RGB statistics, centroid,
-              and image edge interaction.
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- On Development -->
-    <section class="content-section">
-      <div class="section-header">
-        <h3>On Development</h3>
-      </div>
-
-      <div class="feature-list">
-
-        <div class="feature-item disabled-feature">
-          <div class="feature-status development">On Development</div>
-          <div class="feature-content">
-            <h4>Area Estimated</h4>
-            <p>
-              Estimate object coverage and total occupied area inside an image.
-            </p>
-          </div>
-        </div>
-
-        <div class="feature-item disabled-feature">
-          <div class="feature-status development">On Development</div>
-          <div class="feature-content">
-            <h4>Color Coverage</h4>
-            <p>
-              Measure proportional coverage of selected colors within image regions.
-            </p>
-          </div>
-        </div>
-
-        <div class="feature-item disabled-feature">
-          <div class="feature-status development">On Development</div>
-          <div class="feature-content">
-            <h4>Image Model Analyzer</h4>
-            <p>
-              Advanced image interpretation module for future machine learning-based analysis.
-            </p>
-          </div>
-        </div>
-
-      </div>
-    </section>
-
-  </main>
-
-  <!-- Footer -->
-  <footer class="main-footer">
-    <div class="footer-content">
-      <p>Aqua Insight</p>
-      <p>Version 0.1</p>
-      <p>Animal Health Laboratory</p>
-      <p>Technology Division</p>
-      <p>Central Proteina Prima</p>
+      <button class="topbar-button">
+        Contact
+      </button>
     </div>
-  </footer>
+  </header>
 
-  <!-- Main JS -->
-  <script src="js/main.js"></script>
+  <main class="home-container">
+    <section class="hero-section glass-card">
+      <span class="hero-badge">
+        Welcome to Aqua Insight
+      </span>
+
+      <h1>
+        Scientific Image Analysis Platform for Aquaculture
+      </h1>
+
+      <p class="hero-description">
+        Aqua Insight is a lightweight web-based platform designed
+        for scientific image analysis in aquaculture, histology,
+        microscopy, and particle-based color quantification.
+      </p>
+
+      <div class="hero-actions">
+        <button
+          class="primary-button"
+          onclick="window.location.href='pages/particle-counter.html'"
+        >
+          Open Particle Counter
+        </button>
+
+        <button class="secondary-button">
+          Documentation
+        </button>
+      </div>
+    </section>
+        <section class="content-grid">
+      <div class="glass-card section-card">
+        <div class="section-header">
+          <h2>Current System Overview</h2>
+          <span class="feature-chip active-chip">
+            Operational
+          </span>
+        </div>
+
+        <p class="section-description">
+          Aqua Insight is built as a growing image analysis platform.
+          The system is designed to remain lightweight and fully web-based,
+          while supporting future expansion for additional scientific
+          image processing workflows.
+        </p>
+
+        <div class="overview-grid">
+          <div class="overview-item">
+            <h3>1</h3>
+            <p>Active Feature</p>
+          </div>
+
+          <div class="overview-item">
+            <h3>5</h3>
+            <p>Development Features</p>
+          </div>
+
+          <div class="overview-item">
+            <h3>0.1</h3>
+            <p>Current Version</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="glass-card section-card">
+        <div class="section-header">
+          <h2>Currently Active</h2>
+          <span class="feature-chip active-chip">
+            Active
+          </span>
+        </div>
+
+        <div class="module-card active-module">
+          <div class="module-header">
+            <div>
+              <h3>Particle Counter</h3>
+              <p>
+                Threshold-based particle analysis with automatic
+                classification and background exclusion.
+              </p>
+            </div>
+
+            <span class="feature-chip active-chip">
+              Active
+            </span>
+          </div>
+
+          <ul class="module-feature-list">
+            <li>Single and batch image analysis</li>
+            <li>Background exclusion workflow</li>
+            <li>Automatic thresholding methods</li>
+            <li>Particle numbering and overlay rendering</li>
+            <li>Coverage percentage calculation</li>
+            <li>Mean RGB calculation</li>
+            <li>Circularity calculation</li>
+            <li>Overlay PNG export</li>
+            <li>XLSX export</li>
+          </ul>
+
+          <button
+            class="primary-button module-button"
+            onclick="window.location.href='pages/particle-counter.html'"
+          >
+            Open Feature
+          </button>
+        </div>
+      </div>
+    </section>
+        <section
+      class="glass-card section-card development-section"
+      id="development"
+    >
+      <div class="section-header">
+        <h2>Features in Development</h2>
+
+        <span class="feature-chip development-chip">
+          In Development
+        </span>
+      </div>
+
+      <p class="section-description">
+        The platform is designed as a continuously growing system.
+        Additional modules will be added over time to support more
+        advanced scientific image analysis workflows.
+      </p>
+
+      <div class="development-grid">
+        <div class="development-item">
+          <div>
+            <h3>Color Distribution Mapping</h3>
+            <p>
+              Visualize dominant color regions and intensity
+              distribution across images.
+            </p>
+          </div>
+
+          <span class="feature-chip development-chip">
+            Development
+          </span>
+        </div>
+
+        <div class="development-item">
+          <div>
+            <h3>Area Heatmap</h3>
+            <p>
+              Generate spatial heatmaps to visualize dense
+              particle regions and color concentration.
+            </p>
+          </div>
+
+          <span class="feature-chip development-chip">
+            Development
+          </span>
+        </div>
+
+        <div class="development-item">
+          <div>
+            <h3>Histology Segmentation</h3>
+            <p>
+              Segment histological structures and tissue regions
+              from stained images.
+            </p>
+          </div>
+
+          <span class="feature-chip development-chip">
+            Development
+          </span>
+        </div>
+
+        <div class="development-item">
+          <div>
+            <h3>Machine Learning Classification</h3>
+            <p>
+              Use trained models for automatic particle type
+              prediction and classification.
+            </p>
+          </div>
+
+          <span class="feature-chip development-chip">
+            Development
+          </span>
+        </div>
+                <div class="development-item">
+          <div>
+            <h3>Cloud Dataset Storage</h3>
+            <p>
+              Save images, results, overlays, and metadata
+              to cloud-connected storage.
+            </p>
+          </div>
+
+          <span class="feature-chip development-chip">
+            Development
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer-section">
+      <p>
+        Aqua Insight Version 0.1
+      </p>
+
+      <p>
+        Scientific Image Analysis Platform for Aquaculture
+      </p>
+    </footer>
+  </main>
 </body>
 </html>
