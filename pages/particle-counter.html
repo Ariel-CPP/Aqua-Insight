@@ -606,3 +606,124 @@
       </section>
     </main>
   </div>
+  <div
+    id="backgroundModal"
+    class="background-modal"
+  >
+    <div class="background-modal-card">
+      <div class="background-modal-header">
+        <div>
+          <h2>Select Background</h2>
+
+          <p>
+            Select up to 5 points representing the background color.
+          </p>
+        </div>
+
+        <button
+          class="icon-button"
+          onclick="UI.closeBackgroundModal()"
+        >
+          ✕
+        </button>
+      </div>
+
+      <div class="background-modal-body">
+        <div class="background-selection-wrapper">
+          <canvas
+            id="backgroundSelectionCanvas"
+            class="background-selection-canvas"
+          ></canvas>
+        </div>
+
+        <div class="background-sidebar">
+          <div class="background-info-card">
+            <h3>Background Selection</h3>
+
+            <p>
+              Click up to 5 points on the image background.
+              The system will calculate the minimum and maximum RGB range.
+            </p>
+
+            <div
+              id="backgroundPointCounter"
+              class="background-point-counter"
+            >
+              0 / 5 Points Selected
+            </div>
+          </div>
+
+          <div class="background-info-card">
+            <h3>Selected Background Colors</h3>
+
+            <div
+              id="backgroundColorPreview"
+              class="background-color-preview"
+            ></div>
+          </div>
+
+          <div class="background-info-card">
+            <label class="checkbox-row">
+              <input
+                type="checkbox"
+                id="applyBackgroundToAllImages"
+              >
+
+              <span>
+                Apply to all uploaded images
+              </span>
+            </label>
+          </div>
+
+          <div class="background-action-group">
+            <button
+              id="confirmBackgroundButton"
+              class="analysis-button"
+            >
+              Save Background
+            </button>
+
+            <button
+              id="clearBackgroundPointsButton"
+              class="secondary-analysis-button"
+            >
+              Clear Selection
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+    <div
+    id="notificationContainer"
+    class="notification-container"
+  ></div>
+
+  <div
+    id="loadingOverlay"
+    class="loading-overlay"
+  >
+    <div class="loading-card">
+      <div class="loading-spinner"></div>
+
+      <h3>
+        Processing Analysis
+      </h3>
+
+      <p id="loadingText">
+        Please wait while the system processes the image.
+      </p>
+    </div>
+  </div>
+
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+
+  <script src="../js/utils.js"></script>
+  <script src="../js/ui.js"></script>
+  <script src="../js/detection.js"></script>
+  <script src="../js/particle-analysis.js"></script>
+  <script src="../js/zoom-pan.js"></script>
+  <script src="../js/export.js"></script>
+  <script src="../js/main.js"></script>
+</body>
+</html>
