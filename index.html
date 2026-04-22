@@ -94,157 +94,146 @@
 </div>
     </section>
         <section class="content-grid">
-      <div class="glass-card section-card">
-        <div class="section-header">
-          <h2>Current System Overview</h2>
-          <span class="feature-chip active-chip">
-            Operational
-          </span>
-        </div>
+  <div class="glass-card section-card">
+    <div class="section-header">
+      <h2>Welcome</h2>
 
-        <p class="section-description">
-          Aqua Insight is built as a growing image analysis platform.
-          The system is designed to remain lightweight and fully web-based,
-          while supporting future expansion for additional scientific
-          image processing workflows.
-        </p>
+      <span class="feature-chip active-chip">
+        Aqua Insight
+      </span>
+    </div>
 
-        <div class="overview-grid">
-          <div class="overview-item">
-          <h3>2</h3>
-          <p>Active Features</p>
-          </div>
+    <p class="section-description">
+        Aqua Insight is a lightweight scientific platform designed
+        for image analysis, statistical processing, graphical reporting,
+        aquaculture, microscopy, histology, and other scientific workflows.
+    </p>
 
-          <div class="overview-item">
-          <h3>4</h3>
-          <p>Development Features</p>
-          </div>
+    <p class="section-description">
+      The platform is built as a growing modular system, allowing new
+      analysis workflows to be added without affecting existing features.
+    </p>
 
-          <div class="overview-item">
-            <h3>0.1</h3>
-            <p>Current Version</p>
-          </div>
-        </div>
+    <div class="overview-grid">
+      <div class="overview-item">
+        <h3>2</h3>
+        <p>Active Features</p>
       </div>
 
-      <div class="glass-card section-card">
-        <div class="section-header">
-          <h2>Currently Active</h2>
-          <span class="feature-chip active-chip">
-            Active
-          </span>
-        </div>
-
-        <div class="module-card active-module">
-          <div class="module-header">
-            <div>
-              <h3>Particle Counter</h3>
-              <p>
-                Threshold-based particle analysis with automatic
-                classification and background exclusion.
-              </p>
-            </div>
-
-            <span class="feature-chip active-chip">
-              Active
-            </span>
-          </div>
-
-          <ul class="module-feature-list">
-            <li>Single and batch image analysis</li>
-            <li>Background exclusion workflow</li>
-            <li>Automatic thresholding methods</li>
-            <li>Particle numbering and overlay rendering</li>
-            <li>Coverage percentage calculation</li>
-            <li>Mean RGB calculation</li>
-            <li>Circularity calculation</li>
-            <li>Overlay PNG export</li>
-            <li>XLSX export</li>
-          </ul>
-
-          <button
-            class="primary-button module-button"
-            onclick="window.location.href='pages/particle-counter.html'"
-          >
-            Open Feature
-          </button>
-        </div>
+      <div class="overview-item">
+        <h3>4</h3>
+        <p>Development Features</p>
       </div>
-    </section>
-        <section
-      class="glass-card section-card development-section"
-      id="development"
-    >
-      <div class="section-header">
-        <h2>Features in Development</h2>
+
+      <div class="overview-item">
+        <h3>0.1</h3>
+        <p>Current Version</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="glass-card section-card">
+    <div class="section-header">
+      <h2>Feature Modules</h2>
+
+      <span class="feature-chip active-chip">
+        Available
+      </span>
+    </div>
+
+    <div class="development-grid">
+      <button
+        class="development-item module-shortcut active-shortcut"
+        onclick="window.location.href='pages/particle-counter.html'"
+      >
+        <div>
+          <h3>Particle Counter</h3>
+          <p>
+            Threshold-based particle analysis with background exclusion
+            and automatic measurement output.
+          </p>
+        </div>
+
+        <span class="feature-chip active-chip">
+          Active
+        </span>
+      </button>
+
+      <button
+        class="development-item module-shortcut active-shortcut"
+        onclick="window.location.href='pages/image-recognition.html'"
+      >
+        <div>
+          <h3>Image Recognition</h3>
+          <p>
+            Detect, count, and classify repeated visual objects or patterns
+            within a single scientific image automatically.
+          </p>
+        </div>
+
+        <span class="feature-chip active-chip">
+          Active
+        </span>
+      </button>
+
+      <div class="development-item inactive-shortcut">
+        <div>
+          <h3>Area Heatmap</h3>
+          <p>
+            Generate heatmaps to visualize dense regions and spatial
+            particle distribution patterns.
+          </p>
+        </div>
 
         <span class="feature-chip development-chip">
-          In Development
+          Development
         </span>
       </div>
 
-      <p class="section-description">
-        The platform is designed as a continuously growing system.
-        Additional modules will be added over time to support more
-        advanced scientific image analysis workflows.
-      </p>
-
-        <div class="development-item">
-          <div>
-            <h3>Area Heatmap</h3>
-            <p>
-              Generate spatial heatmaps to visualize dense
-              particle regions and color concentration.
-            </p>
-          </div>
-
-          <span class="feature-chip development-chip">
-            Development
-          </span>
+      <div class="development-item inactive-shortcut">
+        <div>
+          <h3>Statistical Analysis</h3>
+          <p>
+            Generate descriptive statistics and quantitative summaries
+            from image-derived measurements.
+          </p>
         </div>
 
-        <div class="development-item">
-          <div>
-            <h3>Statistical Analysisn</h3>
-            <p>
-              Generate descriptive statistics, particle distributions,
-              and quantitative measurement summaries.
-            </p>
-          </div>
-
-          <span class="feature-chip development-chip">
-            Development
-          </span>
-        </div>
-
-        <div class="development-item">
-          <div>
-            <h3>Machine Learning Classification</h3>
-            <p>
-              Use trained models for automatic particle type
-              prediction and classification.
-            </p>
-          </div>
-
-          <span class="feature-chip development-chip">
-            Development
-          </span>
-        </div>
-                <div class="development-item">
-          <div>
-            <h3>Graph Maker</h3>
-            <p>
-              Create charts and visual summaries directly 
-              from image-derived measurement results.
-            </p>
-          </div>
-
-          <span class="feature-chip development-chip">
-            Development
-          </span>
-        </div>
+        <span class="feature-chip development-chip">
+          Development
+        </span>
       </div>
-    </section>
+
+      <div class="development-item inactive-shortcut">
+        <div>
+          <h3>Machine Learning Classification</h3>
+          <p>
+            Use trained models for automatic prediction and
+            classification of detected objects.
+          </p>
+        </div>
+
+        <span class="feature-chip development-chip">
+          Development
+        </span>
+      </div>
+
+      <div class="development-item inactive-shortcut">
+        <div>
+          <h3>Graph Maker</h3>
+          <p>
+            Create charts and visual summaries directly from
+            processed image results.
+          </p>
+        </div>
+
+        <span class="feature-chip development-chip">
+          Development
+        </span>
+      </div>
+    </div>
+  </div>
+</section>
 
     <footer class="footer-section">
       <p>
