@@ -152,16 +152,39 @@
         >
       </div>
 
-      <!-- ===== Run ===== -->
-      <div class="sidebar-section">
-        <div class="sidebar-section-title">
-          Analysis
-        </div>
+    <!-- ===== Run ===== -->
+<div class="sidebar-section">
+  <div class="sidebar-section-title">
+    Analysis
+  </div>
+  
+  <div class="control-group">
+    <label class="control-label">
+      Confidence Threshold
+    </label>
 
-        <button id="runRecognitionBtn" class="analysis-button">
-          Run Detection
-        </button>
-      </div>
+    <input
+      type="range"
+      id="confidenceThreshold"
+      min="0"
+      max="100"
+      value="60"
+    >
+
+    <div id="thresholdValue">
+      60%
+    </div>
+
+    <div class="control-description">
+      Minimum similarity required for detection
+    </div>
+  </div>
+  <!-- 🔼 SAMPAI SINI -->
+
+  <button id="runRecognitionBtn" class="analysis-button">
+    Run Detection
+  </button>
+</div>
 
     </aside>
 
