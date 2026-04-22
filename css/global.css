@@ -437,6 +437,14 @@ textarea {
   margin-top: 24px;
 }
 
+.module-shortcut {
+  min-height: 180px;
+}
+
+.module-shortcut > div {
+  flex: 1;
+}
+
 .development-item {
   display: flex;
   align-items: flex-start;
@@ -477,9 +485,22 @@ textarea {
   cursor: pointer;
 }
 
+.active-shortcut {
+  cursor: pointer;
+}
+
+.active-shortcut:active {
+  transform: translateY(0);
+}
+
 .module-shortcut h3 {
   margin-bottom: 8px;
   font-size: 18px;
+}
+
+.module-shortcut h3,
+.module-shortcut p {
+  transition: var(--transition-fast);
 }
 
 .module-shortcut p {
@@ -494,9 +515,50 @@ textarea {
   transform: translateY(-2px);
 }
 
+.active-shortcut:focus-visible {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(73, 214, 255, 0.16);
+}
+
 .inactive-shortcut {
   opacity: 0.72;
   cursor: not-allowed;
+}
+
+.module-shortcut .feature-chip {
+  flex-shrink: 0;
+}
+
+.module-shortcut.active-shortcut {
+  transition: var(--transition-fast);
+}
+
+.module-shortcut.active-shortcut:hover h3 {
+  color: var(--accent-primary);
+}
+
+.module-shortcut.inactive-shortcut:hover {
+  transform: none;
+  border-color: var(--border-color);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.module-shortcut.inactive-shortcut h3,
+.module-shortcut.inactive-shortcut p {
+  opacity: 0.85;
+}
+
+.module-shortcut {
+  appearance: none;
+  outline: none;
+  font: inherit;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 22px;
+  border-radius: var(--radius-medium);
 }
 
 .footer-section {
@@ -546,16 +608,21 @@ textarea {
     gap: 18px;
   }
 
-  .topbar-left,
-  .topbar-right,
-  .hero-actions,
-  .section-header,
-  .module-header {
-    width: 100%;
-    flex-direction: column;
-    align-items: flex-start;
-  }
+ .topbar-left,
+.topbar-right,
+.hero-actions,
+.section-header,
+.module-header,
+.module-shortcut {
+  width: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+}
 
+.module-shortcut .feature-chip {
+  margin-top: 12px;
+}
+  
   .overview-grid {
     grid-template-columns: 1fr;
   }
