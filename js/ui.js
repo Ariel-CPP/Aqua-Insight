@@ -8,7 +8,7 @@ const UI = (() => {
   };
 
   function updateThresholdDescription(method) {
-    const descriptionElement = document.getElementById('thresholdDescription');
+    const descriptionElement = document.getElementById('thresholdMethodDescription');
 
     if (!descriptionElement) return;
 
@@ -38,22 +38,22 @@ const UI = (() => {
   }
 
   function showLoading(text = 'Processing image...') {
-    const loadingOverlay = document.getElementById('loadingOverlay');
-    const loadingText = document.getElementById('loadingText');
+  const loadingOverlay = document.getElementById('loadingOverlay');
+  const loadingText = document.getElementById('loadingText');
 
-    if (!loadingOverlay || !loadingText) return;
+  if (!loadingOverlay || !loadingText) return;
 
-    loadingText.textContent = text;
-    loadingOverlay.classList.remove('hidden');
-  }
+  loadingText.textContent = text;
+  loadingOverlay.classList.add('active');
+}
 
-  function hideLoading() {
-    const loadingOverlay = document.getElementById('loadingOverlay');
+function hideLoading() {
+  const loadingOverlay = document.getElementById('loadingOverlay');
 
-    if (!loadingOverlay) return;
+  if (!loadingOverlay) return;
 
-    loadingOverlay.classList.add('hidden');
-  }
+  loadingOverlay.classList.remove('active');
+}
 
   function showNotification(type = 'success', title = '', message = '') {
     const container = document.getElementById('notificationContainer');
@@ -61,12 +61,18 @@ const UI = (() => {
     if (!container) return;
 
     const notification = document.createElement('div');
-    notification.className = `notification ${type}`;
+    notification.className = `notification notification-${type}`;
 
     notification.innerHTML = `
-      <div class="notification-title">${title}</div>
-      <div class="notification-text">${message}</div>
-    `;
+  <div class="notification-icon">
+    ${type === 'success' ? '✓' : type === 'warning' ? '!' : '×'}
+  </div>
+
+  <div class="notification-content">
+    <h4>${title}</h4>
+    <p>${message}</p>
+  </div>
+`;
 
     container.appendChild(notification);
 
@@ -80,84 +86,66 @@ const UI = (() => {
     }, 3500);
   }
 
-  function openBackgroundModal() {
-    const modal = document.getElementById('backgroundModal');
+ function openBackgroundModal() {
+  const modal = document.getElementById('backgroundModal');
 
-    if (!modal) return;
+  if (!modal) return;
 
-    modal.classList.remove('hidden');
-  }
+  modal.classList.add('active');
+}
 
-  function closeBackgroundModal() {
-    const modal = document.getElementById('backgroundModal');
+function closeBackgroundModal() {
+  const modal = document.getElementById('backgroundModal');
 
-    if (!modal) return;
+  if (!modal) return;
 
-    modal.classList.add('hidden');
-  }
+  modal.classList.remove('active');
+}
 
-  function updateBackgroundPointCount(currentCount, maxCount = 5) {
-    const counter = document.getElementById('backgroundPointCount');
+ function updateBackgroundPointCount(currentCount, maxCount = 5) {
+  const counter = document.getElementById('backgroundPointCounter');
 
-    if (!counter) return;
+  if (!counter) return;
 
-    counter.textContent = `${currentCount} / ${maxCount}`;
-  }
+  counter.textContent = `${currentCount} / ${maxCount} Points Selected`;
+}
 
-  function updateSharedBackgroundStatus(enabled) {
-    const status = document.getElementById('sharedBackgroundStatus');
+function updateSharedBackgroundStatus(enabled) {
+  const status = document.getElementById('sharedBackgroundStatus');
 
-    if (!status) return;
+  if (!status) return;
 
-    status.textContent = enabled ? 'Enabled' : 'Disabled';
-  }
+  status.textContent = enabled ? 'Enabled' : 'Disabled';
+}
 
-  function renderBackgroundColorPreview(points) {
-    const container = document.getElementById('backgroundColorPreviewList');
+function renderBackgroundColorPreview(points) {
+  const container = document.getElementById('backgroundColorPreview');
 
-    if (!container) return;
+  if (!container) return;
 
-    if (!points || points.length === 0) {
-      container.innerHTML = `
-        <div class="empty-state">
-          No background point selected
-        </div>
-      `;
-      return;
-    }
-
+  if (!points || points.length === 0) {
     container.innerHTML = '';
-
-    points.forEach((point, index) => {
-      const item = document.createElement('div');
-      item.className = 'background-color-item';
-
-      item.innerHTML = `
-        <div 
-          class="background-color-swatch"
-          style="background: rgb(${point.r}, ${point.g}, ${point.b});">
-        </div>
-
-        <div class="background-color-text">
-          <div class="background-color-title">
-            Point ${index + 1}
-          </div>
-
-          <div class="background-color-value">
-            R: ${point.r}, G: ${point.g}, B: ${point.b}
-          </div>
-        </div>
-      `;
-
-      container.appendChild(item);
-    });
+    return;
   }
+
+  container.innerHTML = '';
+
+  points.forEach((point, index) => {
+    const item = document.createElement('div');
+    item.className = 'background-color-item';
+
+    item.title = `Point ${index + 1} | R:${point.r} G:${point.g} B:${point.b}`;
+    item.style.background = `rgb(${point.r}, ${point.g}, ${point.b})`;
+
+    container.appendChild(item);
+  });
+}
 
      function updateSummary(summary = {}) {
     const mappings = {
       summaryImageName: summary.imageName || '-',
       summaryParticleCount: summary.particleCount || 0,
-      summaryCoverage: Utils.formatPercent(summary.coverageArea || 0),
+      summaryCoverageArea: Utils.formatPercent(summary.coverageArea || 0),
       summaryThresholdMethod: summary.thresholdMethod || '-',
       summaryThresholdValue: summary.thresholdValue || '-',
       summaryChannelMode: summary.channelMode || '-',
@@ -188,7 +176,7 @@ const UI = (() => {
   }
 
   function renderClassificationSummary(classes = []) {
-    const container = document.getElementById('classificationSummaryList');
+    const container = document.getElementById('classificationSummaryContainer');
 
     if (!container) return;
 
@@ -234,7 +222,7 @@ const UI = (() => {
   }
 
   function populateResultTable(results = []) {
-    const tableBody = document.getElementById('resultTableBody');
+    const tableBody = document.getElementById('resultsTableBody');
 
     if (!tableBody) return;
 
@@ -289,7 +277,7 @@ const UI = (() => {
   }
 
   function clearTableRowHighlights() {
-    const rows = document.querySelectorAll('#resultTableBody tr');
+    const rows = document.querySelectorAll('#resultsTableBody tr');
 
     rows.forEach(row => {
       row.classList.remove('active-row');
@@ -300,9 +288,9 @@ const UI = (() => {
        function highlightTableRowByParticleId(particleId) {
     clearTableRowHighlights();
 
-    const row = document.querySelector(
-      `#resultTableBody tr[data-particle-id="${particleId}"]`
-    );
+  const row = document.querySelector(
+  `#resultsTableBody tr[data-particle-id="${particleId}"]`
+);
 
     if (!row) return;
 
