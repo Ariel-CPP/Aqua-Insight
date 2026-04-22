@@ -1091,3 +1091,25 @@
     padding-right: 20px;
   }
 }
+.canvas-status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  padding: 10px 16px;
+  border-top: 1px solid var(--border-color);
+
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.canvas-status-text {
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.canvas-status-coordinates {
+  color: var(--text-secondary);
+  font-size: 11px;
+}
