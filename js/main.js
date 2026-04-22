@@ -7,6 +7,7 @@ const AppState = {
 
 document.addEventListener('DOMContentLoaded', () => {
   initializeApp();
+  initializeCanvasInteractions();
 });
 
 function initializeApp() {
@@ -369,8 +370,16 @@ function renderOriginalImage(image) {
   canvas.width = image.width;
   canvas.height = image.height;
 
+  context.setTransform(1, 0, 0, 1, 0, 0);
   context.clearRect(0, 0, canvas.width, canvas.height);
+
+  ZoomPan.applyViewportTransform(context);
+
   context.drawImage(image, 0, 0);
+
+  ZoomPan.registerRedrawHandler(canvas, () => {
+    renderOriginalImage(image);
+  });
 
   UI.updateCanvasStatus(
     'originalCanvasWrapper',
@@ -378,6 +387,7 @@ function renderOriginalImage(image) {
     `${image.width} × ${image.height}`
   );
 }
+
 function renderBackgroundSelectionCanvas(image) {
   const canvas = document.getElementById('backgroundSelectionCanvas');
   const context = canvas.getContext('2d');
@@ -684,7 +694,24 @@ function renderChannelPreview(image) {
   canvas.width = image.width;
   canvas.height = image.height;
 
-  context.putImageData(channelImage, 0, 0);
+  const renderCanvas = document.createElement('canvas');
+  const renderContext = renderCanvas.getContext('2d');
+
+  renderCanvas.width = image.width;
+  renderCanvas.height = image.height;
+
+  renderContext.putImageData(channelImage, 0, 0);
+
+  context.setTransform(1, 0, 0, 1, 0, 0);
+  context.clearRect(0, 0, canvas.width, canvas.height);
+
+  ZoomPan.applyViewportTransform(context);
+
+  context.drawImage(renderCanvas, 0, 0);
+
+  ZoomPan.registerRedrawHandler(canvas, () => {
+    renderChannelPreview(image);
+  });
 
   UI.updateCanvasStatus(
     'channelCanvasWrapper',
@@ -738,7 +765,24 @@ function renderBinaryPreview(image, currentImage) {
   canvas.width = image.width;
   canvas.height = image.height;
 
-  context.putImageData(binaryImage, 0, 0);
+  const renderCanvas = document.createElement('canvas');
+  const renderContext = renderCanvas.getContext('2d');
+
+  renderCanvas.width = image.width;
+  renderCanvas.height = image.height;
+
+  renderContext.putImageData(binaryImage, 0, 0);
+
+  context.setTransform(1, 0, 0, 1, 0, 0);
+  context.clearRect(0, 0, canvas.width, canvas.height);
+
+  ZoomPan.applyViewportTransform(context);
+
+  context.drawImage(renderCanvas, 0, 0);
+
+  ZoomPan.registerRedrawHandler(canvas, () => {
+    renderBinaryPreview(image, currentImage);
+  });
 
   UI.updateCanvasStatus(
     'binaryCanvasWrapper',
@@ -751,13 +795,30 @@ function renderBinaryPreview(image, currentImage) {
 
 function renderOverlayPreview(image, particles) {
   const canvas = document.getElementById('overlayCanvas');
+  const context = canvas.getContext('2d');
+
+  const overlayCanvas = document.createElement('canvas');
 
   ParticleAnalysis.renderParticleOverlay(
-    canvas,
+    overlayCanvas,
     image,
     particles,
     AppState.highlightedParticleId
   );
+
+  canvas.width = overlayCanvas.width;
+  canvas.height = overlayCanvas.height;
+
+  context.setTransform(1, 0, 0, 1, 0, 0);
+  context.clearRect(0, 0, canvas.width, canvas.height);
+
+  ZoomPan.applyViewportTransform(context);
+
+  context.drawImage(overlayCanvas, 0, 0);
+
+  ZoomPan.registerRedrawHandler(canvas, () => {
+    renderOverlayPreview(image, particles);
+  });
 
   UI.updateCanvasStatus(
     'overlayCanvasWrapper',
