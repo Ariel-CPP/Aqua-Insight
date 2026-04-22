@@ -1,440 +1,608 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Aqua Insight Particle Counter" />
-  <title>Aqua Insight - Particle Counter</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Particle Counter - Aqua Insight</title>
 
-  <link rel="stylesheet" href="../css/global.css" />
-  <link rel="stylesheet" href="../css/particle-counter.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/global.css">
+  <link rel="stylesheet" href="../css/particle-counter.css">
 </head>
-<body>
+<body class="particle-page">
+  <div class="background-glow glow-left"></div>
+  <div class="background-glow glow-right"></div>
 
-  <header class="main-header">
-    <div class="header-left">
-      <div class="logo-group">
-        <h1 class="app-title">Aqua Insight</h1>
-        <span class="version-badge">Version 0.1</span>
-      </div>
-    </div>
+  <div class="particle-layout">
+    <aside class="analysis-sidebar">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-icon">AI</div>
 
-    <nav class="main-nav">
-      <ul>
-        <li><a href="../index.html" class="nav-link">Home</a></li>
-        <li><a href="particle-counter.html" class="nav-link active">Particle Counter</a></li>
-      </ul>
-    </nav>
-  </header>
-
-  <main class="particle-page-layout">
-
-    <aside class="particle-sidebar">
-
-      <div class="sidebar-card">
-        <div class="sidebar-section-header">
-          <h3>Image Upload</h3>
-        </div>
-
-        <div class="upload-dropzone" id="uploadDropzone">
-          <input type="file" id="imageUploadInput" accept="image/*" multiple hidden />
-
-          <div class="upload-content">
-            <p class="upload-title">Drag & Drop Images</p>
-            <p class="upload-subtitle">or click to upload</p>
-            <button class="primary-button upload-button" id="uploadButton">
-              Select Images
-            </button>
-          </div>
-        </div>
-
-        <div class="image-navigation">
-          <button class="secondary-button" id="previousImageButton">
-            Previous
-          </button>
-
-          <div class="image-counter" id="imageCounter">
-            0 / 0
-          </div>
-
-          <button class="secondary-button" id="nextImageButton">
-            Next
-          </button>
-        </div>
-
-        <div class="current-image-name" id="currentImageName">
-          No image selected
+        <div>
+          <h1>Particle Counter</h1>
+          <p>Aqua Insight Version 0.1</p>
         </div>
       </div>
 
-      <div class="sidebar-card">
-        <div class="sidebar-section-header">
-          <h3>Channel Settings</h3>
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">
+          Image Upload
         </div>
 
-        <div class="input-group">
-          <label for="channelMode">Channel Mode</label>
-          <select id="channelMode">
+        <div class="sidebar-button-group">
+          <button
+            id="uploadButton"
+            class="analysis-button"
+          >
+            Upload Image
+          </button>
+
+          <input
+            type="file"
+            id="imageUploadInput"
+            accept="image/png,image/jpeg,image/jpg"
+            multiple
+            hidden
+          >
+
+          <button
+            id="previousImageButton"
+            class="secondary-analysis-button"
+          >
+            Previous Image
+          </button>
+
+          <button
+            id="nextImageButton"
+            class="secondary-analysis-button"
+          >
+            Next Image
+          </button>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">
+          Channel Settings
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" for="channelMode">
+            Channel Mode
+          </label>
+
+          <select
+            id="channelMode"
+            class="control-select"
+          >
+            <option value="rgb">RGB Mean</option>
+            <option value="red">Red Channel</option>
+            <option value="green">Green Channel</option>
+            <option value="blue">Blue Channel</option>
             <option value="grayscale">Grayscale</option>
-            <option value="red">Red</option>
-            <option value="green">Green</option>
-            <option value="blue">Blue</option>
           </select>
         </div>
 
-        <div class="input-group mt-16">
-          <label for="classificationMode">Classification Mode</label>
-          <select id="classificationMode">
-            <option value="auto">Auto</option>
+        <div class="control-group">
+          <label class="control-label" for="classificationMode">
+            Classification Mode
+          </label>
+
+          <select
+            id="classificationMode"
+            class="control-select"
+          >
+            <option value="auto">Automatic</option>
             <option value="intensity">Intensity</option>
             <option value="color-cluster">Color Cluster</option>
           </select>
         </div>
       </div>
-
-      <div class="sidebar-card">
-        <div class="sidebar-section-header">
-          <h3>Threshold Settings</h3>
+            <div class="sidebar-section">
+        <div class="sidebar-section-title">
+          Threshold Settings
         </div>
 
-        <div class="input-group">
-          <label for="thresholdMethod">Threshold Method</label>
-          <select id="thresholdMethod">
+        <div class="control-group">
+          <label class="control-label" for="thresholdMethod">
+            Threshold Method
+          </label>
+
+          <select
+            id="thresholdMethod"
+            class="control-select"
+          >
             <option value="otsu">Otsu</option>
-            <option value="mean">Mean</option>
             <option value="triangle">Triangle</option>
-            <option value="minimum-error">Minimum Error</option>
+            <option value="yen">Yen</option>
+            <option value="li">Li</option>
             <option value="manual">Manual</option>
           </select>
-        </div>
 
-        <div class="threshold-description-card mt-16" id="thresholdDescription">
-          Otsu is suitable for images with clear separation between object and background intensity.
-        </div>
-
-        <div class="threshold-range-grid mt-16">
-          <div class="input-group">
-            <label for="thresholdMin">Threshold Min</label>
-            <input type="number" id="thresholdMin" min="0" max="255" value="50" />
-          </div>
-
-          <div class="input-group">
-            <label for="thresholdMax">Threshold Max</label>
-            <input type="number" id="thresholdMax" min="0" max="255" value="255" />
+          <div
+            id="thresholdMethodDescription"
+            class="control-description"
+          >
+            Otsu automatically separates foreground and background
+            based on histogram variance.
           </div>
         </div>
 
-        <div class="checkbox-row mt-16">
-          <input type="checkbox" id="invertThreshold" />
-          <label for="invertThreshold">Invert Threshold</label>
+        <div class="control-group">
+          <label class="control-label">
+            Threshold Range
+          </label>
+
+          <div class="range-input-row">
+            <input
+              type="number"
+              id="thresholdMin"
+              class="control-input"
+              min="0"
+              max="255"
+              step="1"
+              value="50"
+            >
+
+            <input
+              type="number"
+              id="thresholdMax"
+              class="control-input"
+              min="0"
+              max="255"
+              step="1"
+              value="255"
+            >
+          </div>
+
+          <div class="control-description">
+            Minimum and maximum threshold range used for particle detection.
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label class="checkbox-row">
+            <input
+              type="checkbox"
+              id="invertThreshold"
+            >
+
+            <span>Invert Threshold</span>
+          </label>
         </div>
       </div>
 
-      <div class="sidebar-card">
-        <div class="sidebar-section-header">
-          <h3>Particle Settings</h3>
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">
+          Morphology Settings
         </div>
 
-        <div class="input-group">
-          <label for="minimumParticleSize">Minimum Particle Size (px)</label>
-          <input type="number" id="minimumParticleSize" min="1" value="50" />
+        <div class="control-group">
+          <label
+            class="control-label"
+            for="minimumParticleSize"
+          >
+            Minimum Particle Size
+          </label>
+
+          <input
+            type="number"
+            id="minimumParticleSize"
+            class="control-input"
+            min="50"
+            value="50"
+          >
+
+          <div class="control-description">
+            Ignore particles smaller than the selected size.
+          </div>
         </div>
 
-        <div class="input-group mt-16">
-          <label for="morphologyStrength">Morphology Strength</label>
-          <select id="morphologyStrength">
-            <option value="1">Low</option>
-            <option value="2" selected>Medium</option>
-            <option value="3">High</option>
-          </select>
+        <div class="control-group">
+          <label
+            class="control-label"
+            for="morphologyStrength"
+          >
+            Morphology Strength
+          </label>
+
+          <input
+            type="number"
+            id="morphologyStrength"
+            class="control-input"
+            min="0"
+            max="10"
+            value="1"
+          >
+
+          <div class="control-description">
+            Controls how aggressively noise and small artifacts are removed.
+          </div>
         </div>
       </div>
-
-            <div class="sidebar-card">
-        <div class="sidebar-section-header">
-          <h3>Actions</h3>
+            <div class="sidebar-section">
+        <div class="sidebar-section-title">
+          Analysis Actions
         </div>
 
-        <div class="action-button-group">
-          <button class="primary-button w-full" id="runAnalysisButton">
-            Run Analysis
+        <div class="sidebar-button-group">
+          <button
+            id="runAnalysisButton"
+            class="analysis-button"
+          >
+            Run Particle Analysis
           </button>
 
-          <button class="secondary-button w-full" id="resetBackgroundButton">
+          <button
+            id="resetBackgroundButton"
+            class="secondary-analysis-button"
+          >
             Reset Background
           </button>
 
-          <button class="secondary-button w-full" id="downloadOverlayButton">
+          <button
+            id="downloadOverlayButton"
+            class="secondary-analysis-button"
+          >
             Download Overlay PNG
           </button>
 
-          <button class="secondary-button w-full" id="exportXlsxButton">
+          <button
+            id="exportXlsxButton"
+            class="secondary-analysis-button"
+          >
             Export XLSX
           </button>
         </div>
       </div>
-
     </aside>
 
-    <section class="particle-main-content">
+    <main class="analysis-content">
+      <div class="analysis-toolbar">
+        <div class="toolbar-left">
+          <div class="toolbar-title">
+            <h2 id="currentImageName">
+              No Image Selected
+            </h2>
 
-      <div class="preview-grid">
+            <p>
+              Particle analysis dashboard
+            </p>
+          </div>
+        </div>
 
-        <div class="preview-card">
-          <div class="preview-card-header">
-            <h3>Original Image</h3>
+        <div class="toolbar-right">
+          <div
+            id="imageCounter"
+            class="toolbar-chip"
+          >
+            0 / 0 Images
           </div>
 
-          <div class="canvas-wrapper" id="originalCanvasWrapper">
+          <div
+            id="analysisStatusChip"
+            class="toolbar-chip"
+          >
+            Waiting for Image
+          </div>
+        </div>
+      </div>
+
+      <div
+        id="uploadDropzone"
+        class="upload-dropzone"
+      >
+        <div class="upload-icon">
+          ⬆
+        </div>
+
+        <h3>
+          Upload Your Images
+        </h3>
+
+        <p>
+          Drag and drop one or multiple images here, or use the upload button.
+          Background selection is required before analysis.
+        </p>
+      </div>
+
+      <div class="summary-grid">
+        <div class="summary-card">
+          <div class="summary-card-label">
+            Particle Count
+          </div>
+
+          <div
+            id="summaryParticleCount"
+            class="summary-card-value"
+          >
+            0
+          </div>
+
+          <div class="summary-card-subtext">
+            Total detected particles
+          </div>
+        </div>
+                <div class="summary-card">
+          <div class="summary-card-label">
+            Coverage Area
+          </div>
+
+          <div
+            id="summaryCoverageArea"
+            class="summary-card-value"
+          >
+            0%
+          </div>
+
+          <div class="summary-card-subtext">
+            Total particle coverage
+          </div>
+        </div>
+
+        <div class="summary-card">
+          <div class="summary-card-label">
+            Threshold Method
+          </div>
+
+          <div
+            id="summaryThresholdMethod"
+            class="summary-card-value"
+          >
+            -
+          </div>
+
+          <div class="summary-card-subtext">
+            Current threshold configuration
+          </div>
+        </div>
+
+        <div class="summary-card">
+          <div class="summary-card-label">
+            Classification Mode
+          </div>
+
+          <div
+            id="summaryClassificationMode"
+            class="summary-card-value"
+          >
+            -
+          </div>
+
+          <div class="summary-card-subtext">
+            Active classification method
+          </div>
+        </div>
+      </div>
+
+      <div class="canvas-grid">
+        <div class="canvas-card">
+          <div class="canvas-card-header">
+            <div class="canvas-card-title">
+              <h3>Original Image</h3>
+              <p>Raw uploaded image</p>
+            </div>
+
+            <div
+              id="originalCanvasStatus"
+              class="canvas-status-chip"
+            >
+              Waiting
+            </div>
+          </div>
+
+          <div
+            id="originalCanvasWrapper"
+            class="canvas-wrapper"
+          >
             <canvas id="originalCanvas"></canvas>
           </div>
+
+          <div class="canvas-toolbar">
+            <div class="canvas-toolbar-left">
+              <button class="icon-button">+</button>
+              <button class="icon-button">−</button>
+            </div>
+
+            <div class="canvas-info-text">
+              Original Image View
+            </div>
+          </div>
         </div>
 
-        <div class="preview-card">
-          <div class="preview-card-header">
-            <h3>Selected Channel</h3>
+        <div class="canvas-card">
+          <div class="canvas-card-header">
+            <div class="canvas-card-title">
+              <h3>Channel Preview</h3>
+              <p>Selected channel extraction</p>
+            </div>
+
+            <div
+              id="channelCanvasStatus"
+              class="canvas-status-chip"
+            >
+              Waiting
+            </div>
           </div>
 
-          <div class="canvas-wrapper" id="channelCanvasWrapper">
+          <div
+            id="channelCanvasWrapper"
+            class="canvas-wrapper"
+          >
             <canvas id="channelCanvas"></canvas>
           </div>
+                    <div class="canvas-toolbar">
+            <div class="canvas-toolbar-left">
+              <button class="icon-button">+</button>
+              <button class="icon-button">−</button>
+            </div>
+
+            <div class="canvas-info-text">
+              Channel Visualization
+            </div>
+          </div>
         </div>
 
-        <div class="preview-card">
-          <div class="preview-card-header">
-            <h3>Binary Threshold</h3>
+        <div class="canvas-card">
+          <div class="canvas-card-header">
+            <div class="canvas-card-title">
+              <h3>Binary Mask</h3>
+              <p>Thresholded particle mask</p>
+            </div>
+
+            <div
+              id="binaryCanvasStatus"
+              class="canvas-status-chip"
+            >
+              Waiting
+            </div>
           </div>
 
-          <div class="canvas-wrapper" id="binaryCanvasWrapper">
+          <div
+            id="binaryCanvasWrapper"
+            class="canvas-wrapper"
+          >
             <canvas id="binaryCanvas"></canvas>
           </div>
+
+          <div class="canvas-toolbar">
+            <div class="canvas-toolbar-left">
+              <button class="icon-button">+</button>
+              <button class="icon-button">−</button>
+            </div>
+
+            <div class="canvas-info-text">
+              Threshold Result
+            </div>
+          </div>
         </div>
 
-        <div class="preview-card">
-          <div class="preview-card-header">
-            <h3>Final Overlay</h3>
+        <div class="canvas-card">
+          <div class="canvas-card-header">
+            <div class="canvas-card-title">
+              <h3>Particle Overlay</h3>
+              <p>Detected particles with numbering</p>
+            </div>
+
+            <div
+              id="overlayCanvasStatus"
+              class="canvas-status-chip"
+            >
+              Waiting
+            </div>
           </div>
 
-          <div class="canvas-wrapper" id="overlayCanvasWrapper">
+          <div
+            id="overlayCanvasWrapper"
+            class="canvas-wrapper"
+          >
             <canvas id="overlayCanvas"></canvas>
           </div>
-        </div>
 
-      </div>
-
-      <div class="content-row">
-
-        <div class="summary-card">
-          <div class="summary-card-header">
-            <h3>Image Summary</h3>
-          </div>
-
-          <div class="summary-grid">
-            <div class="summary-item">
-              <span class="summary-label">Image Name</span>
-              <span class="summary-value" id="summaryImageName">-</span>
+          <div class="canvas-toolbar">
+            <div class="canvas-toolbar-left">
+              <button class="icon-button">+</button>
+              <button class="icon-button">−</button>
             </div>
 
-            <div class="summary-item">
-              <span class="summary-label">Particle Count</span>
-              <span class="summary-value" id="summaryParticleCount">0</span>
-            </div>
-
-            <div class="summary-item">
-              <span class="summary-label">Coverage Area</span>
-              <span class="summary-value" id="summaryCoverage">0%</span>
-            </div>
-
-            <div class="summary-item">
-              <span class="summary-label">Threshold Method</span>
-              <span class="summary-value" id="summaryThresholdMethod">-</span>
-            </div>
-
-            <div class="summary-item">
-              <span class="summary-label">Threshold Value</span>
-              <span class="summary-value" id="summaryThresholdValue">-</span>
-            </div>
-
-            <div class="summary-item">
-              <span class="summary-label">Channel Mode</span>
-              <span class="summary-value" id="summaryChannelMode">-</span>
-            </div>
-
-            <div class="summary-item">
-              <span class="summary-label">Classification Mode</span>
-              <span class="summary-value" id="summaryClassificationMode">-</span>
-            </div>
-
-            <div class="summary-item">
-              <span class="summary-label">Image Size</span>
-              <span class="summary-value" id="summaryImageSize">-</span>
+            <div class="canvas-info-text">
+              Particle Detection Overlay
             </div>
           </div>
-        </div>
-
-        <div class="summary-card">
-          <div class="summary-card-header">
-            <h3>Classification Summary</h3>
-          </div>
-
-          <div class="classification-summary-list" id="classificationSummaryList">
-            <div class="empty-state">
-              No classification result available
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      <div class="table-card">
-        <div class="table-card-header">
-          <div>
-            <h3>Particle Results</h3>
-            <p>Each row corresponds to a detected particle in the active image.</p>
-          </div>
-
-          <div class="table-toolbar">
-            <input
-              type="text"
-              id="resultSearchInput"
-              class="table-search-input"
-              placeholder="Search particle ID or class..."
-            />
-
-            <select id="resultSortSelect" class="table-sort-select">
-              <option value="id-asc">ID Ascending</option>
-              <option value="id-desc">ID Descending</option>
-              <option value="area-desc">Area Largest</option>
-              <option value="area-asc">Area Smallest</option>
-              <option value="coverage-desc">Coverage Highest</option>
-              <option value="coverage-asc">Coverage Lowest</option>
-            </select>
-          </div>
-        </div>
-
-                <div class="table-wrapper">
-          <table class="table" id="resultTable">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Class</th>
-                <th>Area</th>
-                <th>Coverage %</th>
-                <th>Mean R</th>
-                <th>Mean G</th>
-                <th>Mean B</th>
-                <th>Circularity</th>
-              </tr>
-            </thead>
-
-            <tbody id="resultTableBody">
-              <tr>
-                <td colspan="8">
-                  <div class="empty-state">
-                    No particle analysis result available
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
         </div>
       </div>
-
-    </section>
-  </main>
-
-  <div class="modal-overlay hidden" id="backgroundModal">
-    <div class="modal-card background-modal-card">
-
-      <div class="modal-header">
-        <div>
-          <h3 class="modal-title">Background Selection</h3>
-          <p class="text-muted mt-8">
-            Select up to 5 background points before running analysis.
-          </p>
-        </div>
-      </div>
-
-      <div class="modal-body">
-
-        <div class="background-modal-grid">
-
-          <div class="background-preview-panel">
-            <div class="background-preview-wrapper">
-              <canvas id="backgroundSelectionCanvas"></canvas>
-            </div>
-          </div>
-
-          <div class="background-selection-panel">
-
-            <div class="background-selection-info">
-              <div class="summary-item">
-                <span class="summary-label">Selected Points</span>
-                <span class="summary-value" id="backgroundPointCount">0 / 5</span>
-              </div>
-
-              <div class="summary-item">
-                <span class="summary-label">Shared Background</span>
-                <span class="summary-value" id="sharedBackgroundStatus">Disabled</span>
-              </div>
+            <section class="results-section">
+        <div class="results-layout">
+          <div class="classification-summary-card">
+            <div class="card-section-header">
+              <h3>Classification Summary</h3>
             </div>
 
-            <div class="background-color-preview-list" id="backgroundColorPreviewList">
+            <div
+              id="classificationSummaryContainer"
+              class="summary-list"
+            >
               <div class="empty-state">
-                No background point selected
+                <div class="empty-state-icon">
+                  ⌬
+                </div>
+
+                <h3>No Classification Data</h3>
+
+                <p>
+                  Run particle analysis to view classification summary.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="results-table-card">
+            <div class="card-section-header">
+              <h3>Particle Results</h3>
+            </div>
+
+            <div class="results-table-toolbar">
+              <div class="results-toolbar-left">
+                <input
+                  type="text"
+                  id="resultSearchInput"
+                  class="search-input"
+                  placeholder="Search particle..."
+                >
+              </div>
+
+              <div class="results-toolbar-right">
+                <select
+                  id="resultSortSelect"
+                  class="sort-select"
+                >
+                  <option value="id-asc">ID Ascending</option>
+                  <option value="id-desc">ID Descending</option>
+                  <option value="area-desc">Area Descending</option>
+                  <option value="area-asc">Area Ascending</option>
+                  <option value="coverage-desc">Coverage Descending</option>
+                  <option value="coverage-asc">Coverage Ascending</option>
+                </select>
               </div>
             </div>
 
-            <div class="checkbox-row mt-20">
-              <input type="checkbox" id="applyBackgroundToAllImages" />
-              <label for="applyBackgroundToAllImages">
-                Apply same background to all images
-              </label>
+            <div class="results-table-wrapper">
+              <table class="results-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Class</th>
+                    <th>Area</th>
+                    <th>Coverage %</th>
+                    <th>Mean RGB</th>
+                    <th>Circularity</th>
+                  </tr>
+                </thead>
+
+                <tbody id="resultsTableBody">
+                  <tr>
+                    <td colspan="6">
+                      <div class="empty-state">
+                        <div class="empty-state-icon">
+                          ∅
+                        </div>
+
+                        <h3>No Particle Data</h3>
+
+                        <p>
+                          Run particle analysis to populate the result table.
+                        </p>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
-
           </div>
-
         </div>
-
-      </div>
-
-      <div class="modal-footer">
-        <button class="secondary-button" id="clearBackgroundPointsButton">
-          Clear Points
-        </button>
-
-        <button class="primary-button" id="confirmBackgroundButton">
-          Confirm Background
-        </button>
-      </div>
-
-    </div>
+      </section>
+    </main>
   </div>
-
-  <div class="loading-overlay hidden" id="loadingOverlay">
-    <div class="loading-card">
-      <div class="loading-spinner"></div>
-      <div class="loading-title">Processing Image</div>
-      <div class="loading-text" id="loadingText">
-        Running particle analysis...
-      </div>
-    </div>
-  </div>
-
-  <div class="notification-container" id="notificationContainer"></div>
-
-  <script src="../vendor/xlsx.full.min.js"></script>
-  <script src="../js/utils.js"></script>
-  <script src="../js/ui.js"></script>
-  <script src="../js/detection.js"></script>
-  <script src="../js/particle-analysis.js"></script>
-  <script src="../js/export.js"></script>
-  <script src="../js/zoom-pan.js"></script>
-  <script src="../js/main.js"></script>
-
-</body>
-</html>
