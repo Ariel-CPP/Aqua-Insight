@@ -1,1 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image Recognition - Aqua Insight</title>
 
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../css/global.css">
+  <link rel="stylesheet" href="../css/image-recognition.css">
+</head>
+<body class="recognition-page">
+  <div class="background-glow glow-left"></div>
+  <div class="background-glow glow-right"></div>
+
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="logo-group">
+        <div class="logo-icon">AI</div>
+
+        <div>
+          <h1>Aqua Insight</h1>
+          <p>Image Recognition Module</p>
+        </div>
+      </div>
+
+      <div class="version-chip">
+        Version 0.1
+      </div>
+    </div>
+
+    <div class="topbar-right">
+      <div class="dropdown-wrapper">
+        <button class="topbar-button">
+          Features
+        </button>
+
+        <div class="dropdown-menu">
+          <a href="../index.html">Home</a>
+          <a href="./particle-counter.html">Particle Counter</a>
+          <a href="./image-recognition.html">Image Recognition</a>
+        </div>
+      </div>
+
+      <button
+        class="topbar-button"
+        onclick="window.location.href='../index.html'"
+      >
+        Back to Home
+      </button>
+    </div>
+  </header>
+
+  <div class="recognition-layout">
+    <aside class="recognition-sidebar">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-icon">IR</div>
+
+        <div>
+          <h1>Image Recognition</h1>
+          <p>Aqua Insight Version 0.1</p>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">
+          Image Upload
+        </div>
+
+        <div class="sidebar-button-group">
+          <button
+            id="uploadReferenceButton"
+            class="analysis-button"
+          >
+            Upload Reference Image
+          </button>
+
+          <input
+            type="file"
+            id="referenceImageInput"
+            accept="image/png,image/jpeg,image/jpg"
+            hidden
+          >
+
+          <button
+            id="uploadTargetButton"
+            class="secondary-analysis-button"
+          >
+            Upload Target Image
+          </button>
+
+          <input
+            type="file"
+            id="targetImageInput"
+            accept="image/png,image/jpeg,image/jpg"
+            hidden
+          >
+        </div>
+      </div>
+            <div class="sidebar-section">
+        <div class="sidebar-section-title">
+          Recognition Settings
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" for="recognitionMode">
+            Recognition Mode
+          </label>
+
+          <select
+            id="recognitionMode"
+            class="control-select"
+          >
+            <option value="pattern">Pattern Recognition</option>
+            <option value="shape">Shape Similarity</option>
+            <option value="color">Color Similarity</option>
+            <option value="texture">Texture Similarity</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" for="comparisonMethod">
+            Comparison Method
+          </label>
+
+          <select
+            id="comparisonMethod"
+            class="control-select"
+          >
+            <option value="euclidean">Euclidean Distance</option>
+            <option value="cosine">Cosine Similarity</option>
+            <option value="correlation">Correlation Score</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" for="confidenceThreshold">
+            Confidence Threshold
+          </label>
+
+          <input
+            type="number"
+            id="confidenceThreshold"
+            class="control-input"
+            min="0"
+            max="100"
+            value="70"
+          >
+
+          <div class="control-description">
+            Minimum confidence score required for recognition results.
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">
+          Analysis Actions
+        </div>
+
+        <div class="sidebar-button-group">
+          <button
+            id="runRecognitionButton"
+            class="analysis-button"
+          >
+            Run Recognition
+          </button>
+
+          <button
+            id="resetRecognitionButton"
+            class="secondary-analysis-button"
+          >
+            Reset
+          </button>
+
+          <button
+            id="exportRecognitionButton"
+            class="secondary-analysis-button"
+          >
+            Export Results
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <main class="recognition-content">
+      <div class="analysis-toolbar">
+        <div class="toolbar-left">
+          <div class="toolbar-title">
+            <h2 id="recognitionStatusTitle">
+              No Images Uploaded
+            </h2>
+
+            <p>
+              Automatic visual pattern comparison dashboard
+            </p>
+          </div>
+        </div>
+
+        <div class="toolbar-right">
+          <div
+            id="recognitionStatusChip"
+            class="toolbar-chip"
+          >
+            Waiting for Images
+          </div>
+        </div>
+      </div>
+            <div class="summary-grid">
+        <div class="summary-card">
+          <div class="summary-card-label">
+            Similarity Score
+          </div>
+
+          <div
+            id="summarySimilarityScore"
+            class="summary-card-value"
+          >
+            0%
+          </div>
+
+          <div class="summary-card-subtext">
+            Overall visual similarity
+          </div>
+        </div>
+
+        <div class="summary-card">
+          <div class="summary-card-label">
+            Recognition Mode
+          </div>
+
+          <div
+            id="summaryRecognitionMode"
+            class="summary-card-value"
+          >
+            -
+          </div>
+
+          <div class="summary-card-subtext">
+            Current recognition workflow
+          </div>
+        </div>
+
+        <div class="summary-card">
+          <div class="summary-card-label">
+            Comparison Method
+          </div>
+
+          <div
+            id="summaryComparisonMethod"
+            class="summary-card-value"
+          >
+            -
+          </div>
+
+          <div class="summary-card-subtext">
+            Current similarity method
+          </div>
+        </div>
+
+        <div class="summary-card">
+          <div class="summary-card-label">
+            Recognition Result
+          </div>
+
+          <div
+            id="summaryRecognitionResult"
+            class="summary-card-value"
+          >
+            -
+          </div>
+
+          <div class="summary-card-subtext">
+            Final recognition output
+          </div>
+        </div>
+      </div>
+
+      <div class="canvas-grid">
+        <div class="canvas-card">
+          <div class="canvas-card-header">
+            <div class="canvas-card-title">
+              <h3>Reference Image</h3>
+              <p>Uploaded reference pattern</p>
+            </div>
+
+            <div
+              id="referenceCanvasStatus"
+              class="canvas-status-chip"
+            >
+              Waiting
+            </div>
+          </div>
+
+          <div class="canvas-wrapper">
+            <canvas id="referenceCanvas"></canvas>
+          </div>
+        </div>
+
+        <div class="canvas-card">
+          <div class="canvas-card-header">
+            <div class="canvas-card-title">
+              <h3>Target Image</h3>
+              <p>Uploaded comparison image</p>
+            </div>
+
+            <div
+              id="targetCanvasStatus"
+              class="canvas-status-chip"
+            >
+              Waiting
+            </div>
+          </div>
+
+          <div class="canvas-wrapper">
+            <canvas id="targetCanvas"></canvas>
+          </div>
+        </div>
+      </div>
+            <section class="results-section">
+        <div class="results-layout">
+          <div class="classification-summary-card">
+            <div class="card-section-header">
+              <h3>Recognition Summary</h3>
+            </div>
+
+            <div class="summary-list">
+              <div class="summary-list-item">
+                <div class="summary-list-label">
+                  <span>Detected Pattern</span>
+                </div>
+
+                <div class="summary-list-value">
+                  <strong id="detectedPatternLabel">
+                    -
+                  </strong>
+
+                  <p>
+                    Primary matched pattern
+                  </p>
+                </div>
+              </div>
+
+              <div class="summary-list-item">
+                <div class="summary-list-label">
+                  <span>Confidence Score</span>
+                </div>
+
+                <div class="summary-list-value">
+                  <strong id="confidenceScoreLabel">
+                    0%
+                  </strong>
+
+                  <p>
+                    Recognition confidence
+                  </p>
+                </div>
+              </div>
+
+              <div class="summary-list-item">
+                <div class="summary-list-label">
+                  <span>Recognition Mode</span>
+                </div>
+
+                <div class="summary-list-value">
+                  <strong id="recognitionModeLabel">
+                    -
+                  </strong>
+
+                  <p>
+                    Current recognition method
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="results-table-card">
+            <div class="card-section-header">
+              <h3>Similarity Results</h3>
+            </div>
+
+            <div class="results-table-wrapper">
+              <table class="results-table">
+                <thead>
+                  <tr>
+                    <th>Rank</th>
+                    <th>Pattern</th>
+                    <th>Similarity Score</th>
+                    <th>Confidence</th>
+                  </tr>
+                </thead>
+
+                <tbody id="recognitionResultsTable">
+                  <tr>
+                    <td colspan="4">
+                      <div class="empty-state">
+                        <div class="empty-state-icon">
+                          ⌬
+                        </div>
+
+                        <h3>No Recognition Results</h3>
+
+                        <p>
+                          Upload images and run recognition to view comparison results.
+                        </p>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="../js/image-recognition.js"></script>
+</body>
+</html>
