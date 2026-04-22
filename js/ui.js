@@ -1,11 +1,14 @@
 const UI = (() => {
   const thresholdDescriptions = {
-    otsu: 'Otsu is suitable for images with clear separation between object and background intensity.',
-    mean: 'Mean uses average pixel intensity as threshold and works well for balanced images.',
-    triangle: 'Triangle is useful for images with dominant background and small object regions.',
-    'minimum-error': 'Minimum Error is suitable for complex intensity distributions.',
-    manual: 'Manual threshold allows you to define minimum and maximum threshold values.'
-  };
+  const descriptions = {
+  otsu: 'Otsu is suitable for images with clear separation between object and background intensity.',
+  mean: 'Mean uses average pixel intensity as threshold and works well for balanced images.',
+  triangle: 'Triangle is useful for images with dominant background and small object regions.',
+  yen: 'Yen maximizes the separation between foreground and background using entropy-based histogram analysis.',
+  li: 'Li iteratively estimates the optimal threshold based on minimum cross-entropy between foreground and background.',
+  minimum-error: 'Minimum Error is suitable for complex intensity distributions.',
+  manual: 'Manual threshold allows you to define minimum and maximum threshold values.'
+};
 
   function updateThresholdDescription(method) {
     const descriptionElement = document.getElementById('thresholdMethodDescription');
