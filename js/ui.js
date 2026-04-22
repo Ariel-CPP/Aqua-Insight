@@ -1,6 +1,5 @@
 const UI = (() => {
   const thresholdDescriptions = {
-  const descriptions = {
   otsu: 'Otsu is suitable for images with clear separation between object and background intensity.',
   mean: 'Mean uses average pixel intensity as threshold and works well for balanced images.',
   triangle: 'Triangle is useful for images with dominant background and small object regions.',
