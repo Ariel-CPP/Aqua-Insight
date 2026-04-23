@@ -9,6 +9,8 @@ const AppState = {
   batchImages: [],
   currentImageIndex: 0,
 
+  threshold: 60,
+  
   categories: {
     A: { name: 'Category A', polygons: [] },
     B: { name: 'Category B', polygons: [] },
@@ -28,7 +30,20 @@ document.addEventListener('DOMContentLoaded', () => {
   initializePolygonDrawing();
   initializeZoomPan();
   initializeNavigation();
+  initializeThreshold();
 });
+
+function initializeThreshold() {
+  const slider = document.getElementById('confidenceThreshold');
+  const label = document.getElementById('thresholdValue');
+
+  slider.addEventListener('input', () => {
+    const value = Number(slider.value);
+
+    AppState.threshold = value;
+    label.textContent = value + '%';
+  });
+}
 
 /* ================= INIT ================= */
 
@@ -634,8 +649,12 @@ function detectInImage(image, reference) {
 
   const detections = [];
 
-  const step = 20; // scanning resolution
-  const size = 40; // window size
+  const step = 30;
+
+const sizes = [30, 50, 80]; // kecil, sedang, besar
+
+for (let s = 0; s < sizes.length; s++) {
+  const size = sizes[s];
 
   for (let y = 0; y < canvas.height; y += step) {
     for (let x = 0; x < canvas.width; x += step) {
@@ -648,7 +667,6 @@ function detectInImage(image, reference) {
       ];
 
       const feature = extractPolygonFeatures(imageData, poly);
-
       if (!feature) continue;
 
       let bestCategory = null;
@@ -665,7 +683,7 @@ function detectInImage(image, reference) {
         });
       });
 
-      if (bestScore > 60) {
+      if (bestScore > AppState.threshold) {
         detections.push({
           x,
           y,
@@ -678,6 +696,7 @@ function detectInImage(image, reference) {
       }
     }
   }
+}
 
   return mergeDetections(detections);
 }
