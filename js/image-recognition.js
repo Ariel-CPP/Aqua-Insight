@@ -16,11 +16,17 @@ const AppState = {
     B: { name: 'Category B', polygons: [] },
     C: { name: 'Category C', polygons: [] }
   },
-
+  
+  crosshair: {
+    x: 0,
+    y: 0,
+    visible: false
+  },
   activeCategory: 'A',
 
   isDrawing: false,
   currentPolygon: []
+
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -154,6 +160,11 @@ function initializePolygonDrawing() {
   canvas.addEventListener('mousedown', handleCanvasClick);
   canvas.addEventListener('mousemove', handleMouseMove);
   canvas.addEventListener('dblclick', finishPolygon);
+
+  AppState.referenceCanvas.addEventListener('mouseleave', () => {
+  AppState.crosshair.visible = false;
+  renderReferenceWithOverlay();
+});
 }
 
 /* ================= CLICK ================= */
@@ -172,11 +183,17 @@ function handleCanvasClick(e) {
 /* ================= MOUSE MOVE ================= */
 
 function handleMouseMove(e) {
-  if (!AppState.isDrawing) return;
-
   const pos = getMousePos(e);
 
-  renderReferenceWithOverlay(pos);
+  AppState.crosshair.x = pos.x;
+  AppState.crosshair.y = pos.y;
+  AppState.crosshair.visible = true;
+
+  if (AppState.isDrawing) {
+    renderReferenceWithOverlay(pos);
+  } else {
+    renderReferenceWithOverlay();
+  }
 }
 
 /* ================= FINISH POLYGON ================= */
@@ -419,6 +436,8 @@ function renderReferenceWithOverlay(mousePos = null) {
 
     AppState.categories[cat].polygons.forEach(poly => {
       drawPolygon(ctx, poly, color);
+
+      drawCrosshair(ctx);
     });
   });
 
@@ -940,4 +959,30 @@ function drawDetection(ctx, det, index) {
     det.x,
     det.y + det.size + 12
   );
+}
+
+function drawCrosshair(ctx) {
+  if (!AppState.crosshair.visible) return;
+
+  const x = AppState.crosshair.x;
+  const y = AppState.crosshair.y;
+
+  ctx.save();
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+  ctx.lineWidth = 1;
+
+  // horizontal
+  ctx.beginPath();
+  ctx.moveTo(0, y);
+  ctx.lineTo(AppState.referenceCanvas.width, y);
+  ctx.stroke();
+
+  // vertical
+  ctx.beginPath();
+  ctx.moveTo(x, 0);
+  ctx.lineTo(x, AppState.referenceCanvas.height);
+  ctx.stroke();
+
+  ctx.restore();
 }
