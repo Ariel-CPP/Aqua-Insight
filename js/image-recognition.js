@@ -41,6 +41,7 @@ const tgtInput = document.getElementById('targetInput');
 ========================= */
 document.addEventListener('DOMContentLoaded', () => {
   bindEvents();
+  renderCategoryList(); // <-- ini penting
 });
 
 /* =========================
@@ -1502,3 +1503,66 @@ function exportResultsXLSX(){
    document.getElementById('importModel').onchange = (e)=>{
   importAdaptiveJSON(e.target.files[0]);
 };
+
+/* =========================
+   ADD CATEGORY
+========================= */
+function addCategory(){
+
+  const name = prompt('Category name:');
+  if(!name) return;
+
+  const id = 'C' + Date.now();
+
+  const newCategory = {
+    id,
+    name,
+    color: randomColor(),
+    polygons: []
+  };
+
+  AppState.categories.push(newCategory);
+
+  renderCategoryList();
+}
+
+/* =========================
+   RANDOM COLOR
+========================= */
+function randomColor(){
+  return `hsl(${Math.random()*360},70%,60%)`;
+}
+
+/* =========================
+   RENDER CATEGORY LIST
+========================= */
+function renderCategoryList(){
+
+  const container = document.getElementById('categoryList');
+  if(!container) return;
+
+  container.innerHTML = '';
+
+  AppState.categories.forEach(cat=>{
+
+    const div = document.createElement('div');
+
+    div.style.padding = '6px';
+    div.style.marginBottom = '6px';
+    div.style.borderLeft = `4px solid ${cat.color}`;
+    div.style.cursor = 'pointer';
+
+    div.textContent = cat.name;
+
+    div.onclick = () => {
+      AppState.activeCategoryId = cat.id;
+      renderCategoryList();
+    };
+
+    if(cat.id === AppState.activeCategoryId){
+      div.style.background = 'rgba(73,214,255,0.1)';
+    }
+
+    container.appendChild(div);
+  });
+}
