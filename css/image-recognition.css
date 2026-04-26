@@ -179,3 +179,146 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* =========================
+   SIDEBAR IMPROVEMENT
+========================= */
+.ir-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sidebar-section {
+  transition: var(--transition-fast);
+}
+
+.sidebar-section:hover {
+  border-color: var(--border-strong);
+  background: rgba(73,214,255,0.03);
+}
+
+/* =========================
+   BUTTON STYLE
+========================= */
+.analysis-button,
+.secondary-analysis-button {
+  border-radius: var(--radius-small);
+  height: 42px;
+  font-size: 13px;
+}
+
+.analysis-button {
+  background: linear-gradient(
+    135deg,
+    var(--accent-primary),
+    var(--accent-secondary)
+  );
+  color: #041018;
+}
+
+.analysis-button:hover {
+  transform: translateY(-1px);
+}
+
+.secondary-analysis-button {
+  background: rgba(255,255,255,0.04);
+}
+
+/* =========================
+   CATEGORY UI (UPGRADE)
+========================= */
+.category-item {
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.category-item:hover {
+  background: rgba(73,214,255,0.08);
+}
+
+.category-item.active {
+  background: rgba(73,214,255,0.12);
+  border-color: var(--border-strong);
+}
+
+/* =========================
+   CANVAS CARD
+========================= */
+.canvas-card {
+  transition: var(--transition-fast);
+}
+
+.canvas-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: 0 0 20px rgba(73,214,255,0.06);
+}
+
+/* =========================
+   CANVAS WRAPPER FIX
+========================= */
+.canvas-wrapper {
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+.canvas-wrapper:hover {
+  border-color: var(--border-strong);
+}
+
+/* =========================
+   TABLE IMPROVEMENT
+========================= */
+.result-table table {
+  font-size: 13px;
+}
+
+.result-table th {
+  text-align: left;
+  color: var(--text-secondary);
+}
+
+.result-table tr:hover {
+  background: rgba(73,214,255,0.05);
+  cursor: pointer;
+}
+
+/* =========================
+   EMPTY STATE
+========================= */
+.result-table td[colspan] {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 20px;
+}
+
+/* =========================
+   SCROLL FIX
+========================= */
+.result-table {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+/* =========================
+   MOBILE IMPROVEMENT
+========================= */
+@media (max-width: 768px) {
+
+  .ir-content {
+    padding: 12px;
+  }
+
+  .canvas-card {
+    padding: 10px;
+  }
+
+  .sidebar-section {
+    padding: 12px;
+  }
+
+  .analysis-button,
+  .secondary-analysis-button {
+    height: 38px;
+    font-size: 12px;
+  }
+}
