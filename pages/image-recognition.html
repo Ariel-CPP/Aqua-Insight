@@ -1,134 +1,133 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Image Recognition - Aqua Insight</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <link rel="stylesheet" href="../css/global.css">
-  <link rel="stylesheet" href="../css/image-recognition.css">
+<title>Aqua Insight — Image Recognition</title>
+
+<link rel="stylesheet" href="../css/global.css">
+<link rel="stylesheet" href="../css/image-recognition.css">
+
+<!-- XLSX -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 </head>
 
-<body class="ir-page">
-  <!-- Topbar (reuse global) -->
-  <header class="topbar">
-    <div class="topbar-left">
-      <div class="logo-group">
-        <div class="logo-icon">IR</div>
-        <div>
-          <h1>Aqua Insight</h1>
-          <p>Image Recognition</p>
-        </div>
-      </div>
+<body>
+
+<div class="ir-container">
+
+  <!-- =========================
+       SIDEBAR
+  ========================== -->
+  <div class="ir-sidebar">
+
+    <h2>Image Recognition</h2>
+
+    <!-- Upload -->
+    <div class="card">
+      <h3>Input</h3>
+
+      <input type="file" id="referenceInput" accept="image/*" hidden>
+      <button onclick="referenceInput.click()">Upload Reference</button>
+
+      <input type="file" id="targetInput" accept="image/*" multiple hidden>
+      <button onclick="targetInput.click()">Upload Target (Batch)</button>
     </div>
 
-    <div class="topbar-right">
-      <button class="topbar-button" onclick="window.location.href='../index.html'">
-        Back
-      </button>
+    <!-- Category -->
+    <div class="card">
+      <h3>Category</h3>
+
+      <div id="categoryList"></div>
+
+      <button onclick="addCategory()">+ Add Category</button>
     </div>
-  </header>
 
-  <div class="ir-layout">
+    <!-- Control -->
+    <div class="card">
+      <h3>Control</h3>
 
-    <!-- SIDEBAR -->
-    <aside class="ir-sidebar">
+      <label>Threshold</label>
+      <input type="range" id="thresholdSlider" min="0" max="100" value="60">
 
-      <div class="sidebar-section">
-        <h3>Upload</h3>
+      <button onclick="runDetection()">Run Detection</button>
+    </div>
 
-        <button id="uploadReferenceBtn" class="analysis-button">
-          Upload Reference
-        </button>
-        <input type="file" id="referenceInput" hidden>
+    <!-- Export -->
+    <div class="card">
+      <h3>Export</h3>
 
-        <button id="uploadTargetBtn" class="secondary-analysis-button">
-          Upload Target
-        </button>
-        <input type="file" id="targetInput" hidden>
-      </div>
+      <button onclick="exportResultsCSV()">Export CSV</button>
+      <button onclick="exportResultsXLSX()">Export XLSX</button>
 
-      <div class="sidebar-section">
-        <h3>Categories</h3>
+      <button onclick="exportAdaptiveJSON()">Export Model</button>
 
-        <div id="categoryList"></div>
+      <input type="file" id="importModel" hidden>
+      <button onclick="importModel.click()">Import Model</button>
+    </div>
 
-        <button id="addCategoryBtn" class="analysis-button">
-          Add Category
-        </button>
-      </div>
+  </div>
 
-      <div class="sidebar-section">
-        <h3>Controls</h3>
+  <!-- =========================
+       MAIN CONTENT
+  ========================== -->
+  <div class="ir-main">
 
-        <label>Threshold</label>
-        <input type="range" id="thresholdSlider" min="0" max="100" value="50">
+    <div class="canvas-grid">
 
-        <button id="runDetectionBtn" class="analysis-button">
-          Run Detection
-        </button>
-      </div>
-
-    </aside>
-
-    <!-- MAIN -->
-    <main class="ir-content">
-
-      <!-- CANVAS AREA -->
-      <div class="canvas-grid">
-
-        <div class="canvas-card">
-          <h3>Reference</h3>
-          <div class="canvas-wrapper">
-            <canvas id="referenceCanvas"></canvas>
-            <div class="crosshair"></div>
-          </div>
-        </div>
-
-        <div class="canvas-card">
-          <h3>Target</h3>
-          <div class="canvas-wrapper">
-            <canvas id="targetCanvas"></canvas>
-            <div class="crosshair"></div>
-          </div>
-        </div>
-
-      </div>
-
-      <!-- RESULT CANVAS -->
+      <!-- Reference -->
       <div class="canvas-card">
-        <h3>Detection Result</h3>
+        <h4>Reference (Draw Polygon)</h4>
+        <div class="canvas-wrapper">
+          <canvas id="referenceCanvas"></canvas>
+        </div>
+      </div>
+
+      <!-- Target -->
+      <div class="canvas-card">
+        <h4>Target Image</h4>
+        <div class="canvas-wrapper">
+          <canvas id="targetCanvas"></canvas>
+        </div>
+      </div>
+
+      <!-- Result -->
+      <div class="canvas-card">
+        <h4>Detection Result</h4>
         <div class="canvas-wrapper">
           <canvas id="resultCanvas"></canvas>
         </div>
       </div>
 
-      <!-- TABLE -->
-      <div class="result-table">
-        <h3>Results</h3>
+    </div>
 
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Category</th>
-              <th>Area</th>
-              <th>Circularity</th>
-              <th>Confidence</th>
-            </tr>
-          </thead>
+    <!-- =========================
+         TABLE
+    ========================== -->
+    <div class="result-table">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Category</th>
+            <th>Area</th>
+            <th>Confidence</th>
+          </tr>
+        </thead>
+        <tbody id="resultTableBody">
+          <tr>
+            <td colspan="4">No data</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 
-          <tbody id="resultTableBody">
-            <tr>
-              <td colspan="5">No data</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-    </main>
   </div>
 
-  <script src="../js/image-recognition.js"></script>
+</div>
+
+<script src="../js/image-recognition.js"></script>
+
 </body>
 </html>
