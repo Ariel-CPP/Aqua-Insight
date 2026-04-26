@@ -5,259 +5,130 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Image Recognition - Aqua Insight</title>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-
   <link rel="stylesheet" href="../css/global.css">
   <link rel="stylesheet" href="../css/image-recognition.css">
 </head>
 
-<body class="recognition-page">
-
-  <div class="background-glow glow-left"></div>
-  <div class="background-glow glow-right"></div>
-
-  <!-- ================= TOPBAR ================= -->
+<body class="ir-page">
+  <!-- Topbar (reuse global) -->
   <header class="topbar">
     <div class="topbar-left">
       <div class="logo-group">
         <div class="logo-icon">IR</div>
-
         <div>
           <h1>Aqua Insight</h1>
-          <p>Image Recognition Module</p>
+          <p>Image Recognition</p>
         </div>
-      </div>
-
-      <div class="version-chip">
-        Version 0.1
       </div>
     </div>
 
     <div class="topbar-right">
-      <div class="dropdown-wrapper">
-        <button class="topbar-button">
-          Features
-        </button>
-
-        <div class="dropdown-menu">
-          <a href="../index.html">Home</a>
-          <a href="./particle-counter.html">Particle Counter</a>
-          <a href="./image-recognition.html">Image Recognition</a>
-        </div>
-      </div>
-
-      <button
-        class="topbar-button"
-        onclick="window.location.href='../index.html'"
-      >
-        Back to Home
+      <button class="topbar-button" onclick="window.location.href='../index.html'">
+        Back
       </button>
     </div>
   </header>
 
-  <!-- ================= MAIN LAYOUT ================= -->
-  <div class="recognition-layout">
+  <div class="ir-layout">
 
-    <!-- ================= SIDEBAR ================= -->
-    <aside class="recognition-sidebar">
+    <!-- SIDEBAR -->
+    <aside class="ir-sidebar">
 
-      <div class="sidebar-logo">
-        <div class="sidebar-logo-icon">IR</div>
-
-        <div>
-          <h1>Image Recognition</h1>
-          <p>Reference-based detection</p>
-        </div>
-      </div>
-
-      <!-- ===== Upload Reference ===== -->
       <div class="sidebar-section">
-        <div class="sidebar-section-title">
-          Reference Image
-        </div>
+        <h3>Upload</h3>
 
         <button id="uploadReferenceBtn" class="analysis-button">
-          Upload Reference Image
+          Upload Reference
         </button>
+        <input type="file" id="referenceInput" hidden>
 
-        <input
-          type="file"
-          id="referenceInput"
-          accept="image/*"
-          hidden
-        >
-      </div>
-
-      <!-- ===== Category Manager ===== -->
-      <div class="sidebar-section">
-        <div class="sidebar-section-title">
-          Categories (Max 3)
-        </div>
-
-        <div id="categoryList">
-
-          <div class="category-item active-category" data-category="A">
-            <span>A</span>
-            <input type="text" value="Category A">
-          </div>
-
-          <div class="category-item" data-category="B">
-            <span>B</span>
-            <input type="text" value="Category B">
-          </div>
-
-          <div class="category-item" data-category="C">
-            <span>C</span>
-            <input type="text" value="Category C">
-          </div>
-
-        </div>
-
-        <p class="control-description">
-          Select category and draw polygon on image
-        </p>
-      </div>
-
-      <!-- ===== Polygon Info ===== -->
-      <div class="sidebar-section">
-        <div class="sidebar-section-title">
-          Polygon Reference
-        </div>
-
-        <div id="polygonInfo">
-          <p>Category A: 0 polygons</p>
-          <p>Category B: 0 polygons</p>
-          <p>Category C: 0 polygons</p>
-        </div>
-      </div>
-
-      <!-- ===== Batch Upload ===== -->
-      <div class="sidebar-section">
-        <div class="sidebar-section-title">
-          Target Images
-        </div>
-
-        <button id="uploadBatchBtn" class="analysis-button">
-          Upload Images
+        <button id="uploadTargetBtn" class="secondary-analysis-button">
+          Upload Target
         </button>
-
-        <input
-          type="file"
-          id="batchInput"
-          accept="image/*"
-          multiple
-          hidden
-        >
+        <input type="file" id="targetInput" hidden>
       </div>
 
-    <!-- ===== Run ===== -->
-<div class="sidebar-section">
-  <div class="sidebar-section-title">
-    Analysis
-  </div>
-  
-  <div class="control-group">
-    <label class="control-label">
-      Confidence Threshold
-    </label>
+      <div class="sidebar-section">
+        <h3>Categories</h3>
 
-    <input
-      type="range"
-      id="confidenceThreshold"
-      min="0"
-      max="100"
-      value="60"
-    >
+        <div id="categoryList"></div>
 
-    <div id="thresholdValue">
-      60%
-    </div>
+        <button id="addCategoryBtn" class="analysis-button">
+          Add Category
+        </button>
+      </div>
 
-    <div class="control-description">
-      Minimum similarity required for detection
-    </div>
-  </div>
-  <!-- 🔼 SAMPAI SINI -->
+      <div class="sidebar-section">
+        <h3>Controls</h3>
 
-  <button id="runRecognitionBtn" class="analysis-button">
-    Run Detection
-  </button>
-</div>
+        <label>Threshold</label>
+        <input type="range" id="thresholdSlider" min="0" max="100" value="50">
+
+        <button id="runDetectionBtn" class="analysis-button">
+          Run Detection
+        </button>
+      </div>
 
     </aside>
 
-    <!-- ================= MAIN CONTENT ================= -->
-    <main class="recognition-content">
+    <!-- MAIN -->
+    <main class="ir-content">
 
-      <div class="analysis-toolbar">
-        <div class="toolbar-left">
-          <div class="toolbar-title">
-            <h2 id="currentImageName">No Image</h2>
-            <p>Polygon-based object recognition</p>
-          </div>
-        </div>
-
-        <div class="toolbar-right">
-          <div id="statusChip" class="toolbar-chip">
-            Waiting
-          </div>
-        </div>
-      </div>
-
-      <!-- ===== CANVAS ===== -->
+      <!-- CANVAS AREA -->
       <div class="canvas-grid">
 
         <div class="canvas-card">
-          <div class="canvas-card-header">
-            <h3>Reference Canvas</h3>
-          </div>
-
+          <h3>Reference</h3>
           <div class="canvas-wrapper">
             <canvas id="referenceCanvas"></canvas>
+            <div class="crosshair"></div>
           </div>
         </div>
 
         <div class="canvas-card">
-          <div class="canvas-card-header">
-            <h3>Detection Result</h3>
-          </div>
-
+          <h3>Target</h3>
           <div class="canvas-wrapper">
-            <canvas id="resultCanvas"></canvas>
+            <canvas id="targetCanvas"></canvas>
+            <div class="crosshair"></div>
           </div>
         </div>
 
       </div>
 
-    </main>
+      <!-- RESULT CANVAS -->
+      <div class="canvas-card">
+        <h3>Detection Result</h3>
+        <div class="canvas-wrapper">
+          <canvas id="resultCanvas"></canvas>
+        </div>
+      </div>
 
+      <!-- TABLE -->
+      <div class="result-table">
+        <h3>Results</h3>
+
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Category</th>
+              <th>Area</th>
+              <th>Circularity</th>
+              <th>Confidence</th>
+            </tr>
+          </thead>
+
+          <tbody id="resultTableBody">
+            <tr>
+              <td colspan="5">No data</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </main>
   </div>
 
   <script src="../js/image-recognition.js"></script>
-
-  <section class="results-section">
-  <div class="results-table-wrapper">
-    <table class="results-table">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Category</th>
-          <th>Confidence</th>
-          <th>Area</th>
-          <th>Circularity</th>
-        </tr>
-      </thead>
-
-      <tbody id="resultsTableBody">
-        <tr>
-          <td colspan="5">No data</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-</section>
-  
 </body>
 </html>
