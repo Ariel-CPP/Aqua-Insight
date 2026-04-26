@@ -322,3 +322,93 @@
     font-size: 12px;
   }
 }
+
+body {
+  background: #0b0f14;
+  color: #e6edf3;
+  font-family: Arial, sans-serif;
+}
+
+.ir-container {
+  display: flex;
+  height: 100vh;
+}
+
+.ir-sidebar {
+  width: 260px;
+  padding: 16px;
+  border-right: 1px solid #1f2a36;
+  overflow-y: auto;
+}
+
+.ir-main {
+  flex: 1;
+  padding: 16px;
+}
+
+.card {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: #111821;
+  border: 1px solid #1f2a36;
+  border-radius: 6px;
+}
+
+button {
+  width: 100%;
+  margin-top: 6px;
+  padding: 8px;
+  background: #1f6feb;
+  border: none;
+  color: white;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+button:hover {
+  background: #388bfd;
+}
+
+.canvas-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.canvas-card {
+  background: #111821;
+  border: 1px solid #1f2a36;
+  padding: 10px;
+  border-radius: 6px;
+}
+
+.canvas-wrapper {
+  position: relative;
+  background: #000;
+}
+
+canvas {
+  width: 100%;
+  height: auto;
+}
+
+.result-table {
+  margin-top: 16px;
+  background: #111821;
+  border: 1px solid #1f2a36;
+  padding: 10px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+td, th {
+  padding: 6px;
+  border-bottom: 1px solid #1f2a36;
+}
+
+tr:hover {
+  background: #1a2330;
+}
