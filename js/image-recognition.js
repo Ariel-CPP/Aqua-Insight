@@ -1498,3 +1498,7 @@ function exportResultsXLSX(){
 
   XLSX.writeFile(workbook, "results.xlsx");
 }
+
+   document.getElementById('importModel').onchange = (e)=>{
+  importAdaptiveJSON(e.target.files[0]);
+};
