@@ -1,9 +1,12 @@
 /* =========================
-   APP STATE (CLEAN RESET)
+   APP STATE
 ========================= */
 const AppState = {
   referenceImage: null,
   targetImage: null,
+
+  batchImages: [],
+  currentBatchIndex: 0,
 
   categories: [
     { id: 'A', name: 'Category A', color: '#49d6ff', polygons: [] },
@@ -12,13 +15,12 @@ const AppState = {
   ],
 
   activeCategoryId: 'A',
-
   results: [],
   threshold: 60
 };
 
 /* =========================
-   CANVAS CONTEXT
+   CANVAS
 ========================= */
 const refCanvas = document.getElementById('referenceCanvas');
 const tgtCanvas = document.getElementById('targetCanvas');
@@ -29,332 +31,762 @@ const tgtCtx = tgtCanvas.getContext('2d');
 const resCtx = resCanvas.getContext('2d');
 
 /* =========================
-   GEOMETRY UTIL
+   INPUT ELEMENT
 ========================= */
+const refInput = document.getElementById('referenceInput');
+const tgtInput = document.getElementById('targetInput');
 
-/* point inside polygon (ray casting) */
-function pointInPolygon(point, polygon) {
-  let inside = false;
+/* =========================
+   INIT
+========================= */
+document.addEventListener('DOMContentLoaded', () => {
+  bindEvents();
+});
 
-  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-    const xi = polygon[i].x;
-    const yi = polygon[i].y;
-    const xj = polygon[j].x;
-    const yj = polygon[j].y;
+/* =========================
+   EVENT BINDING
+========================= */
+function bindEvents() {
 
-    const intersect =
-      ((yi > point.y) !== (yj > point.y)) &&
-      (point.x <
-        (xj - xi) * (point.y - yi) / (yj - yi + 0.00001) + xi);
+  // reference upload
+  refInput.onchange = (e) => {
+    loadImage(e.files ? e : e.target.files, 'reference');
+  };
 
-    if (intersect) inside = !inside;
-  }
+  // target upload (batch aware)
+  tgtInput.onchange = (e) => {
+    const files = e.target.files;
 
-  return inside;
-}
-
-/* bounding box polygon */
-function getPolygonBounds(poly) {
-  let minX = Infinity, minY = Infinity;
-  let maxX = -Infinity, maxY = -Infinity;
-
-  poly.forEach(p => {
-    if (p.x < minX) minX = p.x;
-    if (p.y < minY) minY = p.y;
-    if (p.x > maxX) maxX = p.x;
-    if (p.y > maxY) maxY = p.y;
-  });
-
-  return {
-    x: minX,
-    y: minY,
-    width: maxX - minX,
-    height: maxY - minY
+    if (files.length > 1) {
+      handleBatchUpload(files);
+    } else {
+      loadImage(files, 'target');
+    }
   };
 }
 
 /* =========================
-   FEATURE EXTRACTION (SHAPE-AWARE)
+   LOAD IMAGE
 ========================= */
-function extractPolygonFeature(ctx, polygon) {
+function loadImage(files, type) {
 
-  const bounds = getPolygonBounds(polygon);
+  const file = files[0];
+  if (!file) return;
 
-  const imageData = ctx.getImageData(
-    bounds.x,
-    bounds.y,
-    bounds.width,
-    bounds.height
+  if (!file.type.startsWith('image/')) {
+    alert('Only image files allowed');
+    return;
+  }
+
+  const img = new Image();
+  const reader = new FileReader();
+
+  reader.onload = e => img.src = e.target.result;
+
+  img.onload = () => {
+
+    if (type === 'reference') {
+      AppState.referenceImage = img;
+      drawImage(img, refCanvas, refCtx);
+    }
+
+    if (type === 'target') {
+      AppState.targetImage = img;
+      drawImage(img, tgtCanvas, tgtCtx);
+    }
+  };
+
+  reader.readAsDataURL(file);
+}
+
+/* =========================
+   DRAW IMAGE
+========================= */
+function drawImage(img, canvas, ctx) {
+
+  const max = 700;
+
+  let w = img.width;
+  let h = img.height;
+
+  const scale = Math.min(max / w, max / h, 1);
+
+  w *= scale;
+  h *= scale;
+
+  canvas.width = w;
+  canvas.height = h;
+
+  ctx.clearRect(0, 0, w, h);
+  ctx.drawImage(img, 0, 0, w, h);
+}
+
+/* =========================
+   BATCH UPLOAD
+========================= */
+function handleBatchUpload(files) {
+
+  AppState.batchImages = [];
+  AppState.currentBatchIndex = 0;
+
+  const valid = Array.from(files).filter(f =>
+    f.type.startsWith('image/')
   );
 
-  const data = imageData.data;
-
-  let r = 0, g = 0, b = 0;
-  let count = 0;
-
-  for (let y = 0; y < bounds.height; y += 2) {
-    for (let x = 0; x < bounds.width; x += 2) {
-
-      const globalX = bounds.x + x;
-      const globalY = bounds.y + y;
-
-      if (!pointInPolygon({ x: globalX, y: globalY }, polygon)) continue;
-
-      const idx = (y * bounds.width + x) * 4;
-
-      r += data[idx];
-      g += data[idx + 1];
-      b += data[idx + 2];
-
-      count++;
-    }
+  if (valid.length === 0) {
+    alert('No valid images');
+    return;
   }
 
-  if (count === 0) return null;
+  let loaded = 0;
+
+  valid.forEach(file => {
+    const img = new Image();
+    const reader = new FileReader();
+
+    reader.onload = e => img.src = e.target.result;
+
+    img.onload = () => {
+      AppState.batchImages.push(img);
+      loaded++;
+
+      if (loaded === valid.length) {
+        runBatch();
+      }
+    };
+
+    reader.readAsDataURL(file);
+  });
+}
+
+/* =========================
+   RUN BATCH
+========================= */
+function runBatch() {
+  if (AppState.batchImages.length === 0) return;
+  processNextImage();
+}
+
+function processNextImage() {
+
+  if (AppState.currentBatchIndex >= AppState.batchImages.length) {
+    alert('Batch finished');
+    return;
+  }
+
+  const img = AppState.batchImages[AppState.currentBatchIndex];
+
+  drawImage(img, tgtCanvas, tgtCtx);
+  AppState.targetImage = img;
+
+  setTimeout(() => {
+    runDetection();
+
+    AppState.currentBatchIndex++;
+    processNextImage();
+  }, 50);
+}
+
+/* =========================
+   EXPORT CSV
+========================= */
+function exportResultsCSV() {
+
+  if (!AppState.results.length) {
+    alert('No results');
+    return;
+  }
+
+  let csv = 'ID,Category,X,Y,Width,Height,Confidence\n';
+
+  AppState.results.forEach(r => {
+    csv += `${r.id},${r.category},${r.x},${r.y},${r.width},${r.height},${r.confidence}\n`;
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'results.csv';
+  a.click();
+
+  URL.revokeObjectURL(url);
+}
+
+/* =========================
+   PLACEHOLDER (NEXT STEP)
+========================= */
+function runDetection() {
+  console.log('Detection not implemented yet');
+}
+
+/* =========================
+   VIEW (ZOOM & PAN BASE)
+========================= */
+const View = {
+  scale: 1,
+  offsetX: 0,
+  offsetY: 0
+};
+
+/* =========================
+   POLYGON STATE
+========================= */
+let currentPolygon = [];
+
+/* =========================
+   GET MOUSE (ZOOM SAFE)
+========================= */
+function getMousePos(canvas, e) {
+
+  const rect = canvas.getBoundingClientRect();
+
+  const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+  const y = (e.clientY - rect.top) * (canvas.height / rect.height);
 
   return {
-    r: r / count,
-    g: g / count,
-    b: b / count,
-    area: count
+    x: (x - View.offsetX) / View.scale,
+    y: (y - View.offsetY) / View.scale
   };
 }
 
 /* =========================
-   SHAPE DESCRIPTOR
+   ADD POINT
 ========================= */
-function calculateShapeDescriptor(polygon) {
+refCanvas.addEventListener('click', (e) => {
 
-  const bounds = getPolygonBounds(polygon);
+  if (!AppState.referenceImage) return;
 
-  const area = polygon.length;
+  const pos = getMousePos(refCanvas, e);
 
-  const perimeter = polygon.reduce((acc, p, i) => {
-    const next = polygon[(i + 1) % polygon.length];
-    return acc + Math.hypot(next.x - p.x, next.y - p.y);
-  }, 0);
+  currentPolygon.push(pos);
 
-  const circularity =
-    (4 * Math.PI * area) / (perimeter * perimeter + 0.0001);
+  redrawReferenceCanvas();
+});
 
-  return {
-    area,
-    perimeter,
-    circularity,
-    aspectRatio: bounds.width / (bounds.height + 0.0001)
-  };
+/* =========================
+   FINISH POLYGON
+========================= */
+refCanvas.addEventListener('dblclick', () => {
+
+  if (currentPolygon.length < 3) return;
+
+  const cat = AppState.categories.find(
+    c => c.id === AppState.activeCategoryId
+  );
+
+  cat.polygons.push([...currentPolygon]);
+
+  currentPolygon = [];
+
+  redrawReferenceCanvas();
+});
+
+/* =========================
+   REDRAW CANVAS
+========================= */
+function redrawReferenceCanvas() {
+
+  if (!AppState.referenceImage) return;
+
+  const ctx = refCtx;
+
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.clearRect(0,0,refCanvas.width,refCanvas.height);
+
+  ctx.setTransform(
+    View.scale,
+    0,
+    0,
+    View.scale,
+    View.offsetX,
+    View.offsetY
+  );
+
+  ctx.drawImage(
+    AppState.referenceImage,
+    0,
+    0,
+    refCanvas.width,
+    refCanvas.height
+  );
+
+  drawSavedPolygons();
+  drawCurrentPolygon();
 }
 
 /* =========================
-   BUILD REFERENCE LIBRARY
+   DRAW SAVED POLYGONS
 ========================= */
-function buildReferenceLibrary() {
-
-  const library = [];
+function drawSavedPolygons() {
 
   AppState.categories.forEach(cat => {
 
-    cat.polygons.forEach(poly => {
+    refCtx.strokeStyle = cat.color;
+    refCtx.lineWidth = 2;
 
-      const feature = extractPolygonFeature(refCtx, poly);
-      const shape = calculateShapeDescriptor(poly);
+    cat.polygons.forEach(poly => drawPolygon(poly));
+  });
+}
 
-      if (!feature) return;
+/* =========================
+   DRAW CURRENT
+========================= */
+function drawCurrentPolygon() {
 
-      library.push({
+  if (currentPolygon.length === 0) return;
+
+  refCtx.strokeStyle = '#ffffff';
+  refCtx.lineWidth = 1.5;
+
+  drawPolygon(currentPolygon, true);
+
+  currentPolygon.forEach(p => {
+    refCtx.beginPath();
+    refCtx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+    refCtx.fillStyle = '#ffffff';
+    refCtx.fill();
+  });
+}
+
+/* =========================
+   DRAW POLYGON
+========================= */
+function drawPolygon(poly, open=false) {
+
+  if (poly.length === 0) return;
+
+  refCtx.beginPath();
+
+  poly.forEach((p,i)=>{
+    if(i===0) refCtx.moveTo(p.x,p.y);
+    else refCtx.lineTo(p.x,p.y);
+  });
+
+  if (!open) refCtx.closePath();
+
+  refCtx.stroke();
+}
+
+/* =========================
+   CATEGORY SELECT (UI)
+========================= */
+function selectCategory(id) {
+  AppState.activeCategoryId = id;
+}
+
+/* =========================
+   CLEAR CURRENT POLYGON
+========================= */
+function clearCurrentPolygon() {
+  currentPolygon = [];
+  redrawReferenceCanvas();
+}
+
+/* =========================
+   VIEW STATE EXTENDED
+========================= */
+View.dragging = false;
+View.lastX = 0;
+View.lastY = 0;
+
+/* =========================
+   ZOOM (WHEEL)
+========================= */
+refCanvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+
+  const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+
+  const rect = refCanvas.getBoundingClientRect();
+
+  const mx = (e.clientX - rect.left) * (refCanvas.width / rect.width);
+  const my = (e.clientY - rect.top) * (refCanvas.height / rect.height);
+
+  // zoom ke arah cursor
+  View.offsetX = mx - (mx - View.offsetX) * zoomFactor;
+  View.offsetY = my - (my - View.offsetY) * zoomFactor;
+
+  View.scale *= zoomFactor;
+
+  redrawReferenceCanvas();
+
+}, { passive: false });
+
+/* =========================
+   PAN (MOUSE)
+========================= */
+refCanvas.addEventListener('mousedown', (e) => {
+  View.dragging = true;
+  View.lastX = e.clientX;
+  View.lastY = e.clientY;
+});
+
+window.addEventListener('mouseup', () => {
+  View.dragging = false;
+});
+
+window.addEventListener('mousemove', (e) => {
+
+  if (!View.dragging) return;
+
+  const dx = e.clientX - View.lastX;
+  const dy = e.clientY - View.lastY;
+
+  View.offsetX += dx;
+  View.offsetY += dy;
+
+  View.lastX = e.clientX;
+  View.lastY = e.clientY;
+
+  redrawReferenceCanvas();
+});
+
+/* =========================
+   PAN (TOUCH)
+========================= */
+refCanvas.addEventListener('touchstart', (e) => {
+  const t = e.touches[0];
+  View.dragging = true;
+  View.lastX = t.clientX;
+  View.lastY = t.clientY;
+});
+
+refCanvas.addEventListener('touchmove', (e) => {
+
+  if (!View.dragging) return;
+
+  const t = e.touches[0];
+
+  const dx = t.clientX - View.lastX;
+  const dy = t.clientY - View.lastY;
+
+  View.offsetX += dx;
+  View.offsetY += dy;
+
+  View.lastX = t.clientX;
+  View.lastY = t.clientY;
+
+  redrawReferenceCanvas();
+});
+
+refCanvas.addEventListener('touchend', () => {
+  View.dragging = false;
+});
+
+/* =========================
+   RESET VIEW (RIGHT CLICK)
+========================= */
+refCanvas.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+
+  View.scale = 1;
+  View.offsetX = 0;
+  View.offsetY = 0;
+
+  redrawReferenceCanvas();
+});
+
+/* =========================
+   CROSSHAIR (DYNAMIC)
+========================= */
+refCanvas.addEventListener('mousemove', (e) => {
+
+  const wrapper = refCanvas.parentElement;
+  const rect = wrapper.getBoundingClientRect();
+
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+
+  wrapper.style.setProperty('--cross-x', `${x}px`);
+  wrapper.style.setProperty('--cross-y', `${y}px`);
+});
+
+/* =========================
+   CROSSHAIR STYLE (AUTO INJECT)
+========================= */
+(function injectCrosshairStyle(){
+
+  const style = document.createElement('style');
+
+  style.innerHTML = `
+    .canvas-wrapper::before,
+    .canvas-wrapper::after {
+      content: '';
+      position: absolute;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .canvas-wrapper::before {
+      left: var(--cross-x);
+      top: 0;
+      bottom: 0;
+      width: 1px;
+      background: rgba(73,214,255,0.4);
+    }
+
+    .canvas-wrapper::after {
+      top: var(--cross-y);
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: rgba(73,214,255,0.4);
+    }
+  `;
+
+  document.head.appendChild(style);
+
+})();
+
+/* =========================
+   DETECTION CONFIG
+========================= */
+const DetectCfg = {
+  scales: [0.8, 1, 1.2],
+  step: 14,
+  sampleStep: 3,
+  maxCandidates: 3000
+};
+
+/* =========================
+   GEOMETRY
+========================= */
+function pointInPolygon(p, poly){
+  let inside = false;
+  for (let i=0, j=poly.length-1; i<poly.length; j=i++){
+    const xi=poly[i].x, yi=poly[i].y;
+    const xj=poly[j].x, yj=poly[j].y;
+
+    const intersect =
+      ((yi>p.y)!==(yj>p.y)) &&
+      (p.x < (xj-xi)*(p.y-yi)/(yj-yi+1e-6)+xi);
+
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+function getPolygonBounds(poly){
+  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  poly.forEach(p=>{
+    if(p.x<minX)minX=p.x;
+    if(p.y<minY)minY=p.y;
+    if(p.x>maxX)maxX=p.x;
+    if(p.y>maxY)maxY=p.y;
+  });
+  return {x:minX,y:minY,width:maxX-minX,height:maxY-minY};
+}
+
+/* =========================
+   FEATURE (COLOR + TEXTURE + EDGE)
+========================= */
+function variance(arr){
+  const m = arr.reduce((a,b)=>a+b,0)/arr.length;
+  return arr.reduce((s,v)=>s+(v-m)*(v-m),0)/arr.length;
+}
+
+function edgeDensity(gray){
+  let e=0;
+  for(let i=1;i<gray.length;i++){
+    if(Math.abs(gray[i]-gray[i-1])>20) e++;
+  }
+  return e/(gray.length||1);
+}
+
+/* reference feature (from refCanvas) */
+function extractRefFeature(poly){
+  const b = getPolygonBounds(poly);
+  const img = refCtx.getImageData(b.x, b.y, b.width, b.height).data;
+
+  let rA=[],gA=[],bA=[],gGray=[];
+
+  for(let y=0;y<b.height;y+=DetectCfg.sampleStep){
+    for(let x=0;x<b.width;x+=DetectCfg.sampleStep){
+
+      const gx=b.x+x, gy=b.y+y;
+      if(!pointInPolygon({x:gx,y:gy}, poly)) continue;
+
+      const idx=(y*b.width+x)*4;
+
+      const r=img[idx], g=img[idx+1], bC=img[idx+2];
+      rA.push(r); gA.push(g); bA.push(bC);
+
+      gGray.push(0.299*r+0.587*g+0.114*bC);
+    }
+  }
+
+  if(rA.length<10) return null;
+
+  return {
+    r: rA.reduce((a,b)=>a+b)/rA.length,
+    g: gA.reduce((a,b)=>a+b)/gA.length,
+    b: bA.reduce((a,b)=>a+b)/bA.length,
+    texture: variance(gGray),
+    edge: edgeDensity(gGray)
+  };
+}
+
+/* candidate feature (from target imageData) */
+function extractCandidateFeature(imageData, refPoly, offX, offY, scale){
+  const b = getPolygonBounds(refPoly);
+
+  const data = imageData.data;
+  const W = imageData.width, H = imageData.height;
+
+  let rA=[],gA=[],bA=[],gGray=[];
+
+  for(let py=0;py<b.height;py+=DetectCfg.sampleStep){
+    for(let px=0;px<b.width;px+=DetectCfg.sampleStep){
+
+      const ox=b.x+px, oy=b.y+py;
+      if(!pointInPolygon({x:ox,y:oy}, refPoly)) continue;
+
+      const tx = Math.floor(offX + px*scale);
+      const ty = Math.floor(offY + py*scale);
+
+      if(tx<0||ty<0||tx>=W||ty>=H) continue;
+
+      const idx=(ty*W+tx)*4;
+
+      const r=data[idx], g=data[idx+1], bC=data[idx+2];
+      rA.push(r); gA.push(g); bA.push(bC);
+
+      gGray.push(0.299*r+0.587*g+0.114*bC);
+    }
+  }
+
+  if(rA.length<10) return null;
+
+  return {
+    r: rA.reduce((a,b)=>a+b)/rA.length,
+    g: gA.reduce((a,b)=>a+b)/gA.length,
+    b: bA.reduce((a,b)=>a+b)/bA.length,
+    texture: variance(gGray),
+    edge: edgeDensity(gGray)
+  };
+}
+
+/* =========================
+   SIMILARITY
+========================= */
+function similarity(a, b){
+  const colorDist = Math.sqrt(
+    (a.r-b.r)**2 + (a.g-b.g)**2 + (a.b-b.b)**2
+  );
+  const colorScore = 100 - colorDist;
+
+  const texScore = 100 - Math.abs(a.texture-b.texture)*0.5;
+  const edgeScore = 100 - Math.abs(a.edge-b.edge)*100;
+
+  return colorScore*0.5 + texScore*0.25 + edgeScore*0.25;
+}
+
+/* =========================
+   BUILD LIBRARY
+========================= */
+function buildLibrary(){
+  const lib = [];
+  AppState.categories.forEach(cat=>{
+    cat.polygons.forEach(poly=>{
+      const feat = extractRefFeature(poly);
+      if(!feat) return;
+      lib.push({
         category: cat.name,
         color: cat.color,
-        feature,
-        shape,
-        polygon: poly
+        polygon: poly,
+        feature: feat
       });
+    });
+  });
+  return lib;
+}
+
+/* =========================
+   MAIN DETECTION
+========================= */
+function runDetection(){
+
+  if(!AppState.targetImage) return;
+
+  const lib = buildLibrary();
+  if(lib.length===0){
+    alert('No reference polygons');
+    return;
+  }
+
+  AppState.results = [];
+
+  const w = tgtCanvas.width;
+  const h = tgtCanvas.height;
+
+  const imageData = tgtCtx.getImageData(0,0,w,h);
+
+  let id=1, count=0;
+
+  lib.forEach(ref=>{
+
+    const b = getPolygonBounds(ref.polygon);
+
+    DetectCfg.scales.forEach(scale=>{
+
+      const boxW = b.width*scale;
+      const boxH = b.height*scale;
+
+      for(let y=0; y<h-boxH; y+=DetectCfg.step){
+        for(let x=0; x<w-boxW; x+=DetectCfg.step){
+
+          if(count++ > DetectCfg.maxCandidates) break;
+
+          const feat = extractCandidateFeature(
+            imageData,
+            ref.polygon,
+            x,y,scale
+          );
+
+          if(!feat) continue;
+
+          const score = similarity(feat, ref.feature);
+
+          if(score >= AppState.threshold){
+            AppState.results.push({
+              id: id++,
+              x,y,
+              width: boxW,
+              height: boxH,
+              category: ref.category,
+              confidence: score,
+              refPoly: ref.polygon,
+              scale
+            });
+          }
+        }
+      }
 
     });
 
   });
 
-  return library;
-}
-
-/* =========================
-   COLOR DISTANCE
-========================= */
-function colorDistance(a, b) {
-  return Math.sqrt(
-    (a.r - b.r) ** 2 +
-    (a.g - b.g) ** 2 +
-    (a.b - b.b) ** 2
-  );
-}
-
-/* =========================
-   SHAPE SIMILARITY
-========================= */
-function shapeSimilarity(a, b) {
-  const d1 = Math.abs(a.circularity - b.circularity);
-  const d2 = Math.abs(a.aspectRatio - b.aspectRatio);
-
-  return 100 - (d1 * 50 + d2 * 50);
-}
-
-/* =========================
-   COMBINED SCORE
-========================= */
-function computeSimilarity(target, reference) {
-
-  const colorScore = 100 - colorDistance(target.feature, reference.feature);
-  const shapeScore = shapeSimilarity(target.shape, reference.shape);
-
-  return (colorScore * 0.6) + (shapeScore * 0.4);
-}
-
-/* =========================
-   DETECTION CONFIG
-========================= */
-const DetectionConfig = {
-  step: 12,                 // jarak scan
-  scales: [0.8, 1, 1.2],    // ukuran objek bisa beda
-  maxResults: 400
-};
-
-/* =========================
-   RUN DETECTION
-========================= */
-function runDetection() {
-
-  if (!AppState.targetImage) return;
-
-  AppState.results = [];
-
-  const library = buildReferenceLibrary();
-
-  if (library.length === 0) {
-    alert('No reference polygons');
-    return;
-  }
-
-  const w = tgtCanvas.width;
-  const h = tgtCanvas.height;
-
-  const imageData = tgtCtx.getImageData(0, 0, w, h);
-
-  let id = 1;
-
-  for (let ref of library) {
-
-    for (let scale of DetectionConfig.scales) {
-
-      const templateBounds = getPolygonBounds(ref.polygon);
-
-      const boxW = templateBounds.width * scale;
-      const boxH = templateBounds.height * scale;
-
-      for (let y = 0; y < h - boxH; y += DetectionConfig.step) {
-        for (let x = 0; x < w - boxW; x += DetectionConfig.step) {
-
-          if (AppState.results.length > DetectionConfig.maxResults) break;
-
-          const candidate = extractCandidateFeature(
-            imageData,
-            ref,
-            x,
-            y,
-            scale
-          );
-
-          if (!candidate) continue;
-
-          const score = computeSimilarity(candidate, ref);
-
-          if (score > AppState.threshold) {
-
-            AppState.results.push({
-              id: id++,
-              x,
-              y,
-              width: boxW,
-              height: boxH,
-              category: ref.category,
-              confidence: score,
-              shape: candidate.shape
-            });
-
-          }
-
-        }
-      }
-
-    }
-  }
-
+  // (NMS + grouping akan di step berikutnya)
   renderResults();
   renderTable(AppState.results);
 }
 
 /* =========================
-   EXTRACT CANDIDATE (MASK BASED)
+   IOU (Intersection over Union)
 ========================= */
-function extractCandidateFeature(imageData, ref, offsetX, offsetY, scale) {
-
-  const bounds = getPolygonBounds(ref.polygon);
-
-  let r = 0, g = 0, b = 0;
-  let count = 0;
-
-  const width = imageData.width;
-  const data = imageData.data;
-
-  for (let py = 0; py < bounds.height; py += 2) {
-    for (let px = 0; px < bounds.width; px += 2) {
-
-      const originalX = bounds.x + px;
-      const originalY = bounds.y + py;
-
-      // cek apakah titik ini masuk polygon
-      if (!pointInPolygon({ x: originalX, y: originalY }, ref.polygon)) continue;
-
-      // scaling + offset
-      const tx = Math.floor(offsetX + px * scale);
-      const ty = Math.floor(offsetY + py * scale);
-
-      if (tx < 0 || ty < 0 || tx >= width) continue;
-
-      const idx = (ty * width + tx) * 4;
-
-      r += data[idx];
-      g += data[idx + 1];
-      b += data[idx + 2];
-
-      count++;
-    }
-  }
-
-  if (count < 10) return null;
-
-  return {
-    feature: {
-      r: r / count,
-      g: g / count,
-      b: b / count
-    },
-    shape: {
-      circularity: ref.shape.circularity,
-      aspectRatio: ref.shape.aspectRatio
-    }
-  };
-}
-
-/* =========================
-   IOU (Intersection Over Union)
-========================= */
-function computeIOU(a, b) {
+function computeIOU(a, b){
 
   const x1 = Math.max(a.x, b.x);
   const y1 = Math.max(a.y, b.y);
   const x2 = Math.min(a.x + a.width, b.x + b.width);
   const y2 = Math.min(a.y + a.height, b.y + b.height);
 
-  const interArea = Math.max(0, x2 - x1) * Math.max(0, y2 - y1);
+  const interW = Math.max(0, x2 - x1);
+  const interH = Math.max(0, y2 - y1);
+
+  const interArea = interW * interH;
 
   const areaA = a.width * a.height;
   const areaB = b.width * b.height;
@@ -365,29 +797,25 @@ function computeIOU(a, b) {
 }
 
 /* =========================
-   NON MAX SUPPRESSION
+   NON-MAX SUPPRESSION
 ========================= */
-function applyNMS(results) {
+function applyNMS(results){
 
-  const sorted = [...results].sort((a, b) => b.confidence - a.confidence);
-
+  const sorted = [...results].sort((a,b)=>b.confidence - a.confidence);
   const finalResults = [];
 
-  const IOU_THRESHOLD = 0.4;
+  const IOU_THRESHOLD = 0.45;
 
-  while (sorted.length > 0) {
+  while(sorted.length){
 
     const best = sorted.shift();
     finalResults.push(best);
 
-    for (let i = sorted.length - 1; i >= 0; i--) {
-
-      const overlap = computeIOU(best, sorted[i]);
-
-      if (overlap > IOU_THRESHOLD) {
-        sorted.splice(i, 1);
+    for(let i=sorted.length-1;i>=0;i--){
+      const iou = computeIOU(best, sorted[i]);
+      if(iou > IOU_THRESHOLD){
+        sorted.splice(i,1);
       }
-
     }
   }
 
@@ -395,34 +823,37 @@ function applyNMS(results) {
 }
 
 /* =========================
-   GROUPING (OPTIONAL IMPROVEMENT)
+   GROUP NEARBY (REFINEMENT)
 ========================= */
-function groupNearby(results) {
+function groupNearby(results){
 
   const grouped = [];
+  const DIST = 20;
 
-  const DIST_THRESHOLD = 20;
-
-  results.forEach(r => {
+  results.forEach(r=>{
 
     let merged = false;
 
-    for (let g of grouped) {
+    for(let g of grouped){
 
       const dx = r.x - g.x;
       const dy = r.y - g.y;
 
-      const dist = Math.sqrt(dx * dx + dy * dy);
+      const dist = Math.sqrt(dx*dx + dy*dy);
 
-      if (dist < DIST_THRESHOLD && r.category === g.category) {
+      if(dist < DIST && r.category === g.category){
 
         // merge position (average)
         g.x = (g.x + r.x) / 2;
         g.y = (g.y + r.y) / 2;
 
-        // keep highest confidence
-        if (r.confidence > g.confidence) {
+        // keep best confidence
+        if(r.confidence > g.confidence){
           g.confidence = r.confidence;
+          g.width = r.width;
+          g.height = r.height;
+          g.refPoly = r.refPoly;
+          g.scale = r.scale;
         }
 
         merged = true;
@@ -430,8 +861,8 @@ function groupNearby(results) {
       }
     }
 
-    if (!merged) {
-      grouped.push({ ...r });
+    if(!merged){
+      grouped.push({...r});
     }
 
   });
@@ -440,75 +871,74 @@ function groupNearby(results) {
 }
 
 /* =========================
-   UPDATE DETECTION PIPELINE
+   UPDATE PIPELINE
 ========================= */
-function runDetection() {
+function runDetection(){
 
-  if (!AppState.targetImage) return;
+  if(!AppState.targetImage) return;
 
-  AppState.results = [];
+  const lib = buildLibrary();
 
-  const library = buildReferenceLibrary();
-
-  if (library.length === 0) {
+  if(lib.length === 0){
     alert('No reference polygons');
     return;
   }
 
+  AppState.results = [];
+
   const w = tgtCanvas.width;
   const h = tgtCanvas.height;
 
-  const imageData = tgtCtx.getImageData(0, 0, w, h);
+  const imageData = tgtCtx.getImageData(0,0,w,h);
 
-  let id = 1;
+  let id = 1, count = 0;
 
-  for (let ref of library) {
+  lib.forEach(ref=>{
 
-    for (let scale of DetectionConfig.scales) {
+    const b = getPolygonBounds(ref.polygon);
 
-      const bounds = getPolygonBounds(ref.polygon);
+    DetectCfg.scales.forEach(scale=>{
 
-      const boxW = bounds.width * scale;
-      const boxH = bounds.height * scale;
+      const boxW = b.width * scale;
+      const boxH = b.height * scale;
 
-      for (let y = 0; y < h - boxH; y += DetectionConfig.step) {
-        for (let x = 0; x < w - boxW; x += DetectionConfig.step) {
+      for(let y=0; y<h-boxH; y+=DetectCfg.step){
+        for(let x=0; x<w-boxW; x+=DetectCfg.step){
 
-          if (AppState.results.length > DetectionConfig.maxResults) break;
+          if(count++ > DetectCfg.maxCandidates) break;
 
-          const candidate = extractCandidateFeature(
+          const feat = extractCandidateFeature(
             imageData,
-            ref,
-            x,
-            y,
-            scale
+            ref.polygon,
+            x,y,scale
           );
 
-          if (!candidate) continue;
+          if(!feat) continue;
 
-          const score = computeSimilarity(candidate, ref);
+          const score = similarity(feat, ref.feature);
 
-          if (score > AppState.threshold) {
+          if(score >= AppState.threshold){
 
             AppState.results.push({
               id: id++,
-              x,
-              y,
+              x,y,
               width: boxW,
               height: boxH,
               category: ref.category,
-              confidence: score
+              confidence: score,
+              refPoly: ref.polygon,
+              scale
             });
 
           }
-
         }
       }
 
-    }
-  }
+    });
 
-  // 🔥 APPLY CLEANING
+  });
+
+  /* 🔥 CLEAN RESULT */
   let clean = applyNMS(AppState.results);
   clean = groupNearby(clean);
 
@@ -519,96 +949,17 @@ function runDetection() {
 }
 
 /* =========================
-   ROTATION CONFIG
+   RENDER RESULT
 ========================= */
-const RotationConfig = {
-  angles: [-20, -10, 0, 10, 20] // derajat
-};
+function renderResults(){
 
-/* =========================
-   ROTATE POINT
-========================= */
-function rotatePoint(p, center, angleDeg) {
-  const angle = angleDeg * Math.PI / 180;
-
-  const cos = Math.cos(angle);
-  const sin = Math.sin(angle);
-
-  const dx = p.x - center.x;
-  const dy = p.y - center.y;
-
-  return {
-    x: center.x + dx * cos - dy * sin,
-    y: center.y + dx * sin + dy * cos
-  };
-}
-
-/* =========================
-   ROTATE POLYGON
-========================= */
-function rotatePolygon(poly, angle) {
-
-  const bounds = getPolygonBounds(poly);
-
-  const center = {
-    x: bounds.x + bounds.width / 2,
-    y: bounds.y + bounds.height / 2
-  };
-
-  return poly.map(p => rotatePoint(p, center, angle));
-}
-
-/* =========================
-   EXTENDED REFERENCE LIBRARY (WITH ROTATION)
-========================= */
-function buildReferenceLibrary() {
-
-  const library = [];
-
-  AppState.categories.forEach(cat => {
-
-    cat.polygons.forEach(poly => {
-
-      RotationConfig.angles.forEach(angle => {
-
-        const rotated = rotatePolygon(poly, angle);
-
-        const feature = extractPolygonFeature(refCtx, rotated);
-        const shape = calculateShapeDescriptor(rotated);
-
-        if (!feature) return;
-
-        library.push({
-          category: cat.name,
-          color: cat.color,
-          feature,
-          shape,
-          polygon: rotated,
-          angle
-        });
-
-      });
-
-    });
-
-  });
-
-  return library;
-}
-
-/* =========================
-   RESULT CANVAS
-========================= */
-function renderResults() {
-
-  if (!AppState.targetImage) return;
+  if(!AppState.targetImage) return;
 
   resCanvas.width = tgtCanvas.width;
   resCanvas.height = tgtCanvas.height;
 
-  // draw base image
-  resCtx.clearRect(0, 0, resCanvas.width, resCanvas.height);
-  resCtx.drawImage(tgtCanvas, 0, 0);
+  resCtx.clearRect(0,0,resCanvas.width,resCanvas.height);
+  resCtx.drawImage(tgtCanvas,0,0);
 
   drawPolygonOverlay(AppState.results);
 }
@@ -616,21 +967,22 @@ function renderResults() {
 /* =========================
    DRAW POLYGON OVERLAY
 ========================= */
-function drawPolygonOverlay(results) {
+function drawPolygonOverlay(results){
 
-  results.forEach(obj => {
+  results.forEach(obj=>{
 
     const color = getCategoryColor(obj.category);
 
-    // generate polygon dari template (scaled)
-    const poly = transformPolygonToTarget(obj);
+    const poly = transformPolygon(obj);
 
-    // DRAW POLYGON
+    if(poly.length === 0) return;
+
+    // DRAW SHAPE
     resCtx.beginPath();
 
-    poly.forEach((p, i) => {
-      if (i === 0) resCtx.moveTo(p.x, p.y);
-      else resCtx.lineTo(p.x, p.y);
+    poly.forEach((p,i)=>{
+      if(i===0) resCtx.moveTo(p.x,p.y);
+      else resCtx.lineTo(p.x,p.y);
     });
 
     resCtx.closePath();
@@ -639,65 +991,44 @@ function drawPolygonOverlay(results) {
     resCtx.lineWidth = 2;
     resCtx.stroke();
 
-    // fill transparent
     resCtx.fillStyle = color + '22';
     resCtx.fill();
 
-    // LABEL
     drawLabel(obj, poly[0], color);
   });
 }
 
 /* =========================
-   TRANSFORM POLYGON (KEY)
+   TRANSFORM POLYGON
 ========================= */
-function transformPolygonToTarget(obj) {
+function transformPolygon(obj){
 
-  const ref = findReferenceByCategory(obj.category);
-
-  if (!ref) return [];
-
-  const basePoly = ref.polygon;
+  const basePoly = obj.refPoly;
+  if(!basePoly) return [];
 
   const bounds = getPolygonBounds(basePoly);
 
   const scaleX = obj.width / bounds.width;
   const scaleY = obj.height / bounds.height;
 
-  return basePoly.map(p => ({
+  return basePoly.map(p=>({
     x: obj.x + (p.x - bounds.x) * scaleX,
     y: obj.y + (p.y - bounds.y) * scaleY
   }));
 }
 
 /* =========================
-   FIND REFERENCE
+   LABEL
 ========================= */
-function findReferenceByCategory(category) {
-
-  for (let cat of AppState.categories) {
-    if (cat.name === category && cat.polygons.length > 0) {
-      return {
-        polygon: cat.polygons[0] // ambil template pertama
-      };
-    }
-  }
-
-  return null;
-}
-
-/* =========================
-   LABEL DRAWING
-========================= */
-function drawLabel(obj, pos, color) {
+function drawLabel(obj, pos, color){
 
   const text = `${obj.id} (${Math.round(obj.confidence)}%)`;
 
-  resCtx.font = '11px Inter';
-  resCtx.fillStyle = color;
+  resCtx.font = '11px Arial';
 
   const width = resCtx.measureText(text).width;
 
+  resCtx.fillStyle = color;
   resCtx.fillRect(pos.x, pos.y - 16, width + 6, 14);
 
   resCtx.fillStyle = '#000';
@@ -705,437 +1036,122 @@ function drawLabel(obj, pos, color) {
 }
 
 /* =========================
-   CATEGORY COLOR (SAFE)
+   CATEGORY COLOR
 ========================= */
-function getCategoryColor(name) {
-  const cat = AppState.categories.find(c => c.name === name);
+function getCategoryColor(name){
+  const cat = AppState.categories.find(c=>c.name===name);
   return cat ? cat.color : '#ffffff';
 }
 
 /* =========================
-   TEXTURE FEATURE (VARIANCE)
+   RENDER RESULT
 ========================= */
-function computeVariance(values) {
-  const mean = values.reduce((a, b) => a + b, 0) / values.length;
+function renderResults(){
 
-  const variance =
-    values.reduce((sum, v) => sum + (v - mean) ** 2, 0) / values.length;
+  if(!AppState.targetImage) return;
 
-  return variance;
+  resCanvas.width = tgtCanvas.width;
+  resCanvas.height = tgtCanvas.height;
+
+  resCtx.clearRect(0,0,resCanvas.width,resCanvas.height);
+  resCtx.drawImage(tgtCanvas,0,0);
+
+  drawPolygonOverlay(AppState.results);
 }
 
 /* =========================
-   EDGE DETECTION (LIGHT)
+   DRAW POLYGON OVERLAY
 ========================= */
-function computeEdgeDensity(grayValues) {
-  let edges = 0;
+function drawPolygonOverlay(results){
 
-  for (let i = 1; i < grayValues.length; i++) {
-    if (Math.abs(grayValues[i] - grayValues[i - 1]) > 20) {
-      edges++;
-    }
-  }
+  results.forEach(obj=>{
 
-  return edges / grayValues.length;
-}
+    const color = getCategoryColor(obj.category);
 
-/* =========================
-   EXTRACT ADVANCED FEATURE
-========================= */
-function extractAdvancedFeature(ctx, polygon) {
+    const poly = transformPolygon(obj);
 
-  const bounds = getPolygonBounds(polygon);
+    if(poly.length === 0) return;
 
-  const imageData = ctx.getImageData(
-    bounds.x,
-    bounds.y,
-    bounds.width,
-    bounds.height
-  );
+    // DRAW SHAPE
+    resCtx.beginPath();
 
-  const data = imageData.data;
-
-  let rArr = [], gArr = [], bArr = [];
-  let grayArr = [];
-
-  for (let y = 0; y < bounds.height; y += 2) {
-    for (let x = 0; x < bounds.width; x += 2) {
-
-      const gx = bounds.x + x;
-      const gy = bounds.y + y;
-
-      if (!pointInPolygon({ x: gx, y: gy }, polygon)) continue;
-
-      const idx = (y * bounds.width + x) * 4;
-
-      const r = data[idx];
-      const g = data[idx + 1];
-      const b = data[idx + 2];
-
-      rArr.push(r);
-      gArr.push(g);
-      bArr.push(b);
-
-      const gray = 0.299*r + 0.587*g + 0.114*b;
-      grayArr.push(gray);
-    }
-  }
-
-  if (rArr.length < 10) return null;
-
-  return {
-    r: rArr.reduce((a,b)=>a+b)/rArr.length,
-    g: gArr.reduce((a,b)=>a+b)/gArr.length,
-    b: bArr.reduce((a,b)=>a+b)/bArr.length,
-
-    texture: computeVariance(grayArr),
-    edge: computeEdgeDensity(grayArr)
-  };
-}
-
-/* =========================
-   UPGRADE REFERENCE FEATURE
-========================= */
-function buildReferenceLibrary() {
-
-  const library = [];
-
-  AppState.categories.forEach(cat => {
-
-    cat.polygons.forEach(poly => {
-
-      RotationConfig.angles.forEach(angle => {
-
-        const rotated = rotatePolygon(poly, angle);
-
-        const feature = extractAdvancedFeature(refCtx, rotated);
-        const shape = calculateShapeDescriptor(rotated);
-
-        if (!feature) return;
-
-        library.push({
-          category: cat.name,
-          color: cat.color,
-          feature,
-          shape,
-          polygon: rotated
-        });
-
-      });
-
+    poly.forEach((p,i)=>{
+      if(i===0) resCtx.moveTo(p.x,p.y);
+      else resCtx.lineTo(p.x,p.y);
     });
 
-  });
+    resCtx.closePath();
 
-  return library;
-}
+    resCtx.strokeStyle = color;
+    resCtx.lineWidth = 2;
+    resCtx.stroke();
 
-/* =========================
-   CANDIDATE FEATURE UPGRADE
-========================= */
-function extractCandidateFeature(imageData, ref, offsetX, offsetY, scale) {
+    resCtx.fillStyle = color + '22';
+    resCtx.fill();
 
-  const bounds = getPolygonBounds(ref.polygon);
-
-  let rArr=[], gArr=[], bArr=[], grayArr=[];
-
-  const data = imageData.data;
-  const width = imageData.width;
-
-  for (let py = 0; py < bounds.height; py += 2) {
-    for (let px = 0; px < bounds.width; px += 2) {
-
-      const ox = bounds.x + px;
-      const oy = bounds.y + py;
-
-      if (!pointInPolygon({ x: ox, y: oy }, ref.polygon)) continue;
-
-      const tx = Math.floor(offsetX + px * scale);
-      const ty = Math.floor(offsetY + py * scale);
-
-      if (tx < 0 || ty < 0 || tx >= width) continue;
-
-      const idx = (ty * width + tx) * 4;
-
-      const r = data[idx];
-      const g = data[idx + 1];
-      const b = data[idx + 2];
-
-      rArr.push(r);
-      gArr.push(g);
-      bArr.push(b);
-
-      const gray = 0.299*r + 0.587*g + 0.114*b;
-      grayArr.push(gray);
-    }
-  }
-
-  if (rArr.length < 10) return null;
-
-  return {
-    feature: {
-      r: rArr.reduce((a,b)=>a+b)/rArr.length,
-      g: gArr.reduce((a,b)=>a+b)/gArr.length,
-      b: bArr.reduce((a,b)=>a+b)/bArr.length,
-      texture: computeVariance(grayArr),
-      edge: computeEdgeDensity(grayArr)
-    },
-    shape: {
-      circularity: ref.shape.circularity,
-      aspectRatio: ref.shape.aspectRatio
-    }
-  };
-}
-
-/* =========================
-   SIMILARITY (UPGRADED)
-========================= */
-function computeSimilarity(target, reference) {
-
-  const colorDist = Math.sqrt(
-    (target.feature.r - reference.feature.r)**2 +
-    (target.feature.g - reference.feature.g)**2 +
-    (target.feature.b - reference.feature.b)**2
-  );
-
-  const colorScore = 100 - colorDist;
-
-  const textureDiff = Math.abs(
-    target.feature.texture - reference.feature.texture
-  );
-
-  const edgeDiff = Math.abs(
-    target.feature.edge - reference.feature.edge
-  );
-
-  const textureScore = 100 - textureDiff * 0.5;
-  const edgeScore = 100 - edgeDiff * 100;
-
-  const shapeScore = shapeSimilarity(target.shape, reference.shape);
-
-  return (
-    colorScore * 0.4 +
-    textureScore * 0.2 +
-    edgeScore * 0.2 +
-    shapeScore * 0.2
-  );
-}
-
-/* =========================
-   ADAPTIVE MEMORY
-========================= */
-const AdaptiveMemory = {
-  samples: {}, // per category
-  maxSamples: 50
-};
-
-/* =========================
-   INIT MEMORY
-========================= */
-function initAdaptiveMemory() {
-  AppState.categories.forEach(cat => {
-    if (!AdaptiveMemory.samples[cat.name]) {
-      AdaptiveMemory.samples[cat.name] = [];
-    }
+    drawLabel(obj, poly[0], color);
   });
 }
 
 /* =========================
-   STORE SAMPLE
+   TRANSFORM POLYGON
 ========================= */
-function storeSample(category, feature) {
+function transformPolygon(obj){
 
-  const arr = AdaptiveMemory.samples[category];
-  if (!arr) return;
+  const basePoly = obj.refPoly;
+  if(!basePoly) return [];
 
-  arr.push(feature);
+  const bounds = getPolygonBounds(basePoly);
 
-  // limit memory
-  if (arr.length > AdaptiveMemory.maxSamples) {
-    arr.shift();
-  }
+  const scaleX = obj.width / bounds.width;
+  const scaleY = obj.height / bounds.height;
+
+  return basePoly.map(p=>({
+    x: obj.x + (p.x - bounds.x) * scaleX,
+    y: obj.y + (p.y - bounds.y) * scaleY
+  }));
 }
 
 /* =========================
-   UPDATE MEMORY FROM RESULTS
+   LABEL
 ========================= */
-function updateAdaptiveMemory(results) {
+function drawLabel(obj, pos, color){
 
-  results.forEach(obj => {
+  const text = `${obj.id} (${Math.round(obj.confidence)}%)`;
 
-    if (obj.confidence < 80) return; // hanya yang high confidence
+  resCtx.font = '11px Arial';
 
-    const feature = obj.feature;
+  const width = resCtx.measureText(text).width;
 
-    if (!feature) return;
+  resCtx.fillStyle = color;
+  resCtx.fillRect(pos.x, pos.y - 16, width + 6, 14);
 
-    storeSample(obj.category, feature);
-
-  });
+  resCtx.fillStyle = '#000';
+  resCtx.fillText(text, pos.x + 3, pos.y - 4);
 }
 
 /* =========================
-   COMPUTE ADAPTIVE FEATURE
+   CATEGORY COLOR
 ========================= */
-function getAdaptiveFeature(category) {
-
-  const samples = AdaptiveMemory.samples[category];
-
-  if (!samples || samples.length === 0) return null;
-
-  let r=0,g=0,b=0,texture=0,edge=0;
-
-  samples.forEach(s => {
-    r += s.r;
-    g += s.g;
-    b += s.b;
-    texture += s.texture;
-    edge += s.edge;
-  });
-
-  const n = samples.length;
-
-  return {
-    r: r/n,
-    g: g/n,
-    b: b/n,
-    texture: texture/n,
-    edge: edge/n
-  };
-}
-
-/* =========================
-   HYBRID SIMILARITY
-========================= */
-function computeSimilarity(target, reference) {
-
-  const adaptive = getAdaptiveFeature(reference.category);
-
-  const baseFeature = reference.feature;
-
-  const refFeature = adaptive || baseFeature;
-
-  const colorDist = Math.sqrt(
-    (target.feature.r - refFeature.r)**2 +
-    (target.feature.g - refFeature.g)**2 +
-    (target.feature.b - refFeature.b)**2
-  );
-
-  const colorScore = 100 - colorDist;
-
-  const textureDiff = Math.abs(
-    target.feature.texture - refFeature.texture
-  );
-
-  const edgeDiff = Math.abs(
-    target.feature.edge - refFeature.edge
-  );
-
-  const textureScore = 100 - textureDiff * 0.5;
-  const edgeScore = 100 - edgeDiff * 100;
-
-  const shapeScore = shapeSimilarity(target.shape, reference.shape);
-
-  return (
-    colorScore * 0.35 +
-    textureScore * 0.25 +
-    edgeScore * 0.2 +
-    shapeScore * 0.2
-  );
-}
-
-/* =========================
-   HOOK INTO DETECTION
-========================= */
-function runDetection() {
-
-  if (!AppState.targetImage) return;
-
-  initAdaptiveMemory();
-
-  AppState.results = [];
-
-  const library = buildReferenceLibrary();
-
-  const w = tgtCanvas.width;
-  const h = tgtCanvas.height;
-
-  const imageData = tgtCtx.getImageData(0, 0, w, h);
-
-  let id = 1;
-
-  for (let ref of library) {
-
-    for (let scale of DetectionConfig.scales) {
-
-      const bounds = getPolygonBounds(ref.polygon);
-
-      const boxW = bounds.width * scale;
-      const boxH = bounds.height * scale;
-
-      for (let y = 0; y < h - boxH; y += DetectionConfig.step) {
-        for (let x = 0; x < w - boxW; x += DetectionConfig.step) {
-
-          const candidate = extractCandidateFeature(
-            imageData,
-            ref,
-            x,
-            y,
-            scale
-          );
-
-          if (!candidate) continue;
-
-          const score = computeSimilarity(candidate, ref);
-
-          if (score > AppState.threshold) {
-
-            AppState.results.push({
-              id: id++,
-              x,
-              y,
-              width: boxW,
-              height: boxH,
-              category: ref.category,
-              confidence: score,
-              feature: candidate.feature
-            });
-
-          }
-
-        }
-      }
-
-    }
-  }
-
-  // CLEAN
-  let clean = applyNMS(AppState.results);
-  clean = groupNearby(clean);
-
-  AppState.results = clean;
-
-  // 🔥 LEARNING STEP
-  updateAdaptiveMemory(clean);
-
-  renderResults();
-  renderTable(clean);
+function getCategoryColor(name){
+  const cat = AppState.categories.find(c=>c.name===name);
+  return cat ? cat.color : '#ffffff';
 }
 
 /* =========================
    PERFORMANCE CONFIG
 ========================= */
 const Perf = {
-  downscale: 0.5,       // shrink image 50%
-  step: 16,             // lebih besar = lebih cepat
-  sampleStep: 4,        // sampling pixel
-  maxScan: 200000       // limit loop
+  downscale: 0.5,     // resize target image
+  step: 18,           // langkah scanning (lebih besar = lebih cepat)
+  sampleStep: 4,      // sampling pixel
+  maxScan: 150000     // limit loop
 };
 
 /* =========================
-   CREATE DOWNSCALED IMAGE
+   DOWNSCALED IMAGE
 ========================= */
-function getDownscaledImageData() {
+function getDownscaledImage(){
 
   const w = tgtCanvas.width;
   const h = tgtCanvas.height;
@@ -1152,21 +1168,21 @@ function getDownscaledImageData() {
 }
 
 /* =========================
-   FAST FEATURE EXTRACTION
+   FAST FEATURE
 ========================= */
-function fastFeature(data, width, x, y, size) {
+function fastFeature(data, width, height, x, y, size){
 
   let r=0,g=0,b=0,count=0;
 
-  for (let j=0; j<size; j+=Perf.sampleStep) {
-    for (let i=0; i<size; i+=Perf.sampleStep) {
+  for(let j=0;j<size;j+=Perf.sampleStep){
+    for(let i=0;i<size;i+=Perf.sampleStep){
 
       const px = x+i;
       const py = y+j;
 
-      if (px >= width) continue;
+      if(px>=width || py>=height) continue;
 
-      const idx = (py * width + px) * 4;
+      const idx = (py*width + px)*4;
 
       r += data[idx];
       g += data[idx+1];
@@ -1175,6 +1191,8 @@ function fastFeature(data, width, x, y, size) {
       count++;
     }
   }
+
+  if(count===0) return null;
 
   return {
     r: r/count,
@@ -1186,49 +1204,53 @@ function fastFeature(data, width, x, y, size) {
 }
 
 /* =========================
-   FAST DETECTION LOOP
+   FAST DETECTION PIPELINE
 ========================= */
-function runDetection() {
+function runDetection(){
 
-  if (!AppState.targetImage) return;
+  if(!AppState.targetImage) return;
 
-  initAdaptiveMemory();
+  initAdaptive();
+
+  const lib = buildLibrary();
+  if(lib.length===0){
+    alert('No reference polygons');
+    return;
+  }
 
   AppState.results = [];
 
-  const library = buildReferenceLibrary();
-
-  const imageData = getDownscaledImageData();
+  const imageData = getDownscaledImage();
 
   const w = imageData.width;
   const h = imageData.height;
   const data = imageData.data;
 
-  let id = 1;
-  let scanCount = 0;
+  let id=1, scan=0;
 
-  for (let ref of library) {
+  lib.forEach(ref=>{
 
     const bounds = getPolygonBounds(ref.polygon);
+    const baseSize = Math.max(bounds.width, bounds.height);
 
-    const size = Math.max(bounds.width, bounds.height) * Perf.downscale;
+    const size = baseSize * Perf.downscale;
 
-    for (let y = 0; y < h - size; y += Perf.step) {
-      for (let x = 0; x < w - size; x += Perf.step) {
+    for(let y=0; y<h-size; y+=Perf.step){
+      for(let x=0; x<w-size; x+=Perf.step){
 
-        scanCount++;
-        if (scanCount > Perf.maxScan) break;
+        if(scan++ > Perf.maxScan) break;
 
-        const feature = fastFeature(data, w, x, y, size);
+        const feat = fastFeature(data, w, h, x, y, size);
+        if(!feat) continue;
 
-        const score = computeSimilarity(
-          { feature, shape: ref.shape },
-          ref
+        const score = similarity(
+          feat,
+          ref.feature,
+          ref.category
         );
 
-        if (score > AppState.threshold) {
+        if(score >= AppState.threshold){
 
-          // scale back ke original size
           AppState.results.push({
             id: id++,
             x: x / Perf.downscale,
@@ -1237,7 +1259,9 @@ function runDetection() {
             height: size / Perf.downscale,
             category: ref.category,
             confidence: score,
-            feature
+            refPoly: ref.polygon,
+            scale: 1,
+            feature: feat
           });
 
         }
@@ -1245,121 +1269,232 @@ function runDetection() {
       }
     }
 
-  }
+  });
 
-  // CLEAN
+  /* CLEAN */
   let clean = applyNMS(AppState.results);
   clean = groupNearby(clean);
 
   AppState.results = clean;
 
-  updateAdaptiveMemory(clean);
+  updateAdaptive(clean);
 
   renderResults();
   renderTable(clean);
 }
 
 /* =========================
-   EXPORT RESULTS (CSV)
+   STORAGE KEY
 ========================= */
-function exportResultsCSV() {
+const STORAGE_KEY = 'aqua_insight_adaptive_v1';
 
-  if (!AppState.results || AppState.results.length === 0) {
-    alert('No results to export');
-    return;
+/* =========================
+   SAVE TO LOCAL STORAGE
+========================= */
+function saveAdaptive(){
+
+  const payload = {
+    samples: Adaptive.samples
+  };
+
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  } catch(e){
+    console.warn('Save failed', e);
   }
+}
 
-  let csv = 'ID,Category,X,Y,Width,Height,Confidence\n';
+/* =========================
+   LOAD FROM LOCAL STORAGE
+========================= */
+function loadAdaptive(){
 
-  AppState.results.forEach(r => {
-    csv += `${r.id},${r.category},${r.x},${r.y},${r.width},${r.height},${r.confidence}\n`;
-  });
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return;
 
-  const blob = new Blob([csv], { type: 'text/csv' });
+    const data = JSON.parse(raw);
+
+    if(data && data.samples){
+      Adaptive.samples = data.samples;
+    }
+  } catch(e){
+    console.warn('Load failed', e);
+  }
+}
+
+/* =========================
+   CLEAR STORAGE
+========================= */
+function clearAdaptive(){
+
+  localStorage.removeItem(STORAGE_KEY);
+
+  Adaptive.samples = {};
+
+  initAdaptive();
+
+  alert('Adaptive memory cleared');
+}
+
+/* =========================
+   EXPORT JSON
+========================= */
+function exportAdaptiveJSON(){
+
+  const payload = {
+    samples: Adaptive.samples,
+    categories: AppState.categories.map(c=>c.name)
+  };
+
+  const blob = new Blob(
+    [JSON.stringify(payload, null, 2)],
+    { type: 'application/json' }
+  );
+
   const url = URL.createObjectURL(blob);
 
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'detection_results.csv';
+  a.download = 'adaptive-memory.json';
   a.click();
 
   URL.revokeObjectURL(url);
 }
 
 /* =========================
-   BATCH STATE
+   IMPORT JSON
 ========================= */
-AppState.batchImages = [];
-AppState.currentBatchIndex = 0;
+function importAdaptiveJSON(file){
 
-/* =========================
-   HANDLE BATCH UPLOAD
-========================= */
-function handleBatchUpload(files) {
+  const reader = new FileReader();
 
-  AppState.batchImages = [];
-  AppState.currentBatchIndex = 0;
+  reader.onload = e => {
 
-  const validFiles = Array.from(files).filter(f =>
-    f.type.startsWith('image/')
-  );
+    try {
+      const data = JSON.parse(e.target.result);
 
-  if (validFiles.length === 0) {
-    alert('No valid images');
-    return;
-  }
-
-  let loaded = 0;
-
-  validFiles.forEach(file => {
-    const img = new Image();
-    const reader = new FileReader();
-
-    reader.onload = e => img.src = e.target.result;
-
-    img.onload = () => {
-      AppState.batchImages.push(img);
-      loaded++;
-
-      if (loaded === validFiles.length) {
-        runBatchDetection();
+      if(data.samples){
+        Adaptive.samples = data.samples;
+        alert('Adaptive memory loaded');
       }
-    };
+    } catch(err){
+      alert('Invalid JSON file');
+    }
 
-    reader.readAsDataURL(file);
-  });
+  };
+
+  reader.readAsText(file);
 }
 
 /* =========================
-   RUN BATCH DETECTION
+   AUTO SAVE AFTER DETECTION
 ========================= */
-function runBatchDetection() {
+function runDetection(){
 
-  if (AppState.batchImages.length === 0) return;
+  if(!AppState.targetImage) return;
 
-  processNextImage();
-}
+  initAdaptive();
 
-/* =========================
-   PROCESS EACH IMAGE
-========================= */
-function processNextImage() {
-
-  if (AppState.currentBatchIndex >= AppState.batchImages.length) {
-    alert('Batch completed');
+  const lib = buildLibrary();
+  if(lib.length===0){
+    alert('No reference polygons');
     return;
   }
 
-  const img = AppState.batchImages[AppState.currentBatchIndex];
+  AppState.results = [];
 
-  drawImage(img, tgtCanvas, tgtCtx);
+  const imageData = getDownscaledImage();
 
-  AppState.targetImage = img;
+  const w = imageData.width;
+  const h = imageData.height;
+  const data = imageData.data;
 
-  setTimeout(() => {
-    runDetection();
+  let id=1, scan=0;
 
-    AppState.currentBatchIndex++;
-    processNextImage();
-  }, 50);
+  lib.forEach(ref=>{
+
+    const bounds = getPolygonBounds(ref.polygon);
+    const size = Math.max(bounds.width, bounds.height) * Perf.downscale;
+
+    for(let y=0; y<h-size; y+=Perf.step){
+      for(let x=0; x<w-size; x+=Perf.step){
+
+        if(scan++ > Perf.maxScan) break;
+
+        const feat = fastFeature(data, w, h, x, y, size);
+        if(!feat) continue;
+
+        const score = similarity(
+          feat,
+          ref.feature,
+          ref.category
+        );
+
+        if(score >= AppState.threshold){
+
+          AppState.results.push({
+            id: id++,
+            x: x / Perf.downscale,
+            y: y / Perf.downscale,
+            width: size / Perf.downscale,
+            height: size / Perf.downscale,
+            category: ref.category,
+            confidence: score,
+            refPoly: ref.polygon,
+            scale: 1,
+            feature: feat
+          });
+
+        }
+
+      }
+    }
+
+  });
+
+  let clean = applyNMS(AppState.results);
+  clean = groupNearby(clean);
+
+  AppState.results = clean;
+
+  updateAdaptive(clean);
+
+  /* 🔥 AUTO SAVE */
+  saveAdaptive();
+
+  renderResults();
+  renderTable(clean);
+}
+
+/* =========================
+   AUTO LOAD ON START
+========================= */
+document.addEventListener('DOMContentLoaded', () => {
+  loadAdaptive();
+});
+
+function exportResultsXLSX(){
+
+  if(!AppState.results.length){
+    alert('No data');
+    return;
+  }
+
+  const data = AppState.results.map(r => ({
+    ID: r.id,
+    Category: r.category,
+    X: Math.round(r.x),
+    Y: Math.round(r.y),
+    Width: Math.round(r.width),
+    Height: Math.round(r.height),
+    Confidence: Math.round(r.confidence)
+  }));
+
+  const worksheet = XLSX.utils.json_to_sheet(data);
+  const workbook = XLSX.utils.book_new();
+
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Results");
+
+  XLSX.writeFile(workbook, "results.xlsx");
 }
