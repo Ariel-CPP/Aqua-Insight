@@ -153,8 +153,8 @@ function renderCategoryList() {
     };
 
     if (cat.id === AppState.activeCategoryId) {
-      div.style.background = 'rgba(73,214,255,0.1)';
-    }
+     div.classList.add('active');
+   }
 
     container.appendChild(div);
   });
