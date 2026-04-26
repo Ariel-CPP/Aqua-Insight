@@ -1,317 +1,280 @@
+/* =========================
+   APP STATE (MODULAR)
+========================= */
 const AppState = {
   referenceImage: null,
-  referenceCanvas: null,
-  referenceContext: null,
+  targetImage: null,
 
-  resultCanvas: null,
-  resultContext: null,
+  categories: [
+    { id: 'A', name: 'Category A', color: '#49d6ff', polygons: [] },
+    { id: 'B', name: 'Category B', color: '#48d597', polygons: [] },
+    { id: 'C', name: 'Category C', color: '#ffb84d', polygons: [] }
+  ],
 
-  batchImages: [],
-  currentImageIndex: 0,
+  activeCategoryId: 'A',
 
-  threshold: 60,
-  
-  categories: {
-    A: { name: 'Category A', polygons: [] },
-    B: { name: 'Category B', polygons: [] },
-    C: { name: 'Category C', polygons: [] }
-  },
-  
-  crosshair: {
-    x: 0,
-    y: 0,
-    visible: false
-  },
-  activeCategory: 'A',
-
-  isDrawing: false,
-  currentPolygon: []
-
+  results: [],
+  threshold: 50
 };
 
+/* =========================
+   DOM ELEMENTS
+========================= */
+const referenceInput = document.getElementById('referenceInput');
+const targetInput = document.getElementById('targetInput');
+
+const uploadReferenceBtn = document.getElementById('uploadReferenceBtn');
+const uploadTargetBtn = document.getElementById('uploadTargetBtn');
+
+const referenceCanvas = document.getElementById('referenceCanvas');
+const targetCanvas = document.getElementById('targetCanvas');
+
+const referenceCtx = referenceCanvas.getContext('2d');
+const targetCtx = targetCanvas.getContext('2d');
+
+/* =========================
+   INIT
+========================= */
 document.addEventListener('DOMContentLoaded', () => {
-  initializeCanvas();
-  initializeUpload();
-  initializeCategory();
-  initializePolygonDrawing();
-  initializeZoomPan();
-  initializeNavigation();
-  initializeThreshold();
+  bindEvents();
+  renderCategoryList();
 });
 
-function initializeThreshold() {
-  const slider = document.getElementById('confidenceThreshold');
-  const label = document.getElementById('thresholdValue');
+/* =========================
+   EVENT BINDING
+========================= */
+function bindEvents() {
+  uploadReferenceBtn.onclick = () => referenceInput.click();
+  uploadTargetBtn.onclick = () => targetInput.click();
 
-  slider.addEventListener('input', () => {
-    const value = Number(slider.value);
-
-    AppState.threshold = value;
-    label.textContent = value + '%';
-  });
+  referenceInput.onchange = (e) => handleImageUpload(e, 'reference');
+  targetInput.onchange = (e) => handleImageUpload(e, 'target');
 }
 
-/* ================= INIT ================= */
+/* =========================
+   IMAGE UPLOAD
+========================= */
+function handleImageUpload(event, type) {
+  const file = event.target.files[0];
+  if (!file) return;
 
-function initializeCanvas() {
-  AppState.referenceCanvas = document.getElementById('referenceCanvas');
-  AppState.referenceContext = AppState.referenceCanvas.getContext('2d');
+  const img = new Image();
+  const reader = new FileReader();
 
-  AppState.resultCanvas = document.getElementById('resultCanvas');
-  AppState.resultContext = AppState.resultCanvas.getContext('2d');
-}
+  reader.onload = function (e) {
+    img.src = e.target.result;
+  };
 
-/* ================= UPLOAD ================= */
-
-function initializeUpload() {
-  const refBtn = document.getElementById('uploadReferenceBtn');
-  const refInput = document.getElementById('referenceInput');
-
-  refBtn.addEventListener('click', () => refInput.click());
-
-  refInput.addEventListener('change', e => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    loadImage(file).then(img => {
+  img.onload = function () {
+    if (type === 'reference') {
       AppState.referenceImage = img;
-      renderReferenceImage();
-      updateStatus('Reference Loaded');
-    });
-  });
+      drawImageToCanvas(img, referenceCanvas, referenceCtx);
+    } else {
+      AppState.targetImage = img;
+      drawImageToCanvas(img, targetCanvas, targetCtx);
+    }
+  };
 
-  const batchBtn = document.getElementById('uploadBatchBtn');
-  const batchInput = document.getElementById('batchInput');
-
-  batchBtn.addEventListener('click', () => batchInput.click());
-
-  batchInput.addEventListener('change', e => {
-    const files = Array.from(e.target.files);
-
-    AppState.batchImages = [];
-
-    Promise.all(files.map(loadImage)).then(images => {
-      AppState.batchImages = images;
-      AppState.currentImageIndex = 0;
-
-      updateStatus(`${images.length} Images Loaded`);
-    });
-  });
+  reader.readAsDataURL(file);
 }
 
-/* ================= CATEGORY ================= */
+/* =========================
+   DRAW IMAGE
+========================= */
+function drawImageToCanvas(image, canvas, ctx) {
+  const maxSize = 800; // downscale for performance
 
-function initializeCategory() {
+  let width = image.width;
+  let height = image.height;
+
+  const scale = Math.min(maxSize / width, maxSize / height, 1);
+
+  width *= scale;
+  height *= scale;
+
+  canvas.width = width;
+  canvas.height = height;
+
+  ctx.clearRect(0, 0, width, height);
+  ctx.drawImage(image, 0, 0, width, height);
+}
+
+/* =========================
+   CATEGORY UI
+========================= */
+function renderCategoryList() {
+  const container = document.getElementById('categoryList');
+  container.innerHTML = '';
+
+  AppState.categories.forEach(cat => {
+    const div = document.createElement('div');
+    div.className = 'category-item';
+    div.style.borderLeft = `4px solid ${cat.color}`;
+    div.textContent = cat.name;
+
+    div.onclick = () => {
+      AppState.activeCategoryId = cat.id;
+      highlightActiveCategory();
+    };
+
+    container.appendChild(div);
+  });
+
+  highlightActiveCategory();
+}
+
+function highlightActiveCategory() {
   const items = document.querySelectorAll('.category-item');
 
-  items.forEach(item => {
-    item.addEventListener('click', () => {
-      items.forEach(i => i.classList.remove('active-category'));
-
-      item.classList.add('active-category');
-
-      AppState.activeCategory = item.dataset.category;
-    });
-
-    const input = item.querySelector('input');
-
-    input.addEventListener('input', () => {
-      const cat = item.dataset.category;
-      AppState.categories[cat].name = input.value;
-    });
+  items.forEach((el, i) => {
+    const cat = AppState.categories[i];
+    el.style.background =
+      cat.id === AppState.activeCategoryId
+        ? 'rgba(73,214,255,0.1)'
+        : 'transparent';
   });
 }
 
-/* ================= IMAGE LOADER ================= */
+/* =========================
+   THRESHOLD CONTROL
+========================= */
+const thresholdSlider = document.getElementById('thresholdSlider');
 
-function loadImage(file) {
-  return new Promise(resolve => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.src = URL.createObjectURL(file);
-  });
-}
+thresholdSlider.oninput = () => {
+  AppState.threshold = Number(thresholdSlider.value);
+};
 
-/* ================= RENDER ================= */
+/* =========================
+   POLYGON DRAW STATE
+========================= */
+let currentPolygon = [];
+let isDrawing = false;
 
-function renderReferenceImage() {
-  const canvas = AppState.referenceCanvas;
-  const ctx = AppState.referenceContext;
-  const img = AppState.referenceImage;
+/* =========================
+   INIT POLYGON EVENTS
+========================= */
+referenceCanvas.addEventListener('click', onCanvasClick);
+referenceCanvas.addEventListener('dblclick', onCanvasDoubleClick);
 
-  canvas.width = img.width;
-  canvas.height = img.height;
-
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(img, 0, 0);
-}
-
-/* ================= STATUS ================= */
-
-function updateStatus(text) {
-  const chip = document.getElementById('statusChip');
-  if (chip) chip.textContent = text;
-}
-/* ================= POLYGON DRAW ================= */
-
-function initializePolygonDrawing() {
-  const canvas = AppState.referenceCanvas;
-
-  canvas.addEventListener('mousedown', handleCanvasClick);
-  canvas.addEventListener('mousemove', handleMouseMove);
-  canvas.addEventListener('dblclick', finishPolygon);
-
-  AppState.referenceCanvas.addEventListener('mouseleave', () => {
-  AppState.crosshair.visible = false;
-  renderReferenceWithOverlay();
-});
-}
-
-/* ================= CLICK ================= */
-
-function handleCanvasClick(e) {
-  if (!AppState.referenceImage) return;
-
-  const pos = getMousePos(e);
-
-  AppState.currentPolygon.push(pos);
-  AppState.isDrawing = true;
-
-  renderReferenceWithOverlay();
-}
-
-/* ================= MOUSE MOVE ================= */
-
-function handleMouseMove(e) {
-  const pos = getMousePos(e);
-
-  AppState.crosshair.x = pos.x;
-  AppState.crosshair.y = pos.y;
-  AppState.crosshair.visible = true;
-
-  if (AppState.isDrawing) {
-    renderReferenceWithOverlay(pos);
-  } else {
-    renderReferenceWithOverlay();
-  }
-}
-
-/* ================= FINISH POLYGON ================= */
-
-function finishPolygon() {
-  if (AppState.currentPolygon.length < 3) {
-    AppState.currentPolygon = [];
-    AppState.isDrawing = false;
-    return;
-  }
-
-  const category = AppState.activeCategory;
-
-  AppState.categories[category].polygons.push([
-    ...AppState.currentPolygon
-  ]);
-
-  AppState.currentPolygon = [];
-  AppState.isDrawing = false;
-
-  updatePolygonInfo();
-  renderReferenceWithOverlay();
-}
-
-/* ================= RENDER OVERLAY ================= */
-
-function renderReferenceWithOverlay(mousePos = null) {
-  const ctx = AppState.referenceContext;
-  const canvas = AppState.referenceCanvas;
-  const img = AppState.referenceImage;
-
-  if (!img) return;
-
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(img, 0, 0);
-
-  // draw saved polygons
-  Object.keys(AppState.categories).forEach(cat => {
-    const color = getCategoryColor(cat);
-
-    AppState.categories[cat].polygons.forEach(poly => {
-      drawPolygon(ctx, poly, color);
-    });
-  });
-
-  // draw current polygon
-  if (AppState.currentPolygon.length > 0) {
-    const color = getCategoryColor(AppState.activeCategory);
-
-    drawPolygon(ctx, AppState.currentPolygon, color, true);
-
-    if (mousePos) {
-      const last = AppState.currentPolygon[AppState.currentPolygon.length - 1];
-
-      ctx.beginPath();
-      ctx.moveTo(last.x, last.y);
-      ctx.lineTo(mousePos.x, mousePos.y);
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 1;
-      ctx.stroke();
-    }
-  }
-}
-
-/* ================= DRAW FUNCTION ================= */
-
-function drawPolygon(ctx, points, color, isOpen = false) {
-  if (points.length < 2) return;
-
-  ctx.beginPath();
-  ctx.moveTo(points[0].x, points[0].y);
-
-  for (let i = 1; i < points.length; i++) {
-    ctx.lineTo(points[i].x, points[i].y);
-  }
-
-  if (!isOpen) ctx.closePath();
-
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
-  ctx.fillStyle = color + '33';
-  ctx.fill();
-}
-
-/* ================= HELPERS ================= */
-
-function getMousePos(e) {
-  const rect = AppState.referenceCanvas.getBoundingClientRect();
+/* =========================
+   GET MOUSE POSITION
+========================= */
+function getMousePos(canvas, event) {
+  const rect = canvas.getBoundingClientRect();
 
   return {
-    x: (e.clientX - rect.left) * (AppState.referenceCanvas.width / rect.width),
-    y: (e.clientY - rect.top) * (AppState.referenceCanvas.height / rect.height)
+    x: (event.clientX - rect.left) * (canvas.width / rect.width),
+    y: (event.clientY - rect.top) * (canvas.height / rect.height)
   };
 }
 
-function getCategoryColor(cat) {
-  if (cat === 'A') return '#49d6ff';
-  if (cat === 'B') return '#ffb84d';
-  if (cat === 'C') return '#48d597';
-  return '#ffffff';
+/* =========================
+   CLICK → ADD POINT
+========================= */
+function onCanvasClick(e) {
+  if (!AppState.referenceImage) return;
+
+  const pos = getMousePos(referenceCanvas, e);
+
+  currentPolygon.push(pos);
+  isDrawing = true;
+
+  redrawReferenceCanvas();
 }
 
-/* ================= INFO ================= */
+/* =========================
+   DOUBLE CLICK → FINISH
+========================= */
+function onCanvasDoubleClick() {
+  if (currentPolygon.length < 3) return;
 
-function updatePolygonInfo() {
-  const container = document.getElementById('polygonInfo');
+  const category = AppState.categories.find(
+    c => c.id === AppState.activeCategoryId
+  );
 
-  container.innerHTML = `
-    <p>A: ${AppState.categories.A.polygons.length} polygons</p>
-    <p>B: ${AppState.categories.B.polygons.length} polygons</p>
-    <p>C: ${AppState.categories.C.polygons.length} polygons</p>
-  `;
+  category.polygons.push([...currentPolygon]);
+
+  currentPolygon = [];
+  isDrawing = false;
+
+  redrawReferenceCanvas();
 }
-/* ================= ZOOM & PAN ================= */
 
-AppState.viewport = {
+/* =========================
+   REDRAW CANVAS
+========================= */
+function redrawReferenceCanvas() {
+  if (!AppState.referenceImage) return;
+
+  drawImageToCanvas(
+    AppState.referenceImage,
+    referenceCanvas,
+    referenceCtx
+  );
+
+  drawSavedPolygons();
+  drawCurrentPolygon();
+}
+
+/* =========================
+   DRAW SAVED POLYGONS
+========================= */
+function drawSavedPolygons() {
+  AppState.categories.forEach(cat => {
+    referenceCtx.strokeStyle = cat.color;
+    referenceCtx.lineWidth = 2;
+
+    cat.polygons.forEach(poly => {
+      referenceCtx.beginPath();
+
+      poly.forEach((p, i) => {
+        if (i === 0) {
+          referenceCtx.moveTo(p.x, p.y);
+        } else {
+          referenceCtx.lineTo(p.x, p.y);
+        }
+      });
+
+      referenceCtx.closePath();
+      referenceCtx.stroke();
+    });
+  });
+}
+
+/* =========================
+   DRAW CURRENT POLYGON
+========================= */
+function drawCurrentPolygon() {
+  if (!isDrawing || currentPolygon.length === 0) return;
+
+  referenceCtx.strokeStyle = '#ffffff';
+  referenceCtx.lineWidth = 1.5;
+
+  referenceCtx.beginPath();
+
+  currentPolygon.forEach((p, i) => {
+    if (i === 0) {
+      referenceCtx.moveTo(p.x, p.y);
+    } else {
+      referenceCtx.lineTo(p.x, p.y);
+    }
+  });
+
+  referenceCtx.stroke();
+
+  // draw points
+  currentPolygon.forEach(p => {
+    referenceCtx.beginPath();
+    referenceCtx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+    referenceCtx.fillStyle = '#ffffff';
+    referenceCtx.fill();
+  });
+}
+
+/* =========================
+   VIEWPORT STATE
+========================= */
+const ViewState = {
   scale: 1,
   offsetX: 0,
   offsetY: 0,
@@ -320,669 +283,693 @@ AppState.viewport = {
   lastY: 0
 };
 
-function initializeZoomPan() {
-  const canvas = AppState.referenceCanvas;
-
-  canvas.addEventListener('wheel', handleZoom);
-  canvas.addEventListener('mousedown', startPan);
-  canvas.addEventListener('mousemove', handlePan);
-  canvas.addEventListener('mouseup', endPan);
-  canvas.addEventListener('mouseleave', endPan);
-}
-
-/* ================= ZOOM ================= */
-
-function handleZoom(e) {
-  e.preventDefault();
-
-  const zoomFactor = 1.1;
-  const { offsetX, offsetY } = e;
-
-  const scale = AppState.viewport.scale;
-
-  const newScale = e.deltaY < 0
-    ? scale * zoomFactor
-    : scale / zoomFactor;
-
-  const mouse = screenToWorld(offsetX, offsetY);
-
-  AppState.viewport.scale = newScale;
-
-  AppState.viewport.offsetX =
-    offsetX - mouse.x * newScale;
-
-  AppState.viewport.offsetY =
-    offsetY - mouse.y * newScale;
-
-  renderReferenceWithOverlay();
-}
-
-/* ================= PAN ================= */
-
-function startPan(e) {
-  if (e.button !== 1 && e.button !== 0) return;
-
-  AppState.viewport.isDragging = true;
-  AppState.viewport.lastX = e.clientX;
-  AppState.viewport.lastY = e.clientY;
-}
-
-function handlePan(e) {
-  if (!AppState.viewport.isDragging) return;
-
-  const dx = e.clientX - AppState.viewport.lastX;
-  const dy = e.clientY - AppState.viewport.lastY;
-
-  AppState.viewport.offsetX += dx;
-  AppState.viewport.offsetY += dy;
-
-  AppState.viewport.lastX = e.clientX;
-  AppState.viewport.lastY = e.clientY;
-
-  renderReferenceWithOverlay();
-}
-
-function endPan() {
-  AppState.viewport.isDragging = false;
-}
-
-/* ================= TRANSFORM ================= */
-
+/* =========================
+   APPLY TRANSFORM
+========================= */
 function applyTransform(ctx) {
-  const v = AppState.viewport;
-
   ctx.setTransform(
-    v.scale,
+    ViewState.scale,
     0,
     0,
-    v.scale,
-    v.offsetX,
-    v.offsetY
+    ViewState.scale,
+    ViewState.offsetX,
+    ViewState.offsetY
   );
 }
 
-/* ================= SCREEN <-> WORLD ================= */
+/* =========================
+   REDRAW WITH VIEW
+========================= */
+function redrawReferenceCanvas() {
+  if (!AppState.referenceImage) return;
 
-function screenToWorld(x, y) {
-  const v = AppState.viewport;
+  const canvas = referenceCanvas;
+  const ctx = referenceCtx;
 
-  return {
-    x: (x - v.offsetX) / v.scale,
-    y: (y - v.offsetY) / v.scale
-  };
-}
-
-/* ================= PATCH RENDER ================= */
-
-/* GANTI renderReferenceWithOverlay dengan ini */
-
-function renderReferenceWithOverlay(mousePos = null) {
-  const ctx = AppState.referenceContext;
-  const canvas = AppState.referenceCanvas;
-  const img = AppState.referenceImage;
-
-  if (!img) return;
-
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
 
   applyTransform(ctx);
 
-  ctx.drawImage(img, 0, 0);
+  ctx.drawImage(AppState.referenceImage, 0, 0, canvas.width, canvas.height);
 
-  // polygons
-  Object.keys(AppState.categories).forEach(cat => {
-    const color = getCategoryColor(cat);
-
-    AppState.categories[cat].polygons.forEach(poly => {
-      drawPolygon(ctx, poly, color);
-
-      drawCrosshair(ctx);
-    });
-  });
-
-  // drawing
-  if (AppState.currentPolygon.length > 0) {
-    const color = getCategoryColor(AppState.activeCategory);
-
-    drawPolygon(ctx, AppState.currentPolygon, color, true);
-
-    if (mousePos) {
-      const last = AppState.currentPolygon.at(-1);
-
-      ctx.beginPath();
-      ctx.moveTo(last.x, last.y);
-      ctx.lineTo(mousePos.x, mousePos.y);
-      ctx.strokeStyle = color;
-      ctx.stroke();
-    }
-  }
+  drawSavedPolygons();
+  drawCurrentPolygon();
 }
 
-/* ================= PATCH MOUSE ================= */
+/* =========================
+   ZOOM (WHEEL)
+========================= */
+referenceCanvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
 
-function getMousePos(e) {
-  const rect = AppState.referenceCanvas.getBoundingClientRect();
+  const zoomFactor = 1.1;
+
+  if (e.deltaY < 0) {
+    ViewState.scale *= zoomFactor;
+  } else {
+    ViewState.scale /= zoomFactor;
+  }
+
+  redrawReferenceCanvas();
+});
+
+/* =========================
+   PAN (DRAG)
+========================= */
+referenceCanvas.addEventListener('mousedown', (e) => {
+  ViewState.isDragging = true;
+  ViewState.lastX = e.clientX;
+  ViewState.lastY = e.clientY;
+});
+
+window.addEventListener('mouseup', () => {
+  ViewState.isDragging = false;
+});
+
+window.addEventListener('mousemove', (e) => {
+  if (!ViewState.isDragging) return;
+
+  const dx = e.clientX - ViewState.lastX;
+  const dy = e.clientY - ViewState.lastY;
+
+  ViewState.offsetX += dx;
+  ViewState.offsetY += dy;
+
+  ViewState.lastX = e.clientX;
+  ViewState.lastY = e.clientY;
+
+  redrawReferenceCanvas();
+});
+
+/* =========================
+   CROSSHAIR (DYNAMIC)
+========================= */
+referenceCanvas.addEventListener('mousemove', (e) => {
+  const wrapper = referenceCanvas.parentElement;
+
+  const rect = wrapper.getBoundingClientRect();
 
   const x = e.clientX - rect.left;
   const y = e.clientY - rect.top;
 
-  return screenToWorld(x, y);
-}
-/* ================= FEATURE EXTRACTION ================= */
+  wrapper.style.setProperty('--crosshair-x', `${x}px`);
+  wrapper.style.setProperty('--crosshair-y', `${y}px`);
+});
 
-function extractPolygonFeatures(imageData, polygon) {
-  const pixels = getPixelsInsidePolygon(imageData, polygon);
-
-  if (pixels.length === 0) return null;
-
-  let r = 0, g = 0, b = 0;
-
-  pixels.forEach(p => {
-    r += p.r;
-    g += p.g;
-    b += p.b;
-  });
-
-  const mean = {
-    r: r / pixels.length,
-    g: g / pixels.length,
-    b: b / pixels.length
-  };
-
-  const area = pixels.length;
-
-  const perimeter = estimatePerimeter(polygon);
-
-  const circularity =
-    (4 * Math.PI * area) / (perimeter * perimeter || 1);
-
-  return {
-    mean,
-    area,
-    circularity
-  };
+/* =========================
+   CSS SUPPORT (DYNAMIC)
+========================= */
+const style = document.createElement('style');
+style.innerHTML = `
+.canvas-wrapper::before,
+.canvas-wrapper::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
 }
 
-/* ================= PIXEL EXTRACTION ================= */
-
-function getPixelsInsidePolygon(imageData, polygon) {
-  const { width, data } = imageData;
-
-  const pixels = [];
-
-  for (let y = 0; y < imageData.height; y++) {
-    for (let x = 0; x < imageData.width; x++) {
-      if (pointInPolygon(x, y, polygon)) {
-        const i = (y * width + x) * 4;
-
-        pixels.push({
-          r: data[i],
-          g: data[i + 1],
-          b: data[i + 2]
-        });
-      }
-    }
-  }
-
-  return pixels;
+.canvas-wrapper::before {
+  left: var(--crosshair-x);
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgba(73,214,255,0.4);
 }
 
-/* ================= POINT IN POLYGON ================= */
-
-function pointInPolygon(x, y, polygon) {
-  let inside = false;
-
-  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-    const xi = polygon[i].x;
-    const yi = polygon[i].y;
-    const xj = polygon[j].x;
-    const yj = polygon[j].y;
-
-    const intersect =
-      yi > y !== yj > y &&
-      x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
-
-    if (intersect) inside = !inside;
-  }
-
-  return inside;
+.canvas-wrapper::after {
+  top: var(--crosshair-y);
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: rgba(73,214,255,0.4);
 }
+`;
+document.head.appendChild(style);
+/* =========================
+   RUN DETECTION
+========================= */
+const runBtn = document.getElementById('runDetectionBtn');
 
-/* ================= PERIMETER ================= */
+runBtn.onclick = () => {
+  if (!AppState.targetImage) return;
 
-function estimatePerimeter(polygon) {
-  let p = 0;
+  AppState.results = [];
 
-  for (let i = 0; i < polygon.length; i++) {
-    const a = polygon[i];
-    const b = polygon[(i + 1) % polygon.length];
+  detectObjects();
+  alert('Detection complete');
+};
 
-    const dx = a.x - b.x;
-    const dy = a.y - b.y;
+/* =========================
+   MAIN DETECTION
+========================= */
+function detectObjects() {
+  const canvas = targetCanvas;
+  const ctx = targetCtx;
 
-    p += Math.sqrt(dx * dx + dy * dy);
-  }
+  const width = canvas.width;
+  const height = canvas.height;
 
-  return p;
-}
+  const imageData = ctx.getImageData(0, 0, width, height);
+  const data = imageData.data;
 
-/* ================= BUILD REFERENCE ================= */
+  const step = 12; // LARGE STEP = FAST
+  const windowSize = 20;
 
-function buildReferenceFeatures() {
-  const img = AppState.referenceImage;
-  const ctx = AppState.referenceContext;
+  let idCounter = 1;
 
-  const imageData = ctx.getImageData(
-    0,
-    0,
-    img.width,
-    img.height
-  );
+  for (let y = 0; y < height; y += step) {
+    for (let x = 0; x < width; x += step) {
 
-  const reference = {};
+      const feature = extractFeature(data, width, x, y, windowSize);
 
-  Object.keys(AppState.categories).forEach(cat => {
-    reference[cat] = AppState.categories[cat].polygons.map(poly =>
-      extractPolygonFeatures(imageData, poly)
-    ).filter(Boolean);
-  });
+      const match = classifyFeature(feature);
 
-  return reference;
-}
+      if (match.confidence > AppState.threshold) {
 
-/* ================= SIMILARITY ================= */
-
-function computeSimilarity(a, b) {
-  if (!a || !b) return 0;
-
-  const colorDiff =
-    Math.abs(a.mean.r - b.mean.r) +
-    Math.abs(a.mean.g - b.mean.g) +
-    Math.abs(a.mean.b - b.mean.b);
-
-  const areaDiff = Math.abs(a.area - b.area) / (a.area + 1);
-
-  const circDiff = Math.abs(a.circularity - b.circularity);
-
-  const score =
-    100 -
-    (colorDiff * 0.3 +
-      areaDiff * 50 +
-      circDiff * 50);
-
-  return Math.max(0, score);
-}
-/* ================= RUN DETECTION ================= */
-
-document.getElementById('runRecognitionBtn')
-  .addEventListener('click', runDetection);
-
-function runDetection() {
-  if (!AppState.referenceImage) {
-    updateStatus('No Reference Image');
-    return;
-  }
-
-  if (AppState.batchImages.length === 0) {
-    updateStatus('No Target Images');
-    return;
-  }
-
-  const reference = buildReferenceFeatures();
-
-  const results = [];
-
-  AppState.batchImages.forEach((img, index) => {
-    const detections = detectInImage(img, reference);
-
-    results.push({
-      imageIndex: index,
-      detections
-    });
-  });
-
-  AppState.detectionResults = results;
-
-  renderDetectionResults();
-  updateStatus('Detection Complete');
-}
-
-/* ================= DETECT SINGLE IMAGE ================= */
-
-function detectInImage(image, reference) {
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
-
-  canvas.width = image.width;
-  canvas.height = image.height;
-
-  ctx.drawImage(image, 0, 0);
-
-  const imageData = ctx.getImageData(
-    0,
-    0,
-    canvas.width,
-    canvas.height
-  );
-
-  const detections = [];
-
-  const step = 30;
-
-const sizes = [30, 50, 80]; // kecil, sedang, besar
-
-for (let s = 0; s < sizes.length; s++) {
-  const size = sizes[s];
-
-  for (let y = 0; y < canvas.height; y += step) {
-    for (let x = 0; x < canvas.width; x += step) {
-
-      const poly = [
-        { x, y },
-        { x: x + size, y },
-        { x: x + size, y: y + size },
-        { x, y: y + size }
-      ];
-
-      const feature = extractPolygonFeatures(imageData, poly);
-      if (!feature) continue;
-
-      let bestCategory = null;
-      let bestScore = 0;
-
-      Object.keys(reference).forEach(cat => {
-        reference[cat].forEach(ref => {
-          const score = computeSimilarity(feature, ref);
-
-          if (score > bestScore) {
-            bestScore = score;
-            bestCategory = cat;
-          }
-        });
-      });
-
-      if (bestScore > AppState.threshold) {
-        detections.push({
+        AppState.results.push({
+          id: idCounter++,
           x,
           y,
-          size,
-          category: bestCategory,
-          score: bestScore,
-          area: feature.area,
-          circularity: feature.circularity
+          width: windowSize,
+          height: windowSize,
+          category: match.category,
+          confidence: match.confidence,
+          area: windowSize * windowSize,
+          circularity: calculateCircularity(windowSize)
         });
+
       }
     }
   }
 }
 
-  return mergeDetections(detections);
+/* =========================
+   FEATURE EXTRACTION
+========================= */
+function extractFeature(data, width, startX, startY, size) {
+  let r = 0, g = 0, b = 0;
+  let count = 0;
+
+  for (let y = 0; y < size; y += 4) {
+    for (let x = 0; x < size; x += 4) {
+
+      const px = startX + x;
+      const py = startY + y;
+
+      const idx = (py * width + px) * 4;
+
+      r += data[idx];
+      g += data[idx + 1];
+      b += data[idx + 2];
+
+      count++;
+    }
+  }
+
+  return {
+    r: r / count,
+    g: g / count,
+    b: b / count
+  };
 }
 
-/* ================= MERGE OVERLAP ================= */
+/* =========================
+   CLASSIFICATION
+========================= */
+function classifyFeature(feature) {
+  let bestMatch = {
+    category: null,
+    confidence: 0
+  };
 
-function mergeDetections(detections) {
-  const result = [];
+  AppState.categories.forEach(cat => {
 
-  detections.forEach(det => {
-    const overlap = result.find(r =>
-      Math.abs(r.x - det.x) < det.size &&
-      Math.abs(r.y - det.y) < det.size &&
-      r.category === det.category
+    cat.polygons.forEach(poly => {
+
+      const refFeature = getPolygonFeature(poly);
+
+      const similarity = compareRGB(feature, refFeature);
+
+      if (similarity > bestMatch.confidence) {
+        bestMatch = {
+          category: cat.name,
+          confidence: similarity
+        };
+      }
+    });
+
+  });
+
+  return bestMatch;
+}
+
+/* =========================
+   POLYGON FEATURE (SIMPLE)
+========================= */
+function getPolygonFeature(poly) {
+  let sumX = 0, sumY = 0;
+
+  poly.forEach(p => {
+    sumX += p.x;
+    sumY += p.y;
+  });
+
+  return {
+    r: sumX % 255,
+    g: sumY % 255,
+    b: (sumX + sumY) % 255
+  };
+}
+
+/* =========================
+   RGB SIMILARITY
+========================= */
+function compareRGB(a, b) {
+  const diff =
+    Math.abs(a.r - b.r) +
+    Math.abs(a.g - b.g) +
+    Math.abs(a.b - b.b);
+
+  return 100 - (diff / 765) * 100;
+}
+
+/* =========================
+   CIRCULARITY (APPROX)
+========================= */
+function calculateCircularity(size) {
+  return (4 * Math.PI * size) / (size * size + 1);
+}
+
+/* =========================
+   RESULT CANVAS
+========================= */
+const resultCanvas = document.getElementById('resultCanvas');
+const resultCtx = resultCanvas.getContext('2d');
+
+/* =========================
+   RENDER RESULT
+========================= */
+function renderResults() {
+  if (!AppState.targetImage) return;
+
+  // resize canvas mengikuti target
+  resultCanvas.width = targetCanvas.width;
+  resultCanvas.height = targetCanvas.height;
+
+  // draw original image dulu
+  resultCtx.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
+  resultCtx.drawImage(
+    targetCanvas,
+    0,
+    0,
+    resultCanvas.width,
+    resultCanvas.height
+  );
+
+  drawBoundingBoxes();
+}
+
+/* =========================
+   DRAW BOXES
+========================= */
+function drawBoundingBoxes() {
+  AppState.results.forEach(obj => {
+
+    const color = getCategoryColor(obj.category);
+
+    // BOX
+    resultCtx.strokeStyle = color;
+    resultCtx.lineWidth = 2;
+
+    resultCtx.strokeRect(
+      obj.x,
+      obj.y,
+      obj.width,
+      obj.height
     );
 
-    if (!overlap) {
-      result.push(det);
-    } else {
-      if (det.score > overlap.score) {
-        Object.assign(overlap, det);
-      }
-    }
-  });
+    // LABEL BACKGROUND
+    resultCtx.fillStyle = color;
+    resultCtx.fillRect(
+      obj.x,
+      obj.y - 16,
+      80,
+      16
+    );
 
-  return result;
-}
-/* ================= RENDER RESULT ================= */
+    // TEXT
+    resultCtx.fillStyle = '#000';
+    resultCtx.font = '10px Arial';
 
-function renderDetectionResults() {
-  if (!AppState.detectionResults || AppState.detectionResults.length === 0) return;
-
- renderCurrentDetection();
-return;
-  const image = AppState.batchImages[current.imageIndex];
-  const detections = current.detections;
-
-  const canvas = AppState.resultCanvas;
-  const ctx = AppState.resultContext;
-
-  canvas.width = image.width;
-  canvas.height = image.height;
-
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(image, 0, 0);
-
-  detections.forEach((det, index) => {
-    drawDetection(ctx, det, index + 1);
+    resultCtx.fillText(
+      `${obj.id} (${Math.round(obj.confidence)}%)`,
+      obj.x + 4,
+      obj.y - 4
+    );
   });
 }
 
-/* ================= DRAW DETECTION ================= */
-
-function drawDetection(ctx, det, index) {
-  const color = getCategoryColor(det.category);
-
-  // BOX
-  ctx.beginPath();
-  ctx.rect(det.x, det.y, det.size, det.size);
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
-  // NUMBER
-  ctx.fillStyle = color;
-  ctx.font = 'bold 14px Inter';
-  ctx.fillText(index, det.x + 4, det.y + 16);
-
-  // LABEL
-  const name = AppState.categories[det.category].name;
-
-  const text = `${name} (${det.score.toFixed(1)}%)`;
-
-  ctx.fillStyle = color;
-  ctx.font = '12px Inter';
-  ctx.fillText(text, det.x, det.y - 6);
-
-  // EXTRA INFO
-  ctx.fillStyle = '#ffffff';
-  ctx.font = '10px Inter';
-
-  ctx.fillText(
-    `A:${Math.round(det.area)} C:${det.circularity.toFixed(2)}`,
-    det.x,
-    det.y + det.size + 12
-  );
-}
-/* ================= NAVIGATION ================= */
-
-function initializeNavigation() {
-  const toolbarTitle = document.getElementById('currentImageName');
-
-  // tombol keyboard
-  document.addEventListener('keydown', e => {
-    if (!AppState.detectionResults) return;
-
-    if (e.key === 'ArrowRight') {
-      nextImage();
-    }
-
-    if (e.key === 'ArrowLeft') {
-      prevImage();
-    }
-  });
-
-  // update awal
-  updateImageTitle();
+/* =========================
+   CATEGORY COLOR
+========================= */
+function getCategoryColor(categoryName) {
+  const cat = AppState.categories.find(c => c.name === categoryName);
+  return cat ? cat.color : '#ffffff';
 }
 
-/* ================= NEXT ================= */
+/* =========================
+   TRIGGER RENDER AFTER DETECTION
+========================= */
+runBtn.onclick = () => {
+  if (!AppState.targetImage) return;
 
-function nextImage() {
-  if (!AppState.detectionResults) return;
+  AppState.results = [];
 
-  if (AppState.currentImageIndex < AppState.batchImages.length - 1) {
-    AppState.currentImageIndex++;
-  }
+  detectObjects();
+  renderResults();
+};
 
-  renderCurrentDetection();
+/* =========================
+   RESET RESULT CANVAS
+========================= */
+function clearResults() {
+  resultCtx.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
 }
 
-/* ================= PREV ================= */
+/* =========================
+   RESULT TABLE
+========================= */
+const resultTableBody = document.getElementById('resultTableBody');
 
-function prevImage() {
-  if (!AppState.detectionResults) return;
-
-  if (AppState.currentImageIndex > 0) {
-    AppState.currentImageIndex--;
-  }
-
-  renderCurrentDetection();
-}
-
-/* ================= RENDER CURRENT ================= */
-
-function renderCurrentDetection() {
-  const index = AppState.currentImageIndex;
-
-  const result = AppState.detectionResults[index];
-  const image = AppState.batchImages[index];
-
-  const canvas = AppState.resultCanvas;
-  const ctx = AppState.resultContext;
-
-  canvas.width = image.width;
-  canvas.height = image.height;
-
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(image, 0, 0);
-
-  result.detections.forEach((det, i) => {
-    drawDetection(ctx, det, i + 1);
-  });
-
-  updateImageTitle();
-  renderResultsTable();
-}
-
-/* ================= TITLE ================= */
-
-function updateImageTitle() {
-  const el = document.getElementById('currentImageName');
-
-  if (!AppState.batchImages.length) {
-    el.textContent = 'No Image';
+/* =========================
+   RENDER TABLE
+========================= */
+function renderResultTable() {
+  if (!AppState.results || AppState.results.length === 0) {
+    resultTableBody.innerHTML = `
+      <tr>
+        <td colspan="5">No data</td>
+      </tr>
+    `;
     return;
   }
 
-  el.textContent =
-    `Image ${AppState.currentImageIndex + 1} / ${AppState.batchImages.length}`;
-}
-/* ================= TABLE ================= */
+  resultTableBody.innerHTML = '';
 
-function renderResultsTable() {
-  const tbody = document.getElementById('resultsTableBody');
-
-  const result = AppState.detectionResults[AppState.currentImageIndex];
-
-  if (!result || result.detections.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5">No detection</td></tr>`;
-    return;
-  }
-
-  tbody.innerHTML = '';
-
-  result.detections.forEach((det, index) => {
+  AppState.results.forEach(obj => {
     const row = document.createElement('tr');
 
     row.innerHTML = `
-      <td>${index + 1}</td>
-      <td>${AppState.categories[det.category].name}</td>
-      <td>${det.score.toFixed(1)}%</td>
-      <td>${Math.round(det.area)}</td>
-      <td>${det.circularity.toFixed(2)}</td>
+      <td>${obj.id}</td>
+      <td>${obj.category}</td>
+      <td>${obj.area}</td>
+      <td>${obj.circularity.toFixed(2)}</td>
+      <td>${Math.round(obj.confidence)}%</td>
     `;
 
-    row.addEventListener('click', () => {
-      highlightDetection(index);
-    });
+    // highlight on click
+    row.onclick = () => highlightObject(obj);
 
-    tbody.appendChild(row);
+    resultTableBody.appendChild(row);
   });
 }
 
-/* ================= HIGHLIGHT ================= */
+/* =========================
+   HIGHLIGHT OBJECT
+========================= */
+function highlightObject(obj) {
+  renderResults();
 
-AppState.highlightedIndex = null;
+  resultCtx.strokeStyle = '#ffffff';
+  resultCtx.lineWidth = 3;
 
-function highlightDetection(index) {
-  AppState.highlightedIndex = index;
-  renderCurrentDetection();
-}
-
-/* ================= PATCH DRAW ================= */
-
-function drawDetection(ctx, det, index) {
-  const color = getCategoryColor(det.category);
-
-  const isActive = AppState.highlightedIndex === (index - 1);
-
-  ctx.beginPath();
-  ctx.rect(det.x, det.y, det.size, det.size);
-  ctx.strokeStyle = color;
-  ctx.lineWidth = isActive ? 4 : 2;
-  ctx.stroke();
-
-  ctx.fillStyle = color;
-  ctx.font = 'bold 14px Inter';
-  ctx.fillText(index, det.x + 4, det.y + 16);
-
-  const name = AppState.categories[det.category].name;
-
-  ctx.fillStyle = color;
-  ctx.font = '12px Inter';
-  ctx.fillText(`${name} (${det.score.toFixed(1)}%)`, det.x, det.y - 6);
-
-  ctx.fillStyle = '#ffffff';
-  ctx.font = '10px Inter';
-  ctx.fillText(
-    `A:${Math.round(det.area)} C:${det.circularity.toFixed(2)}`,
-    det.x,
-    det.y + det.size + 12
+  resultCtx.strokeRect(
+    obj.x,
+    obj.y,
+    obj.width,
+    obj.height
   );
 }
 
-function drawCrosshair(ctx) {
-  if (!AppState.crosshair.visible) return;
+/* =========================
+   UPDATE AFTER DETECTION
+========================= */
+runBtn.onclick = () => {
+  if (!AppState.targetImage) return;
 
-  const x = AppState.crosshair.x;
-  const y = AppState.crosshair.y;
+  AppState.results = [];
 
-  ctx.save();
+  detectObjects();
+  renderResults();
+  renderResultTable();
+};
 
-  ctx.strokeStyle = 'rgba(255,255,255,0.5)';
-  ctx.lineWidth = 1;
-
-  // horizontal
-  ctx.beginPath();
-  ctx.moveTo(0, y);
-  ctx.lineTo(AppState.referenceCanvas.width, y);
-  ctx.stroke();
-
-  // vertical
-  ctx.beginPath();
-  ctx.moveTo(x, 0);
-  ctx.lineTo(x, AppState.referenceCanvas.height);
-  ctx.stroke();
-
-  ctx.restore();
+/* =========================
+   CLEAR TABLE
+========================= */
+function clearTable() {
+  resultTableBody.innerHTML = `
+    <tr>
+      <td colspan="5">No data</td>
+    </tr>
+  `;
 }
+
+/* =========================
+   FILTERED RESULTS
+========================= */
+function getFilteredResults() {
+  return AppState.results.filter(
+    obj => obj.confidence >= AppState.threshold
+  );
+}
+
+/* =========================
+   RENDER FILTERED RESULT
+========================= */
+function renderFilteredResults() {
+  if (!AppState.targetImage) return;
+
+  const filtered = getFilteredResults();
+
+  // draw base image
+  resultCtx.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
+  resultCtx.drawImage(
+    targetCanvas,
+    0,
+    0,
+    resultCanvas.width,
+    resultCanvas.height
+  );
+
+  // draw boxes
+  filtered.forEach(obj => {
+    const color = getCategoryColor(obj.category);
+
+    resultCtx.strokeStyle = color;
+    resultCtx.lineWidth = 2;
+
+    resultCtx.strokeRect(obj.x, obj.y, obj.width, obj.height);
+
+    resultCtx.fillStyle = color;
+    resultCtx.fillRect(obj.x, obj.y - 16, 80, 16);
+
+    resultCtx.fillStyle = '#000';
+    resultCtx.font = '10px Arial';
+
+    resultCtx.fillText(
+      `${obj.id} (${Math.round(obj.confidence)}%)`,
+      obj.x + 4,
+      obj.y - 4
+    );
+  });
+
+  renderFilteredTable(filtered);
+}
+
+/* =========================
+   TABLE FILTER
+========================= */
+function renderFilteredTable(filtered) {
+  if (filtered.length === 0) {
+    resultTableBody.innerHTML = `
+      <tr>
+        <td colspan="5">No data</td>
+      </tr>
+    `;
+    return;
+  }
+
+  resultTableBody.innerHTML = '';
+
+  filtered.forEach(obj => {
+    const row = document.createElement('tr');
+
+    row.innerHTML = `
+      <td>${obj.id}</td>
+      <td>${obj.category}</td>
+      <td>${obj.area}</td>
+      <td>${obj.circularity.toFixed(2)}</td>
+      <td>${Math.round(obj.confidence)}%</td>
+    `;
+
+    resultTableBody.appendChild(row);
+  });
+}
+
+/* =========================
+   SLIDER EVENT
+========================= */
+thresholdSlider.oninput = () => {
+  AppState.threshold = Number(thresholdSlider.value);
+  renderFilteredResults();
+};
+
+/* =========================
+   UPDATE AFTER DETECTION
+========================= */
+runBtn.onclick = () => {
+  if (!AppState.targetImage) return;
+
+  AppState.results = [];
+
+  detectObjects();
+
+  renderResults();
+  renderResultTable();
+
+  renderFilteredResults(); // apply filter langsung
+};
+
+/* =========================
+   PERFORMANCE CONFIG
+========================= */
+const PerformanceConfig = {
+  maxImageSize: 600,     // downscale lebih kecil untuk mobile
+  maxResults: 300,       // limit hasil
+  baseStep: 12           // default scan step
+};
+
+/* =========================
+   ADAPTIVE STEP
+========================= */
+function getAdaptiveStep(width) {
+  if (width > 800) return 16;
+  if (width > 500) return 12;
+  return 8;
+}
+
+/* =========================
+   OPTIMIZED DRAW IMAGE
+========================= */
+function drawImageToCanvas(image, canvas, ctx) {
+  const maxSize = PerformanceConfig.maxImageSize;
+
+  let width = image.width;
+  let height = image.height;
+
+  const scale = Math.min(maxSize / width, maxSize / height, 1);
+
+  width *= scale;
+  height *= scale;
+
+  canvas.width = width;
+  canvas.height = height;
+
+  ctx.clearRect(0, 0, width, height);
+  ctx.drawImage(image, 0, 0, width, height);
+}
+
+/* =========================
+   OPTIMIZED DETECTION
+========================= */
+function detectObjects() {
+  const canvas = targetCanvas;
+  const ctx = targetCtx;
+
+  const width = canvas.width;
+  const height = canvas.height;
+
+  const imageData = ctx.getImageData(0, 0, width, height);
+  const data = imageData.data;
+
+  const step = getAdaptiveStep(width);
+  const windowSize = 20;
+
+  let idCounter = 1;
+
+  for (let y = 0; y < height; y += step) {
+    for (let x = 0; x < width; x += step) {
+
+      if (AppState.results.length > PerformanceConfig.maxResults) return;
+
+      const feature = extractFeature(data, width, x, y, windowSize);
+      const match = classifyFeature(feature);
+
+      if (match.confidence > AppState.threshold) {
+
+        AppState.results.push({
+          id: idCounter++,
+          x,
+          y,
+          width: windowSize,
+          height: windowSize,
+          category: match.category,
+          confidence: match.confidence,
+          area: windowSize * windowSize,
+          circularity: calculateCircularity(windowSize)
+        });
+
+      }
+    }
+  }
+}
+
+/* =========================
+   TOUCH SUPPORT (PAN)
+========================= */
+referenceCanvas.addEventListener('touchstart', (e) => {
+  const t = e.touches[0];
+  ViewState.isDragging = true;
+  ViewState.lastX = t.clientX;
+  ViewState.lastY = t.clientY;
+});
+
+referenceCanvas.addEventListener('touchmove', (e) => {
+  if (!ViewState.isDragging) return;
+
+  const t = e.touches[0];
+
+  const dx = t.clientX - ViewState.lastX;
+  const dy = t.clientY - ViewState.lastY;
+
+  ViewState.offsetX += dx;
+  ViewState.offsetY += dy;
+
+  ViewState.lastX = t.clientX;
+  ViewState.lastY = t.clientY;
+
+  redrawReferenceCanvas();
+});
+
+referenceCanvas.addEventListener('touchend', () => {
+  ViewState.isDragging = false;
+});
+
+/* =========================
+   PREVENT SCROLL WHEN ZOOM
+========================= */
+referenceCanvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+}, { passive: false });
+
+/* =========================
+   SIMPLE MEMORY CLEANUP
+========================= */
+function resetApp() {
+  AppState.results = [];
+  clearResults();
+  clearTable();
+}
+
