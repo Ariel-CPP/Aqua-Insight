@@ -1244,3 +1244,324 @@ function downloadFile(content, filename, type) {
   URL.revokeObjectURL(url);
 }
 
+/* ===== FIX 1: CLEAN CROSSHAIR ===== */
+function drawCrosshair(canvas) {
+  const ctx = canvas.getContext('2d');
+
+  /* CLEAR LAYER */
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+  /* redraw base first */
+  if (canvas.id === 'referenceCanvas') {
+    _renderReference();
+  } else if (canvas.id === 'targetCanvas') {
+    _renderTarget();
+  } else if (canvas.id === 'resultCanvas') {
+    renderResultOverlay();
+  }
+
+  /* draw crosshair */
+  ctx.strokeStyle = 'rgba(73,214,255,0.4)';
+  ctx.lineWidth = 1;
+
+  ctx.beginPath();
+  ctx.moveTo(Viewport.mouseX, 0);
+  ctx.lineTo(Viewport.mouseX, canvas.height);
+
+  ctx.moveTo(0, Viewport.mouseY);
+  ctx.lineTo(canvas.width, Viewport.mouseY);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+/* ===== FIX 2: LOADING SYSTEM ===== */
+const Loading = {
+  el: null
+};
+
+function initLoading() {
+  const div = document.createElement('div');
+
+  div.id = 'loadingOverlay';
+  div.style.position = 'fixed';
+  div.style.inset = '0';
+  div.style.display = 'none';
+  div.style.alignItems = 'center';
+  div.style.justifyContent = 'center';
+  div.style.background = 'rgba(6,18,31,0.7)';
+  div.style.zIndex = '9999';
+
+  div.innerHTML = `
+    <div style="text-align:center;">
+      <div class="loader"></div>
+      <p style="margin-top:10px;">Processing...</p>
+    </div>
+  `;
+
+  document.body.appendChild(div);
+  Loading.el = div;
+}
+
+function showLoading() {
+  if (!Loading.el) return;
+  Loading.el.style.display = 'flex';
+}
+
+function hideLoading() {
+  if (!Loading.el) return;
+  Loading.el.style.display = 'none';
+}
+
+/* ===== LOADER STYLE ===== */
+(function addLoaderCSS(){
+  const style = document.createElement('style');
+  style.innerHTML = `
+    .loader {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(255,255,255,0.1);
+      border-top: 4px solid var(--accent-primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  `;
+  document.head.appendChild(style);
+})();
+
+/* ===== FIX 3: WRAP DETECTION WITH LOADING ===== */
+const _____runDetection = runDetection;
+
+runDetection = function () {
+  showLoading();
+
+  setTimeout(() => {
+    _____runDetection();
+    hideLoading();
+  }, 50); /* allow UI render */
+};
+
+/* ===== FIX 4: FILE TYPE VALIDATION ===== */
+function isImageFile(file) {
+  return file && file.type.startsWith('image/');
+}
+
+/* EXTEND UPLOAD VALIDATION */
+const _loadImage = loadImage;
+
+loadImage = function (file, callback) {
+  if (!isImageFile(file)) {
+    alert('Only image files are allowed');
+    return;
+  }
+
+  _loadImage(file, callback);
+};
+
+/* ===== INIT LOADING ===== */
+const _init = init;
+
+init = function () {
+  _init();
+  initLoading();
+};
+
+/* ===== WORKER DETECTION ENGINE ===== */
+
+self.onmessage = function (e) {
+  const { imageData, config, categories, threshold } = e.data;
+
+  const results = [];
+
+  const { width, height, data } = imageData;
+
+  const step = config.windowStep;
+  const size = 32;
+  const sample = config.samplingStep;
+
+  let counter = 0;
+
+  for (let y = 0; y < height - size; y += step) {
+    for (let x = 0; x < width - size; x += step) {
+
+      counter++;
+      if (counter > config.maxWindows) break;
+
+      const feature = extractFeature(data, width, x, y, size, sample);
+
+      const match = matchFeature(feature, categories);
+
+      if (!match) continue;
+      if (match.confidence < threshold) continue;
+
+      results.push({
+        x, y,
+        width: size,
+        height: size,
+        category: match.category,
+        confidence: match.confidence,
+        feature,
+        refPoly: match.refPoly
+      });
+    }
+  }
+
+  self.postMessage({ results });
+};
+
+/* ===== FEATURE ===== */
+function extractFeature(data, width, startX, startY, size, step) {
+  let r=0,g=0,b=0,count=0,variance=0,edge=0;
+
+  for (let y=0;y<size;y+=step){
+    for (let x=0;x<size;x+=step){
+
+      const px = startX + x;
+      const py = startY + y;
+
+      const i = (py * width + px) * 4;
+
+      const cr = data[i];
+      const cg = data[i+1];
+      const cb = data[i+2];
+
+      r+=cr; g+=cg; b+=cb;
+      count++;
+
+      const next = i+4;
+      if (data[next]) edge += Math.abs(cr - data[next]);
+    }
+  }
+
+  r/=count; g/=count; b/=count;
+
+  for (let y=0;y<size;y+=step*2){
+    for (let x=0;x<size;x+=step*2){
+      const i = ((startY+y)*width + (startX+x))*4;
+      variance += Math.pow(data[i]-r,2);
+    }
+  }
+
+  variance/=count;
+
+  return { r,g,b, texture:variance, edge };
+}
+
+/* ===== MATCH ===== */
+function matchFeature(feature, categories){
+  let best=null, bestScore=0;
+
+  categories.forEach(cat=>{
+    (cat.polygons||[]).forEach(poly=>{
+
+      const ref = cat.refFeature;
+      if (!ref) return;
+
+      const score = similarity(feature, ref);
+
+      if (score > bestScore){
+        bestScore = score;
+        best = {
+          category: cat.name,
+          confidence: score,
+          refPoly: poly
+        };
+      }
+    });
+  });
+
+  return best;
+}
+
+/* ===== SIMILARITY ===== */
+function similarity(a,b){
+  const color = 1 - (
+    Math.abs(a.r-b.r)+Math.abs(a.g-b.g)+Math.abs(a.b-b.b)
+  ) / 765;
+
+  const texture = 1 - Math.abs(a.texture-b.texture)/(b.texture+1);
+  const edge = 1 - Math.abs(a.edge-b.edge)/(b.edge+1);
+
+  return (color*0.5 + texture*0.3 + edge*0.2);
+}
+
+/* ===== INIT WORKER ===== */
+let IRWorker = null;
+
+function initWorker() {
+  if (IRWorker) return;
+
+  IRWorker = new Worker('../js/ir-worker.js');
+
+  IRWorker.onmessage = function (e) {
+    const { results } = e.data;
+
+    /* scale back */
+    AppState.results = results.map(r => ({
+      id: generateId(),
+      x: r.x / PerformanceConfig.downscale,
+      y: r.y / PerformanceConfig.downscale,
+      width: r.width / PerformanceConfig.downscale,
+      height: r.height / PerformanceConfig.downscale,
+      category: r.category,
+      confidence: r.confidence,
+      feature: r.feature,
+      refPoly: r.refPoly,
+      scale: 1
+    }));
+
+    AppState.results = applyNMS(AppState.results);
+
+    renderResultOverlay();
+    renderResultTable();
+    updateLearningMemory();
+
+    hideLoading();
+  };
+}
+
+/* ===== PREPARE CATEGORY FEATURE ===== */
+function prepareCategoryFeatures() {
+  AppState.categories.forEach(cat => {
+    if (!cat.polygons || cat.polygons.length === 0) return;
+
+    const poly = cat.polygons[0];
+    cat.refFeature = computePolygonFeature(poly);
+  });
+}
+
+/* ===== EXTEND DETECTION ===== */
+const ______runDetection = runDetection;
+
+runDetection = function () {
+  if (!AppState.targetImage) return;
+
+  initWorker();
+  showLoading();
+
+  prepareCategoryFeatures();
+
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+
+  const scale = PerformanceConfig.downscale;
+
+  canvas.width = AppState.targetImage.width * scale;
+  canvas.height = AppState.targetImage.height * scale;
+
+  ctx.drawImage(AppState.targetImage, 0, 0, canvas.width, canvas.height);
+
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+  IRWorker.postMessage({
+    imageData,
+    config: PerformanceConfig,
+    categories: AppState.categories,
+    threshold: AppState.threshold / 100
+  });
+};
