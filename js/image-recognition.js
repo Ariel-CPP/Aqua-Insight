@@ -1,5 +1,5 @@
 /* =========================
-   APP STATE (MODULAR)
+   APP STATE
 ========================= */
 const AppState = {
   referenceImage: null,
@@ -12,25 +12,31 @@ const AppState = {
   ],
 
   activeCategoryId: 'A',
-
   results: [],
   threshold: 50
 };
 
 /* =========================
-   DOM ELEMENTS
+   ELEMENTS
 ========================= */
-const referenceInput = document.getElementById('referenceInput');
-const targetInput = document.getElementById('targetInput');
+const refInput = document.getElementById('referenceInput');
+const tgtInput = document.getElementById('targetInput');
 
-const uploadReferenceBtn = document.getElementById('uploadReferenceBtn');
-const uploadTargetBtn = document.getElementById('uploadTargetBtn');
+const refBtn = document.getElementById('uploadReferenceBtn');
+const tgtBtn = document.getElementById('uploadTargetBtn');
+const addCatBtn = document.getElementById('addCategoryBtn');
 
-const referenceCanvas = document.getElementById('referenceCanvas');
-const targetCanvas = document.getElementById('targetCanvas');
+const refCanvas = document.getElementById('referenceCanvas');
+const tgtCanvas = document.getElementById('targetCanvas');
+const resCanvas = document.getElementById('resultCanvas');
 
-const referenceCtx = referenceCanvas.getContext('2d');
-const targetCtx = targetCanvas.getContext('2d');
+const refCtx = refCanvas.getContext('2d');
+const tgtCtx = tgtCanvas.getContext('2d');
+const resCtx = resCanvas.getContext('2d');
+
+const tableBody = document.getElementById('resultTableBody');
+const thresholdSlider = document.getElementById('thresholdSlider');
+const runBtn = document.getElementById('runDetectionBtn');
 
 /* =========================
    INIT
@@ -41,37 +47,49 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /* =========================
-   EVENT BINDING
+   EVENTS
 ========================= */
 function bindEvents() {
-  uploadReferenceBtn.onclick = () => referenceInput.click();
-  uploadTargetBtn.onclick = () => targetInput.click();
+  refBtn.onclick = () => refInput.click();
+  tgtBtn.onclick = () => tgtInput.click();
 
-  referenceInput.onchange = (e) => handleImageUpload(e, 'reference');
-  targetInput.onchange = (e) => handleImageUpload(e, 'target');
+  refInput.onchange = e => loadImage(e, 'reference');
+  tgtInput.onchange = e => loadImage(e, 'target');
+
+  addCatBtn.onclick = addCategory;
+
+  thresholdSlider.oninput = () => {
+    AppState.threshold = Number(thresholdSlider.value);
+    renderFiltered();
+  };
+
+  runBtn.onclick = runDetection;
 }
 
 /* =========================
-   IMAGE UPLOAD
+   IMAGE UPLOAD (FIX)
 ========================= */
-function handleImageUpload(event, type) {
-  const file = event.target.files[0];
+function loadImage(e, type) {
+  const file = e.target.files[0];
   if (!file) return;
+
+  if (!file.type.startsWith('image/')) {
+    alert('Only image allowed');
+    return;
+  }
 
   const img = new Image();
   const reader = new FileReader();
 
-  reader.onload = function (e) {
-    img.src = e.target.result;
-  };
+  reader.onload = ev => img.src = ev.target.result;
 
-  img.onload = function () {
+  img.onload = () => {
     if (type === 'reference') {
       AppState.referenceImage = img;
-      drawImageToCanvas(img, referenceCanvas, referenceCtx);
+      drawImage(img, refCanvas, refCtx);
     } else {
       AppState.targetImage = img;
-      drawImageToCanvas(img, targetCanvas, targetCtx);
+      drawImage(img, tgtCanvas, tgtCtx);
     }
   };
 
@@ -79,29 +97,46 @@ function handleImageUpload(event, type) {
 }
 
 /* =========================
-   DRAW IMAGE
+   DRAW IMAGE (OPTIMIZED)
 ========================= */
-function drawImageToCanvas(image, canvas, ctx) {
-  const maxSize = 800; // downscale for performance
+function drawImage(img, canvas, ctx) {
+  const max = 600;
 
-  let width = image.width;
-  let height = image.height;
+  let w = img.width;
+  let h = img.height;
 
-  const scale = Math.min(maxSize / width, maxSize / height, 1);
+  const scale = Math.min(max / w, max / h, 1);
 
-  width *= scale;
-  height *= scale;
+  w *= scale;
+  h *= scale;
 
-  canvas.width = width;
-  canvas.height = height;
+  canvas.width = w;
+  canvas.height = h;
 
-  ctx.clearRect(0, 0, width, height);
-  ctx.drawImage(image, 0, 0, width, height);
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.clearRect(0,0,w,h);
+  ctx.drawImage(img, 0, 0, w, h);
 }
 
 /* =========================
-   CATEGORY UI
+   CATEGORY (FIX)
 ========================= */
+function addCategory() {
+  const name = prompt('Category name');
+  if (!name) return;
+
+  const id = 'C' + Date.now();
+
+  AppState.categories.push({
+    id,
+    name,
+    color: randomColor(),
+    polygons: []
+  });
+
+  renderCategoryList();
+}
+
 function renderCategoryList() {
   const container = document.getElementById('categoryList');
   container.innerHTML = '';
@@ -114,171 +149,215 @@ function renderCategoryList() {
 
     div.onclick = () => {
       AppState.activeCategoryId = cat.id;
-      highlightActiveCategory();
+      renderCategoryList();
     };
+
+    if (cat.id === AppState.activeCategoryId) {
+      div.style.background = 'rgba(73,214,255,0.1)';
+    }
 
     container.appendChild(div);
   });
-
-  highlightActiveCategory();
 }
 
-function highlightActiveCategory() {
-  const items = document.querySelectorAll('.category-item');
+/* =========================
+   POLYGON
+========================= */
+let poly = [];
 
-  items.forEach((el, i) => {
-    const cat = AppState.categories[i];
-    el.style.background =
-      cat.id === AppState.activeCategoryId
-        ? 'rgba(73,214,255,0.1)'
-        : 'transparent';
+refCanvas.addEventListener('click', e => {
+  if (!AppState.referenceImage) return;
+
+  const pos = getMouse(refCanvas, e);
+  poly.push(pos);
+  redrawRef();
+});
+
+refCanvas.addEventListener('dblclick', () => {
+  if (poly.length < 3) return;
+
+  const cat = AppState.categories.find(c => c.id === AppState.activeCategoryId);
+  cat.polygons.push([...poly]);
+
+  poly = [];
+  redrawRef();
+});
+
+function redrawRef() {
+  drawImage(AppState.referenceImage, refCanvas, refCtx);
+
+  AppState.categories.forEach(cat => {
+    refCtx.strokeStyle = cat.color;
+
+    cat.polygons.forEach(p => drawPoly(p, refCtx));
+  });
+
+  drawPoly(poly, refCtx, true);
+}
+
+function drawPoly(p, ctx, open=false) {
+  if (p.length === 0) return;
+
+  ctx.beginPath();
+  p.forEach((pt,i)=>{
+    if(i===0) ctx.moveTo(pt.x,pt.y);
+    else ctx.lineTo(pt.x,pt.y);
+  });
+  if(!open) ctx.closePath();
+  ctx.stroke();
+}
+
+/* =========================
+   DETECTION (FIX)
+========================= */
+function runDetection() {
+  if (!AppState.targetImage) return;
+
+  AppState.results = [];
+
+  const w = tgtCanvas.width;
+  const h = tgtCanvas.height;
+
+  const imgData = tgtCtx.getImageData(0,0,w,h).data;
+
+  let id=1;
+
+  for(let y=0;y<h;y+=12){
+    for(let x=0;x<w;x+=12){
+
+      const f = getFeature(imgData,w,x,y);
+
+      const match = classify(f);
+
+      if(match.conf > AppState.threshold){
+        AppState.results.push({
+          id:id++,
+          x,y,width:20,height:20,
+          category:match.cat,
+          confidence:match.conf,
+          area:400,
+          circularity:0.8
+        });
+      }
+    }
+  }
+
+  renderFiltered();
+}
+
+/* =========================
+   FEATURE
+========================= */
+function getFeature(data,w,x,y){
+  let r=0,g=0,b=0,c=0;
+
+  for(let i=0;i<20;i+=4){
+    const idx=((y+i)*w+(x+i))*4;
+    r+=data[idx];
+    g+=data[idx+1];
+    b+=data[idx+2];
+    c++;
+  }
+
+  return {r:r/c,g:g/c,b:b/c};
+}
+
+/* =========================
+   CLASSIFY
+========================= */
+function classify(f){
+  let best={cat:null,conf:0};
+
+  AppState.categories.forEach(cat=>{
+    cat.polygons.forEach(p=>{
+      const ref={r:p.length*10,g:p.length*5,b:100};
+      const conf=100-Math.abs(f.r-ref.r);
+
+      if(conf>best.conf){
+        best={cat:cat.name,conf};
+      }
+    });
+  });
+
+  return best;
+}
+
+/* =========================
+   RENDER
+========================= */
+function renderFiltered(){
+  resCanvas.width=tgtCanvas.width;
+  resCanvas.height=tgtCanvas.height;
+
+  resCtx.drawImage(tgtCanvas,0,0);
+
+  const filtered=AppState.results.filter(r=>r.confidence>=AppState.threshold);
+
+  filtered.forEach(o=>{
+    const col=getColor(o.category);
+
+    resCtx.strokeStyle=col;
+    resCtx.strokeRect(o.x,o.y,o.width,o.height);
+
+    resCtx.fillStyle=col;
+    resCtx.fillRect(o.x,o.y-12,60,12);
+
+    resCtx.fillStyle='#000';
+    resCtx.fillText(o.id,o.x+2,o.y-2);
+  });
+
+  renderTable(filtered);
+}
+
+/* =========================
+   TABLE
+========================= */
+function renderTable(data){
+  tableBody.innerHTML='';
+
+  data.forEach(o=>{
+    const tr=document.createElement('tr');
+
+    tr.innerHTML=`
+      <td>${o.id}</td>
+      <td>${o.category}</td>
+      <td>${o.area}</td>
+      <td>${o.circularity}</td>
+      <td>${Math.round(o.confidence)}%</td>
+    `;
+
+    tableBody.appendChild(tr);
   });
 }
 
 /* =========================
-   THRESHOLD CONTROL
+   HELPERS
 ========================= */
-const thresholdSlider = document.getElementById('thresholdSlider');
-
-thresholdSlider.oninput = () => {
-  AppState.threshold = Number(thresholdSlider.value);
-};
-
-/* =========================
-   POLYGON DRAW STATE
-========================= */
-let currentPolygon = [];
-let isDrawing = false;
-
-/* =========================
-   INIT POLYGON EVENTS
-========================= */
-referenceCanvas.addEventListener('click', onCanvasClick);
-referenceCanvas.addEventListener('dblclick', onCanvasDoubleClick);
-
-/* =========================
-   GET MOUSE POSITION
-========================= */
-function getMousePos(canvas, event) {
-  const rect = canvas.getBoundingClientRect();
-
+function getMouse(canvas,e){
+  const r=canvas.getBoundingClientRect();
   return {
-    x: (event.clientX - rect.left) * (canvas.width / rect.width),
-    y: (event.clientY - rect.top) * (canvas.height / rect.height)
+    x:(e.clientX-r.left)*(canvas.width/r.width),
+    y:(e.clientY-r.top)*(canvas.height/r.height)
   };
 }
 
-/* =========================
-   CLICK → ADD POINT
-========================= */
-function onCanvasClick(e) {
-  if (!AppState.referenceImage) return;
+function randomColor(){
+  return `hsl(${Math.random()*360},70%,60%)`;
+}
 
-  const pos = getMousePos(referenceCanvas, e);
-
-  currentPolygon.push(pos);
-  isDrawing = true;
-
-  redrawReferenceCanvas();
+function getColor(name){
+  const c=AppState.categories.find(x=>x.name===name);
+  return c?c.color:'#fff';
 }
 
 /* =========================
-   DOUBLE CLICK → FINISH
+   VIEW STATE (NEW SYSTEM)
 ========================= */
-function onCanvasDoubleClick() {
-  if (currentPolygon.length < 3) return;
-
-  const category = AppState.categories.find(
-    c => c.id === AppState.activeCategoryId
-  );
-
-  category.polygons.push([...currentPolygon]);
-
-  currentPolygon = [];
-  isDrawing = false;
-
-  redrawReferenceCanvas();
-}
-
-/* =========================
-   REDRAW CANVAS
-========================= */
-function redrawReferenceCanvas() {
-  if (!AppState.referenceImage) return;
-
-  drawImageToCanvas(
-    AppState.referenceImage,
-    referenceCanvas,
-    referenceCtx
-  );
-
-  drawSavedPolygons();
-  drawCurrentPolygon();
-}
-
-/* =========================
-   DRAW SAVED POLYGONS
-========================= */
-function drawSavedPolygons() {
-  AppState.categories.forEach(cat => {
-    referenceCtx.strokeStyle = cat.color;
-    referenceCtx.lineWidth = 2;
-
-    cat.polygons.forEach(poly => {
-      referenceCtx.beginPath();
-
-      poly.forEach((p, i) => {
-        if (i === 0) {
-          referenceCtx.moveTo(p.x, p.y);
-        } else {
-          referenceCtx.lineTo(p.x, p.y);
-        }
-      });
-
-      referenceCtx.closePath();
-      referenceCtx.stroke();
-    });
-  });
-}
-
-/* =========================
-   DRAW CURRENT POLYGON
-========================= */
-function drawCurrentPolygon() {
-  if (!isDrawing || currentPolygon.length === 0) return;
-
-  referenceCtx.strokeStyle = '#ffffff';
-  referenceCtx.lineWidth = 1.5;
-
-  referenceCtx.beginPath();
-
-  currentPolygon.forEach((p, i) => {
-    if (i === 0) {
-      referenceCtx.moveTo(p.x, p.y);
-    } else {
-      referenceCtx.lineTo(p.x, p.y);
-    }
-  });
-
-  referenceCtx.stroke();
-
-  // draw points
-  currentPolygon.forEach(p => {
-    referenceCtx.beginPath();
-    referenceCtx.arc(p.x, p.y, 3, 0, Math.PI * 2);
-    referenceCtx.fillStyle = '#ffffff';
-    referenceCtx.fill();
-  });
-}
-
-/* =========================
-   VIEWPORT STATE
-========================= */
-const ViewState = {
+const View = {
   scale: 1,
   offsetX: 0,
   offsetY: 0,
-  isDragging: false,
+  dragging: false,
   lastX: 0,
   lastY: 0
 };
@@ -286,690 +365,141 @@ const ViewState = {
 /* =========================
    APPLY TRANSFORM
 ========================= */
-function applyTransform(ctx) {
+function applyView(ctx) {
   ctx.setTransform(
-    ViewState.scale,
+    View.scale,
     0,
     0,
-    ViewState.scale,
-    ViewState.offsetX,
-    ViewState.offsetY
+    View.scale,
+    View.offsetX,
+    View.offsetY
   );
 }
 
 /* =========================
-   REDRAW WITH VIEW
+   RESET TRANSFORM
 ========================= */
-function redrawReferenceCanvas() {
-  if (!AppState.referenceImage) return;
-
-  const canvas = referenceCanvas;
-  const ctx = referenceCtx;
-
+function resetView(ctx, canvas) {
   ctx.setTransform(1,0,0,1,0,0);
   ctx.clearRect(0,0,canvas.width,canvas.height);
-
-  applyTransform(ctx);
-
-  ctx.drawImage(AppState.referenceImage, 0, 0, canvas.width, canvas.height);
-
-  drawSavedPolygons();
-  drawCurrentPolygon();
 }
 
 /* =========================
-   ZOOM (WHEEL)
+   REDRAW (WITH VIEW)
 ========================= */
-referenceCanvas.addEventListener('wheel', (e) => {
-  e.preventDefault();
+function redrawRef() {
+  if (!AppState.referenceImage) return;
 
-  const zoomFactor = 1.1;
+  resetView(refCtx, refCanvas);
+  applyView(refCtx);
 
-  if (e.deltaY < 0) {
-    ViewState.scale *= zoomFactor;
-  } else {
-    ViewState.scale /= zoomFactor;
-  }
+  refCtx.drawImage(
+    AppState.referenceImage,
+    0,
+    0,
+    refCanvas.width,
+    refCanvas.height
+  );
 
-  redrawReferenceCanvas();
-});
-
-/* =========================
-   PAN (DRAG)
-========================= */
-referenceCanvas.addEventListener('mousedown', (e) => {
-  ViewState.isDragging = true;
-  ViewState.lastX = e.clientX;
-  ViewState.lastY = e.clientY;
-});
-
-window.addEventListener('mouseup', () => {
-  ViewState.isDragging = false;
-});
-
-window.addEventListener('mousemove', (e) => {
-  if (!ViewState.isDragging) return;
-
-  const dx = e.clientX - ViewState.lastX;
-  const dy = e.clientY - ViewState.lastY;
-
-  ViewState.offsetX += dx;
-  ViewState.offsetY += dy;
-
-  ViewState.lastX = e.clientX;
-  ViewState.lastY = e.clientY;
-
-  redrawReferenceCanvas();
-});
-
-/* =========================
-   CROSSHAIR (DYNAMIC)
-========================= */
-referenceCanvas.addEventListener('mousemove', (e) => {
-  const wrapper = referenceCanvas.parentElement;
-
-  const rect = wrapper.getBoundingClientRect();
-
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
-
-  wrapper.style.setProperty('--crosshair-x', `${x}px`);
-  wrapper.style.setProperty('--crosshair-y', `${y}px`);
-});
-
-/* =========================
-   CSS SUPPORT (DYNAMIC)
-========================= */
-const style = document.createElement('style');
-style.innerHTML = `
-.canvas-wrapper::before,
-.canvas-wrapper::after {
-  content: '';
-  position: absolute;
-  pointer-events: none;
-}
-
-.canvas-wrapper::before {
-  left: var(--crosshair-x);
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background: rgba(73,214,255,0.4);
-}
-
-.canvas-wrapper::after {
-  top: var(--crosshair-y);
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: rgba(73,214,255,0.4);
-}
-`;
-document.head.appendChild(style);
-/* =========================
-   RUN DETECTION
-========================= */
-const runBtn = document.getElementById('runDetectionBtn');
-
-runBtn.onclick = () => {
-  if (!AppState.targetImage) return;
-
-  AppState.results = [];
-
-  detectObjects();
-  alert('Detection complete');
-};
-
-/* =========================
-   MAIN DETECTION
-========================= */
-function detectObjects() {
-  const canvas = targetCanvas;
-  const ctx = targetCtx;
-
-  const width = canvas.width;
-  const height = canvas.height;
-
-  const imageData = ctx.getImageData(0, 0, width, height);
-  const data = imageData.data;
-
-  const step = 12; // LARGE STEP = FAST
-  const windowSize = 20;
-
-  let idCounter = 1;
-
-  for (let y = 0; y < height; y += step) {
-    for (let x = 0; x < width; x += step) {
-
-      const feature = extractFeature(data, width, x, y, windowSize);
-
-      const match = classifyFeature(feature);
-
-      if (match.confidence > AppState.threshold) {
-
-        AppState.results.push({
-          id: idCounter++,
-          x,
-          y,
-          width: windowSize,
-          height: windowSize,
-          category: match.category,
-          confidence: match.confidence,
-          area: windowSize * windowSize,
-          circularity: calculateCircularity(windowSize)
-        });
-
-      }
-    }
-  }
-}
-
-/* =========================
-   FEATURE EXTRACTION
-========================= */
-function extractFeature(data, width, startX, startY, size) {
-  let r = 0, g = 0, b = 0;
-  let count = 0;
-
-  for (let y = 0; y < size; y += 4) {
-    for (let x = 0; x < size; x += 4) {
-
-      const px = startX + x;
-      const py = startY + y;
-
-      const idx = (py * width + px) * 4;
-
-      r += data[idx];
-      g += data[idx + 1];
-      b += data[idx + 2];
-
-      count++;
-    }
-  }
-
-  return {
-    r: r / count,
-    g: g / count,
-    b: b / count
-  };
-}
-
-/* =========================
-   CLASSIFICATION
-========================= */
-function classifyFeature(feature) {
-  let bestMatch = {
-    category: null,
-    confidence: 0
-  };
-
+  // draw polygons AFTER transform
   AppState.categories.forEach(cat => {
-
-    cat.polygons.forEach(poly => {
-
-      const refFeature = getPolygonFeature(poly);
-
-      const similarity = compareRGB(feature, refFeature);
-
-      if (similarity > bestMatch.confidence) {
-        bestMatch = {
-          category: cat.name,
-          confidence: similarity
-        };
-      }
-    });
-
+    refCtx.strokeStyle = cat.color;
+    cat.polygons.forEach(p => drawPoly(p, refCtx));
   });
 
-  return bestMatch;
+  drawPoly(poly, refCtx, true);
 }
 
 /* =========================
-   POLYGON FEATURE (SIMPLE)
+   ZOOM (FIX)
 ========================= */
-function getPolygonFeature(poly) {
-  let sumX = 0, sumY = 0;
-
-  poly.forEach(p => {
-    sumX += p.x;
-    sumY += p.y;
-  });
-
-  return {
-    r: sumX % 255,
-    g: sumY % 255,
-    b: (sumX + sumY) % 255
-  };
-}
-
-/* =========================
-   RGB SIMILARITY
-========================= */
-function compareRGB(a, b) {
-  const diff =
-    Math.abs(a.r - b.r) +
-    Math.abs(a.g - b.g) +
-    Math.abs(a.b - b.b);
-
-  return 100 - (diff / 765) * 100;
-}
-
-/* =========================
-   CIRCULARITY (APPROX)
-========================= */
-function calculateCircularity(size) {
-  return (4 * Math.PI * size) / (size * size + 1);
-}
-
-/* =========================
-   RESULT CANVAS
-========================= */
-const resultCanvas = document.getElementById('resultCanvas');
-const resultCtx = resultCanvas.getContext('2d');
-
-/* =========================
-   RENDER RESULT
-========================= */
-function renderResults() {
-  if (!AppState.targetImage) return;
-
-  // resize canvas mengikuti target
-  resultCanvas.width = targetCanvas.width;
-  resultCanvas.height = targetCanvas.height;
-
-  // draw original image dulu
-  resultCtx.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
-  resultCtx.drawImage(
-    targetCanvas,
-    0,
-    0,
-    resultCanvas.width,
-    resultCanvas.height
-  );
-
-  drawBoundingBoxes();
-}
-
-/* =========================
-   DRAW BOXES
-========================= */
-function drawBoundingBoxes() {
-  AppState.results.forEach(obj => {
-
-    const color = getCategoryColor(obj.category);
-
-    // BOX
-    resultCtx.strokeStyle = color;
-    resultCtx.lineWidth = 2;
-
-    resultCtx.strokeRect(
-      obj.x,
-      obj.y,
-      obj.width,
-      obj.height
-    );
-
-    // LABEL BACKGROUND
-    resultCtx.fillStyle = color;
-    resultCtx.fillRect(
-      obj.x,
-      obj.y - 16,
-      80,
-      16
-    );
-
-    // TEXT
-    resultCtx.fillStyle = '#000';
-    resultCtx.font = '10px Arial';
-
-    resultCtx.fillText(
-      `${obj.id} (${Math.round(obj.confidence)}%)`,
-      obj.x + 4,
-      obj.y - 4
-    );
-  });
-}
-
-/* =========================
-   CATEGORY COLOR
-========================= */
-function getCategoryColor(categoryName) {
-  const cat = AppState.categories.find(c => c.name === categoryName);
-  return cat ? cat.color : '#ffffff';
-}
-
-/* =========================
-   TRIGGER RENDER AFTER DETECTION
-========================= */
-runBtn.onclick = () => {
-  if (!AppState.targetImage) return;
-
-  AppState.results = [];
-
-  detectObjects();
-  renderResults();
-};
-
-/* =========================
-   RESET RESULT CANVAS
-========================= */
-function clearResults() {
-  resultCtx.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
-}
-
-/* =========================
-   RESULT TABLE
-========================= */
-const resultTableBody = document.getElementById('resultTableBody');
-
-/* =========================
-   RENDER TABLE
-========================= */
-function renderResultTable() {
-  if (!AppState.results || AppState.results.length === 0) {
-    resultTableBody.innerHTML = `
-      <tr>
-        <td colspan="5">No data</td>
-      </tr>
-    `;
-    return;
-  }
-
-  resultTableBody.innerHTML = '';
-
-  AppState.results.forEach(obj => {
-    const row = document.createElement('tr');
-
-    row.innerHTML = `
-      <td>${obj.id}</td>
-      <td>${obj.category}</td>
-      <td>${obj.area}</td>
-      <td>${obj.circularity.toFixed(2)}</td>
-      <td>${Math.round(obj.confidence)}%</td>
-    `;
-
-    // highlight on click
-    row.onclick = () => highlightObject(obj);
-
-    resultTableBody.appendChild(row);
-  });
-}
-
-/* =========================
-   HIGHLIGHT OBJECT
-========================= */
-function highlightObject(obj) {
-  renderResults();
-
-  resultCtx.strokeStyle = '#ffffff';
-  resultCtx.lineWidth = 3;
-
-  resultCtx.strokeRect(
-    obj.x,
-    obj.y,
-    obj.width,
-    obj.height
-  );
-}
-
-/* =========================
-   UPDATE AFTER DETECTION
-========================= */
-runBtn.onclick = () => {
-  if (!AppState.targetImage) return;
-
-  AppState.results = [];
-
-  detectObjects();
-  renderResults();
-  renderResultTable();
-};
-
-/* =========================
-   CLEAR TABLE
-========================= */
-function clearTable() {
-  resultTableBody.innerHTML = `
-    <tr>
-      <td colspan="5">No data</td>
-    </tr>
-  `;
-}
-
-/* =========================
-   FILTERED RESULTS
-========================= */
-function getFilteredResults() {
-  return AppState.results.filter(
-    obj => obj.confidence >= AppState.threshold
-  );
-}
-
-/* =========================
-   RENDER FILTERED RESULT
-========================= */
-function renderFilteredResults() {
-  if (!AppState.targetImage) return;
-
-  const filtered = getFilteredResults();
-
-  // draw base image
-  resultCtx.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
-  resultCtx.drawImage(
-    targetCanvas,
-    0,
-    0,
-    resultCanvas.width,
-    resultCanvas.height
-  );
-
-  // draw boxes
-  filtered.forEach(obj => {
-    const color = getCategoryColor(obj.category);
-
-    resultCtx.strokeStyle = color;
-    resultCtx.lineWidth = 2;
-
-    resultCtx.strokeRect(obj.x, obj.y, obj.width, obj.height);
-
-    resultCtx.fillStyle = color;
-    resultCtx.fillRect(obj.x, obj.y - 16, 80, 16);
-
-    resultCtx.fillStyle = '#000';
-    resultCtx.font = '10px Arial';
-
-    resultCtx.fillText(
-      `${obj.id} (${Math.round(obj.confidence)}%)`,
-      obj.x + 4,
-      obj.y - 4
-    );
-  });
-
-  renderFilteredTable(filtered);
-}
-
-/* =========================
-   TABLE FILTER
-========================= */
-function renderFilteredTable(filtered) {
-  if (filtered.length === 0) {
-    resultTableBody.innerHTML = `
-      <tr>
-        <td colspan="5">No data</td>
-      </tr>
-    `;
-    return;
-  }
-
-  resultTableBody.innerHTML = '';
-
-  filtered.forEach(obj => {
-    const row = document.createElement('tr');
-
-    row.innerHTML = `
-      <td>${obj.id}</td>
-      <td>${obj.category}</td>
-      <td>${obj.area}</td>
-      <td>${obj.circularity.toFixed(2)}</td>
-      <td>${Math.round(obj.confidence)}%</td>
-    `;
-
-    resultTableBody.appendChild(row);
-  });
-}
-
-/* =========================
-   SLIDER EVENT
-========================= */
-thresholdSlider.oninput = () => {
-  AppState.threshold = Number(thresholdSlider.value);
-  renderFilteredResults();
-};
-
-/* =========================
-   UPDATE AFTER DETECTION
-========================= */
-runBtn.onclick = () => {
-  if (!AppState.targetImage) return;
-
-  AppState.results = [];
-
-  detectObjects();
-
-  renderResults();
-  renderResultTable();
-
-  renderFilteredResults(); // apply filter langsung
-};
-
-/* =========================
-   PERFORMANCE CONFIG
-========================= */
-const PerformanceConfig = {
-  maxImageSize: 600,     // downscale lebih kecil untuk mobile
-  maxResults: 300,       // limit hasil
-  baseStep: 12           // default scan step
-};
-
-/* =========================
-   ADAPTIVE STEP
-========================= */
-function getAdaptiveStep(width) {
-  if (width > 800) return 16;
-  if (width > 500) return 12;
-  return 8;
-}
-
-/* =========================
-   OPTIMIZED DRAW IMAGE
-========================= */
-function drawImageToCanvas(image, canvas, ctx) {
-  const maxSize = PerformanceConfig.maxImageSize;
-
-  let width = image.width;
-  let height = image.height;
-
-  const scale = Math.min(maxSize / width, maxSize / height, 1);
-
-  width *= scale;
-  height *= scale;
-
-  canvas.width = width;
-  canvas.height = height;
-
-  ctx.clearRect(0, 0, width, height);
-  ctx.drawImage(image, 0, 0, width, height);
-}
-
-/* =========================
-   OPTIMIZED DETECTION
-========================= */
-function detectObjects() {
-  const canvas = targetCanvas;
-  const ctx = targetCtx;
-
-  const width = canvas.width;
-  const height = canvas.height;
-
-  const imageData = ctx.getImageData(0, 0, width, height);
-  const data = imageData.data;
-
-  const step = getAdaptiveStep(width);
-  const windowSize = 20;
-
-  let idCounter = 1;
-
-  for (let y = 0; y < height; y += step) {
-    for (let x = 0; x < width; x += step) {
-
-      if (AppState.results.length > PerformanceConfig.maxResults) return;
-
-      const feature = extractFeature(data, width, x, y, windowSize);
-      const match = classifyFeature(feature);
-
-      if (match.confidence > AppState.threshold) {
-
-        AppState.results.push({
-          id: idCounter++,
-          x,
-          y,
-          width: windowSize,
-          height: windowSize,
-          category: match.category,
-          confidence: match.confidence,
-          area: windowSize * windowSize,
-          circularity: calculateCircularity(windowSize)
-        });
-
-      }
-    }
-  }
-}
-
-/* =========================
-   TOUCH SUPPORT (PAN)
-========================= */
-referenceCanvas.addEventListener('touchstart', (e) => {
-  const t = e.touches[0];
-  ViewState.isDragging = true;
-  ViewState.lastX = t.clientX;
-  ViewState.lastY = t.clientY;
-});
-
-referenceCanvas.addEventListener('touchmove', (e) => {
-  if (!ViewState.isDragging) return;
-
-  const t = e.touches[0];
-
-  const dx = t.clientX - ViewState.lastX;
-  const dy = t.clientY - ViewState.lastY;
-
-  ViewState.offsetX += dx;
-  ViewState.offsetY += dy;
-
-  ViewState.lastX = t.clientX;
-  ViewState.lastY = t.clientY;
-
-  redrawReferenceCanvas();
-});
-
-referenceCanvas.addEventListener('touchend', () => {
-  ViewState.isDragging = false;
-});
-
-/* =========================
-   PREVENT SCROLL WHEN ZOOM
-========================= */
-referenceCanvas.addEventListener('wheel', (e) => {
+refCanvas.addEventListener('wheel', (e) => {
   e.preventDefault();
+
+  const zoom = e.deltaY < 0 ? 1.1 : 0.9;
+
+  // zoom toward mouse
+  const rect = refCanvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+
+  View.offsetX = mx - (mx - View.offsetX) * zoom;
+  View.offsetY = my - (my - View.offsetY) * zoom;
+
+  View.scale *= zoom;
+
+  redrawRef();
 }, { passive: false });
 
 /* =========================
-   SIMPLE MEMORY CLEANUP
+   PAN (MOUSE)
 ========================= */
-function resetApp() {
-  AppState.results = [];
-  clearResults();
-  clearTable();
-}
+refCanvas.addEventListener('mousedown', (e) => {
+  View.dragging = true;
+  View.lastX = e.clientX;
+  View.lastY = e.clientY;
+});
+
+window.addEventListener('mouseup', () => {
+  View.dragging = false;
+});
+
+window.addEventListener('mousemove', (e) => {
+  if (!View.dragging) return;
+
+  const dx = e.clientX - View.lastX;
+  const dy = e.clientY - View.lastY;
+
+  View.offsetX += dx;
+  View.offsetY += dy;
+
+  View.lastX = e.clientX;
+  View.lastY = e.clientY;
+
+  redrawRef();
+});
+
+/* =========================
+   PAN (TOUCH)
+========================= */
+refCanvas.addEventListener('touchstart', (e) => {
+  const t = e.touches[0];
+  View.dragging = true;
+  View.lastX = t.clientX;
+  View.lastY = t.clientY;
+});
+
+refCanvas.addEventListener('touchmove', (e) => {
+  if (!View.dragging) return;
+
+  const t = e.touches[0];
+
+  const dx = t.clientX - View.lastX;
+  const dy = t.clientY - View.lastY;
+
+  View.offsetX += dx;
+  View.offsetY += dy;
+
+  View.lastX = t.clientX;
+  View.lastY = t.clientY;
+
+  redrawRef();
+});
+
+refCanvas.addEventListener('touchend', () => {
+  View.dragging = false;
+});
+
+/* =========================
+   RESET VIEW (DOUBLE CLICK ALT)
+========================= */
+refCanvas.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+
+  View.scale = 1;
+  View.offsetX = 0;
+  View.offsetY = 0;
+
+  redrawRef();
+});
 
