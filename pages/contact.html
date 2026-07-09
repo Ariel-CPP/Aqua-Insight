@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bantuan & Kontak - Aqua Insight</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    .contact-grid {
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      gap: 2rem;
+    }
+    
+    .team-card {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1.5rem;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      margin-bottom: 1rem;
+      transition: all 0.3s;
+    }
+    
+    .team-card:hover {
+      background: rgba(0, 242, 254, 0.05);
+      border-color: rgba(0, 242, 254, 0.3);
+      transform: translateY(-2px);
+    }
+    
+    .avatar {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--text-accent) 0%, #4FACFE 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #070e1b;
+      font-family: var(--font-heading);
+      font-weight: 800;
+      font-size: 1.5rem;
+    }
+    
+    .team-info h4 {
+      font-size: 1.1rem;
+      margin-bottom: 0.2rem;
+      color: var(--text-primary);
+    }
+    
+    .team-info p {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin: 0;
+    }
+    
+    .faq-item {
+      border-bottom: 1px solid var(--border-color);
+      padding: 1rem 0;
+    }
+    
+    .faq-question {
+      display: flex;
+      justify-content: space-between;
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    
+    .faq-answer {
+      padding-top: 0.5rem;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      display: none;
+    }
+    
+    .contact-info-list {
+      list-style: none;
+      padding: 0;
+    }
+    
+    .contact-info-list li {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      align-items: flex-start;
+    }
+    
+    .contact-info-list i {
+      color: var(--text-accent);
+      font-size: 1.2rem;
+      margin-top: 0.2rem;
+    }
+    
+    .info-text h5 {
+      font-size: 0.9rem;
+      color: var(--text-primary);
+      margin-bottom: 0.2rem;
+    }
+    
+    .info-text p {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+  </style>
+</head>
+<body class="subpage">
+
+  <div id="app-layout">
+    <div id="sidebar-container"></div>
+    
+    <main id="main-content">
+      <div id="header-container" data-page-title="Bantuan & Kontak" data-page-category="Dukungan"></div>
+      
+      <div class="contact-grid">
+        <!-- Left Column: Team & Form -->
+        <div style="display: flex; flex-direction: column; gap: 2rem;">
+          
+          <section class="glass-panel">
+            <h3 class="panel-section-title"><i class="fa-solid fa-users"></i> <span data-i18n="ct_team">Tim Pengembang (Technology Division)</span></h3>
+            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.5rem; line-height: 1.6;" data-i18n="ct_team_desc">Aqua Insight dikembangkan dan dipelihara secara internal oleh tim riset dan teknologi PT Central Proteina Prima Tbk untuk standarisasi analitik akuakultur.</p>
+            
+            <div class="team-card">
+              <div class="avatar">RA</div>
+              <div class="team-info">
+                <h4>R&D Aquaculture Team</h4>
+                <p data-i18n="ct_rd_spec">Spesialisasi: Formulasi Pakan, Uji Performa, Manajemen Kualitas Air</p>
+              </div>
+            </div>
+            
+            <div class="team-card">
+              <div class="avatar">BU</div>
+              <div class="team-info">
+                <h4>Biostatistics Unit</h4>
+                <p data-i18n="ct_bio_spec">Spesialisasi: Validasi Model Statistik, Perancangan Percobaan (CRD/RCBD)</p>
+              </div>
+            </div>
+            
+            <div class="team-card">
+              <div class="avatar">DL</div>
+              <div class="team-info">
+                <h4>Digital Laboratory Team</h4>
+                <p data-i18n="ct_dl_spec">Spesialisasi: Analisis PCR, Densitometri Gel, Patologi Mikroskopis</p>
+              </div>
+            </div>
+          </section>
+          
+          <section class="glass-panel">
+            <h3 class="panel-section-title"><i class="fa-regular fa-paper-plane"></i> <span data-i18n="ct_feedback">Kirim Umpan Balik</span></h3>
+            
+            <form onsubmit="submitFeedback(event)">
+              <div class="form-row">
+                <div class="form-group">
+                  <label data-i18n="ct_full_name">Nama Lengkap</label>
+                  <input type="text" class="form-control" required placeholder="Contoh: Budi Santoso">
+                </div>
+                <div class="form-group">
+                  <label data-i18n="ct_corp_email">Email Korporat</label>
+                  <input type="email" class="form-control" required placeholder="budi@cpp.co.id">
+                </div>
+              </div>
+              
+              <div class="form-row">
+                <div class="form-group">
+                  <label data-i18n="ct_dept">Departemen/Lokasi</label>
+                  <input type="text" class="form-control" required placeholder="Contoh: R&D Lab / Farm Sidoarjo">
+                </div>
+                <div class="form-group">
+                  <label data-i18n="ct_req_type">Jenis Permintaan</label>
+                  <select class="form-control" required>
+                    <option value="">-- Pilih --</option>
+                    <option value="bug" data-i18n="ct_req_bug">Laporan Bug/Error</option>
+                    <option value="feature" data-i18n="ct_req_feature">Permintaan Fitur Baru</option>
+                    <option value="support" data-i18n="ct_req_support">Bantuan Teknis/Penggunaan</option>
+                    <option value="other" data-i18n="ct_req_other">Lainnya</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div class="form-group">
+                <label data-i18n="ct_message">Pesan / Detil Laporan</label>
+                <textarea class="form-control" rows="5" required placeholder="Tuliskan secara spesifik apa kendala atau usulan Anda..."></textarea>
+              </div>
+              
+              <button type="submit" class="header-btn" style="background: linear-gradient(135deg, var(--text-accent) 0%, #4FACFE 100%); color: #070e1b; border-color: transparent;">
+                <i class="fa-solid fa-paper-plane"></i> <span data-i18n="ct_send">Kirim Pesan</span>
+              </button>
+            </form>
+          </section>
+          
+          <section class="glass-panel" style="margin-bottom: 2rem;">
+            <h3 class="panel-section-title"><i class="fa-solid fa-circle-question"></i> <span data-i18n="ct_faq">FAQ (Pertanyaan Umum)</span></h3>
+            
+            <div class="faq-item" onclick="toggleFaq(this)">
+              <div class="faq-question">Apakah data analisis saya dikirim ke server pusat? <i class="fa-solid fa-chevron-down"></i></div>
+              <div class="faq-answer">Tidak. Aqua Insight menggunakan arsitektur serverless. Semua perhitungan, input data grid, dan pengolahan citra dilakukan secara lokal (client-side) di browser Anda. Data tidak akan meninggalkan komputer Anda kecuali Anda mengekspornya.</div>
+            </div>
+            
+            <div class="faq-item" onclick="toggleFaq(this)">
+              <div class="faq-question">Bagaimana cara mengekspor hasil ke Excel? <i class="fa-solid fa-chevron-down"></i></div>
+              <div class="faq-answer">Anda dapat menggunakan tombol "Impor CSV" untuk memasukkan data. Untuk mengekspor, sebagian modul yang mendukung (seperti Particle Analyzer) memiliki tombol Ekspor XLSX. Untuk tabel grid, Anda bisa memblok data dan copy-paste langsung ke Excel.</div>
+            </div>
+            
+            <div class="faq-item" onclick="toggleFaq(this)">
+              <div class="faq-question">Browser apa yang paling direkomendasikan? <i class="fa-solid fa-chevron-down"></i></div>
+              <div class="faq-answer">Kami merekomendasikan Google Chrome atau Microsoft Edge versi terbaru (berbasis Chromium) karena mengoptimalkan performa Canvas API dan kalkulasi JavaScript secara maksimal.</div>
+            </div>
+            
+            <div class="faq-item" onclick="toggleFaq(this)" style="border-bottom: none;">
+              <div class="faq-question">Apakah saya butuh koneksi internet? <i class="fa-solid fa-chevron-down"></i></div>
+              <div class="faq-answer">Secara umum ya, untuk memuat file library eksternal (Chart.js, FontAwesome) dan memuat file HTML via jaringan lokal/hosting. Namun setelah aplikasi termuat sepenuhnya di browser, Anda bisa bekerja secara offline (tanpa koneksi luar).</div>
+            </div>
+          </section>
+          
+        </div>
+        
+        <!-- Right Column: Info & Links -->
+        <div style="display: flex; flex-direction: column; gap: 2rem;">
+          
+          <section class="glass-panel">
+            <h3 class="panel-section-title"><i class="fa-solid fa-address-book"></i> <span data-i18n="ct_contact_us">Hubungi Kami</span></h3>
+            
+            <ul class="contact-info-list">
+              <li>
+                <i class="fa-solid fa-envelope"></i>
+                <div class="info-text">
+                  <h5 data-i18n="ct_support_email">Email Dukungan</h5>
+                  <p>it.support@cpp.co.id</p>
+                  <p>rnd.tech@cpp.co.id</p>
+                </div>
+              </li>
+              <li>
+                <i class="fa-solid fa-phone"></i>
+                <div class="info-text">
+                  <h5 data-i18n="ct_internal_phone">Telepon Internal</h5>
+                  <p>Ext. 2045 (IT Helpdesk)</p>
+                  <p>Ext. 3102 (R&D Lab)</p>
+                </div>
+              </li>
+              <li>
+                <i class="fa-regular fa-clock"></i>
+                <div class="info-text">
+                  <h5 data-i18n="ct_hours">Jam Operasional</h5>
+                  <p>Senin - Jumat</p>
+                  <p>08:00 - 17:00 WIB</p>
+                </div>
+              </li>
+              <li>
+                <i class="fa-solid fa-location-dot"></i>
+                <div class="info-text">
+                  <h5 data-i18n="ct_office">Kantor Pusat</h5>
+                  <p>PT Central Proteina Prima Tbk<br>Treasury Tower Lantai 8<br>District 8, SCBD Lot 28<br>Jakarta Selatan</p>
+                </div>
+              </li>
+            </ul>
+          </section>
+          
+          <div class="glass-panel" style="text-align: center; padding: 3rem 1.5rem;">
+            <i class="fa-solid fa-book-journal-whills" style="font-size: 3rem; color: var(--text-accent); margin-bottom: 1rem;"></i>
+            <h4 style="color: var(--text-primary); margin-bottom: 0.5rem;" data-i18n="ct_docs">Dokumentasi Lengkap</h4>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.5rem;" data-i18n="ct_docs_desc">Akses Standard Operating Procedure (SOP) dan metode kalibrasi untuk modul ini.</p>
+            <button class="header-btn" style="width: 100%; justify-content: center; border-color: var(--text-accent); color: var(--text-accent);">
+              <i class="fa-solid fa-download"></i> <span data-i18n="ct_download_manual">Unduh PDF Manual</span>
+            </button>
+          </div>
+          
+        </div>
+      </div>
+      
+      <footer class="app-footer" style="margin-top: 0;">
+        <div data-i18n="txt_footer_copy">© 2026 Technology Division, PT Central Proteina Prima Tbk. Hak Cipta Dilindungi.</div>
+      </footer>
+    </main>
+  </div>
+
+  <script src="../js/core/i18n.js"></script>
+  <script src="../js/core/modules.js"></script>
+  <script src="../js/main.js"></script>
+  <script>
+    function toggleFaq(el) {
+      const answer = el.querySelector('.faq-answer');
+      const icon = el.querySelector('i');
+      
+      if (answer.style.display === 'block') {
+        answer.style.display = 'none';
+        icon.className = 'fa-solid fa-chevron-down';
+      } else {
+        answer.style.display = 'block';
+        icon.className = 'fa-solid fa-chevron-up';
+      }
+    }
+    
+    function submitFeedback(e) {
+      e.preventDefault();
+      alert("Terima kasih! Pesan dan laporan Anda telah terkirim ke tim Technology Division.");
+      e.target.reset();
+    }
+  </script>
+</body>
+</html>

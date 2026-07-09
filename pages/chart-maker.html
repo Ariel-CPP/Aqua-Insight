@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chart Maker - Aqua Insight</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/chart-maker.css">
+</head>
+<body class="subpage">
+  <div id="app-layout">
+    <div id="sidebar-container"></div>
+    <main id="main-content">
+      <div id="header-container" data-page-title="Chart Maker" data-page-category="Data &amp; Analytics"></div>
+      <div class="cm-workspace">
+
+        <!-- Left Panel -->
+        <section class="glass-panel cm-control-panel">
+          <h3 class="panel-section-title"><i class="fa-solid fa-chart-pie"></i> <span data-i18n="cm_chart_type">Jenis Grafik</span></h3>
+          <div class="form-group">
+            <label for="chart-type" data-i18n="cm_chart_type_label">Pilih Tipe Visualisasi</label>
+            <select id="chart-type" class="form-control">
+              <option value="bar">Bar Chart</option><option value="line">Line Chart</option>
+              <option value="pie">Pie Chart</option><option value="doughnut">Doughnut Chart</option>
+              <option value="scatter">Scatter Plot</option><option value="bubble">Bubble Chart</option>
+              <option value="radar">Radar Chart</option><option value="polarArea">Polar Area Chart</option>
+              <option value="stacked-bar">Stacked Bar Chart</option><option value="area">Area Chart</option>
+              <option value="pca">PCA Plot</option><option value="hca">HCA Dendrogram</option>
+            </select>
+          </div>
+          <hr class="panel-divider">
+          <h3 class="panel-section-title"><i class="fa-solid fa-palette"></i> <span data-i18n="cm_display_opts">Opsi Tampilan</span></h3>
+          <div class="form-group">
+            <label for="chart-title-input" data-i18n="cm_chart_title">Judul Grafik</label>
+            <input type="text" id="chart-title-input" class="form-control" data-i18n-placeholder="cm_chart_title_ph" placeholder="Masukkan judul grafik...">
+          </div>
+          <div class="form-group">
+            <label for="x-axis-label" data-i18n="cm_x_label">Label Sumbu X</label>
+            <input type="text" id="x-axis-label" class="form-control" data-i18n-placeholder="cm_x_label_ph" placeholder="Contoh: Perlakuan">
+          </div>
+          <div class="form-group">
+            <label for="y-axis-label" data-i18n="cm_y_label">Label Sumbu Y</label>
+            <input type="text" id="y-axis-label" class="form-control" data-i18n-placeholder="cm_y_label_ph" placeholder="Contoh: Nilai">
+          </div>
+          <div class="form-group">
+            <div class="switch-control">
+              <label data-i18n="cm_show_legend">Tampilkan Legend</label>
+              <button id="toggle-legend" class="toggle-switch-btn active" onclick="this.classList.toggle('active')"></button>
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="switch-control">
+              <label data-i18n="cm_show_grid">Tampilkan Grid</label>
+              <button id="toggle-grid" class="toggle-switch-btn active" onclick="this.classList.toggle('active')"></button>
+            </div>
+          </div>
+          
+          <hr class="panel-divider">
+          <h3 class="panel-section-title"><i class="fa-solid fa-sliders"></i> Gaya Visual</h3>
+          <div class="form-group">
+            <label for="color-palette">Tema Warna Palette</label>
+            <select id="color-palette" class="form-control">
+              <option value="classic">Classic Aqua</option>
+              <option value="neon">Neon Cyan & Purple</option>
+              <option value="emerald">Emerald Forest</option>
+              <option value="sunset">Sunset Orange & Pink</option>
+              <option value="warm">Warm Amber & Gold</option>
+              <option value="monochrome">Monochrome Grey</option>
+            </select>
+          </div>
+          <div class="form-group" id="line-tension-group">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+              <label for="line-tension" style="margin-bottom: 0;">Kelengkungan Garis</label>
+              <span id="line-tension-val" style="font-size: 0.8rem; font-weight: 700; color: var(--text-accent);">0.4</span>
+            </div>
+            <input type="range" id="line-tension" class="custom-slider" min="0" max="8" value="4" step="1">
+          </div>
+          <div class="form-group" id="point-radius-group">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+              <label for="point-radius" style="margin-bottom: 0;">Ukuran Titik (Point Size)</label>
+              <span id="point-radius-val" style="font-size: 0.8rem; font-weight: 700; color: var(--text-accent);">4 px</span>
+            </div>
+            <input type="range" id="point-radius" class="custom-slider" min="0" max="10" value="4">
+          </div>
+          <div class="form-group" id="bar-radius-group">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+              <label for="bar-radius" style="margin-bottom: 0;">Lengkung Batang</label>
+              <span id="bar-radius-val" style="font-size: 0.8rem; font-weight: 700; color: var(--text-accent);">6 px</span>
+            </div>
+            <input type="range" id="bar-radius" class="custom-slider" min="0" max="15" value="6">
+          </div>
+          <div class="form-group" id="bar-orientation-group">
+            <div class="switch-control">
+              <label for="toggle-bar-orientation">Grafik Batang Horizontal</label>
+              <button id="toggle-bar-orientation" class="toggle-switch-btn" onclick="this.classList.toggle('active')"></button>
+            </div>
+          </div>
+          <div class="form-group" id="area-fill-group">
+            <div class="switch-control">
+              <label for="toggle-area-fill">Isi Area Di Bawah Garis</label>
+              <button id="toggle-area-fill" class="toggle-switch-btn" onclick="this.classList.toggle('active')"></button>
+            </div>
+          </div>
+          
+          <hr class="panel-divider">
+          <h3 class="panel-section-title"><i class="fa-solid fa-table"></i> Data</h3>
+          <div class="form-group">
+            <label data-i18n="cm_import_data">Import Data</label>
+            <div style="display: flex; gap: 0.5rem;">
+              <input type="file" id="csv-upload" accept=".csv" style="display:none">
+              <button class="header-btn compact-btn" onclick="document.getElementById('csv-upload').click()">
+                <i class="fa-solid fa-file-csv"></i> <span data-i18n="cm_import_csv">Impor CSV</span>
+              </button>
+              <button class="header-btn compact-btn" onclick="clearTable()">
+                <i class="fa-solid fa-trash-can"></i> <span data-i18n="cm_clear">Bersihkan</span>
+              </button>
+            </div>
+          </div>
+          <hr class="panel-divider">
+          <button class="header-btn" style="width:100%; justify-content:center; background: linear-gradient(135deg, var(--text-accent) 0%, #4FACFE 100%); color: #070e1b; border-color: transparent; margin-bottom: 0.5rem;" id="render-btn">
+            <i class="fa-solid fa-play"></i> <span data-i18n="cm_render_btn">Render Grafik</span>
+          </button>
+          
+          <div class="dropdown" style="position: relative; width: 100%;">
+            <button class="header-btn" style="width:100%; justify-content:center;" id="download-dropdown-btn">
+              <i class="fa-solid fa-download"></i> <span data-i18n="cm_download_menu">Unduh Grafik / Data</span> <i class="fa-solid fa-chevron-down" style="font-size: 0.75rem; margin-left: 0.5rem;"></i>
+            </button>
+            <div class="dropdown-menu" id="download-menu" style="display: none; position: absolute; bottom: 105%; left: 0; width: 100%; background: var(--bg-panel, #0A0A0C); border: 1px solid var(--border-color, rgba(255,255,255,0.1)); border-radius: 8px; box-shadow: 0 -10px 15px -3px rgba(0,0,0,0.5); z-index: 100; padding: 0.25rem 0;">
+              <a href="#" id="download-png-btn" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; color: var(--text-secondary); text-decoration: none; font-size: 0.85rem;" onmouseover="this.style.background='rgba(255,255,255,0.05)'; this.style.color='var(--text-primary)'" onmouseout="this.style.background='none'; this.style.color='var(--text-secondary)'"><i class="fa-solid fa-file-image" style="color: #00F2FE; width: 16px;"></i> Unduh Citra PNG</a>
+              <a href="#" id="download-pdf-btn" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; color: var(--text-secondary); text-decoration: none; font-size: 0.85rem;" onmouseover="this.style.background='rgba(255,255,255,0.05)'; this.style.color='var(--text-primary)'" onmouseout="this.style.background='none'; this.style.color='var(--text-secondary)'"><i class="fa-solid fa-file-pdf" style="color: #EF4444; width: 16px;"></i> Unduh Laporan PDF</a>
+              <a href="#" id="download-excel-btn" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; color: var(--text-secondary); text-decoration: none; font-size: 0.85rem;" onmouseover="this.style.background='rgba(255,255,255,0.05)'; this.style.color='var(--text-primary)'" onmouseout="this.style.background='none'; this.style.color='var(--text-secondary)'"><i class="fa-solid fa-file-excel" style="color: #10B981; width: 16px;"></i> Ekspor Data ke Excel</a>
+              <a href="#" id="download-csv-btn" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; color: var(--text-secondary); text-decoration: none; font-size: 0.85rem;" onmouseover="this.style.background='rgba(255,255,255,0.05)'; this.style.color='var(--text-primary)'" onmouseout="this.style.background='none'; this.style.color='var(--text-secondary)'"><i class="fa-solid fa-file-csv" style="color: #3B82F6; width: 16px;"></i> Ekspor Data ke CSV</a>
+            </div>
+          </div>
+        </section>
+
+        <!-- Right Panel -->
+        <section class="cm-results-area">
+          <div class="glass-panel cm-table-panel">
+            <div class="cm-panel-header">
+              <h3 class="panel-section-title" style="margin:0"><i class="fa-solid fa-table-cells"></i> <span data-i18n="cm_data_table">Tabel Data</span></h3>
+              <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                <button class="header-btn compact-btn" id="add-row"><i class="fa-solid fa-plus"></i> <span data-i18n="cm_row">Baris</span></button>
+                <button class="header-btn compact-btn" id="add-col"><i class="fa-solid fa-plus"></i> <span data-i18n="cm_col">Kolom</span></button>
+                <button class="header-btn compact-btn" id="delete-selected-cols" style="border-color:#F43F5E; color:#F43F5E;"><i class="fa-solid fa-table-columns"></i> Hapus Kolom Dipilih</button>
+                <button class="header-btn compact-btn" id="delete-selected-rows" style="border-color:#F43F5E; color:#F43F5E;"><i class="fa-solid fa-trash-arrow-up"></i> Hapus Baris Dipilih</button>
+              </div>
+            </div>
+            <div class="cm-table-scroll">
+              <table id="data-table">
+                <!-- Dynamically populated by renderSpreadsheet() in chart-maker.js -->
+              </table>
+            </div>
+          </div>
+          <div class="glass-panel cm-chart-panel">
+            <div class="cm-panel-header">
+              <h3 class="panel-section-title" style="margin:0"><i class="fa-solid fa-chart-bar"></i> <span data-i18n="cm_visualization">Visualisasi</span></h3>
+              <span id="chart-type-label" class="cm-type-badge">Bar Chart</span>
+            </div>
+            <div class="cm-canvas-wrap"><canvas id="chart-canvas"></canvas></div>
+          </div>
+        </section>
+      </div>
+
+      <footer class="app-footer">
+        <div data-i18n="txt_footer_copy">© 2026 Technology Division, PT Central Proteina Prima Tbk. Hak Cipta Dilindungi.</div>
+        <div class="footer-links">
+          <a href="contact.html" data-i18n="sb_support">Bantuan</a>
+          <a href="#" data-i18n="txt_privacy">Privasi</a>
+          <a href="#" data-i18n="txt_terms">Syarat &amp; Ketentuan</a>
+        </div>
+      </footer>
+    </main>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="../js/core/i18n.js?v=1.0.1"></script>
+  <script src="../js/core/modules.js?v=1.0.1"></script>
+  <script src="../js/main.js?v=1.0.1"></script>
+  <script src="../js/core/file-utils.js?v=1.0.1"></script>
+  <script src="../js/charts/chart-maker.js?v=1.0.1"></script>
+</body>
+</html>

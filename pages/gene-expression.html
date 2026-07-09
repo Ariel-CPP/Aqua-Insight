@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gene Expression (qPCR) Analyzer - Aqua Insight</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/gene-expression.css">
+</head>
+<body class="subpage">
+  <div id="app-layout">
+    <div id="sidebar-container"></div>
+    <main id="main-content">
+      <div id="header-container" data-page-title="Gene Expression (qPCR)" data-page-category="Biological Diagnostics"></div>
+      <div class="workspace-grid">
+
+        <!-- Left Panel: Parameters -->
+        <section class="glass-panel workspace-control">
+          <h3 class="panel-section-title"><i class="fa-solid fa-sliders"></i> <span data-i18n="ge_params">Parameter Analisis</span></h3>
+          <div class="form-group">
+            <label for="method-select" data-i18n="ge_method">Metode Kalkulasi</label>
+            <select id="method-select" class="form-control" onchange="toggleEfficiencyInputs()">
+              <option value="livak" data-i18n="ge_livak">2^-ΔΔCt (Livak &amp; Schmittgen, 2001)</option>
+              <option value="pfaffl" data-i18n="ge_pfaffl">Koreksi Efisiensi (Pfaffl, 2001)</option>
+            </select>
+          </div>
+          <div id="efficiency-params" style="display: none;">
+            <hr class="panel-divider">
+            <h4 style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;" data-i18n="ge_efficiency">Efisiensi Primer (E)</h4>
+            <div class="form-group">
+              <label for="e-target" data-i18n="ge_target_gene">Target Gene (Contoh: VP28)</label>
+              <input type="number" id="e-target" class="form-control" value="2.0" step="0.01" min="1.0" max="2.0">
+            </div>
+            <div class="form-group">
+              <label for="e-ref" data-i18n="ge_ref_gene">Reference Gene (Contoh: β-actin)</label>
+              <input type="number" id="e-ref" class="form-control" value="2.0" step="0.01" min="1.0" max="2.0">
+            </div>
+            <p style="font-size: 0.75rem; color: var(--text-secondary);" data-i18n="ge_eff_note">Catatan: Nilai E = 10^(−1/slope). E=2.0 berarti efisiensi 100%.</p>
+          </div>
+          
+          <hr class="panel-divider">
+          <h3 class="panel-section-title"><i class="fa-solid fa-gauge-high"></i> Batas Ekspresi Gen</h3>
+          <div class="form-group">
+            <label for="up-threshold">Ambang Upregulated (x lipat)</label>
+            <input type="number" id="up-threshold" class="form-control" value="2.0" step="0.1" min="1.0">
+          </div>
+          <div class="form-group">
+            <label for="down-threshold">Ambang Downregulated (x lipat)</label>
+            <input type="number" id="down-threshold" class="form-control" value="1.5" step="0.1" min="1.0">
+            <p style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 0.25rem; margin-bottom: 0;">Downregulation 1.5x setara dengan Fold Change &le; 0.67.</p>
+          </div>
+          
+          <hr class="panel-divider">
+          <button class="header-btn" style="width: 100%; justify-content: center; background: linear-gradient(135deg, var(--text-accent) 0%, #4FACFE 100%); color: #070e1b; border-color: transparent;" onclick="calculateExpression()">
+            <i class="fa-solid fa-calculator"></i> <span data-i18n="ge_calc_btn">Kalkulasi Fold Change</span>
+          </button>
+        </section>
+
+        <!-- Right Panel: Data Grid & Results -->
+        <section class="results-area">
+          <div class="glass-panel" style="height: 100%; display: flex; flex-direction: column;">
+            <div class="tab-container">
+              <button class="tab-btn active" onclick="switchTab('input-tab', this)" data-i18n="ge_tab_input">1. Input Data Ct</button>
+              <button class="tab-btn" onclick="switchTab('result-tab', this)" data-i18n="ge_tab_result">2. Hasil &amp; Visualisasi</button>
+            </div>
+            <div id="input-tab" class="tab-pane active" style="flex-grow: 1; display: flex; flex-direction: column;">
+              <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                <button class="header-btn compact-btn" onclick="addSampleRow()"><i class="fa-solid fa-plus"></i> <span data-i18n="ge_add_sample">Tambah Sampel</span></button>
+                <button class="header-btn compact-btn" onclick="addTargetGene()"><i class="fa-solid fa-dna"></i> <span data-i18n="ge_add_gene">Tambah Target Gene</span></button>
+                <button class="header-btn compact-btn" onclick="addReplication()"><i class="fa-solid fa-copy"></i> <span data-i18n="ge_add_rep">Tambah Replikasi Ct</span></button>
+              </div>
+              <div style="overflow-x: auto; flex-grow: 1;" id="table-container"></div>
+            </div>
+            <div id="result-tab" class="tab-pane" style="flex-grow: 1; overflow-y: auto;">
+              <div id="no-result-state" class="empty-state">
+                <i class="fa-solid fa-chart-column"></i>
+                <p data-i18n="ge_empty_result">Belum ada hasil kalkulasi. Silakan klik tombol 'Kalkulasi Fold Change'.</p>
+              </div>
+              <div id="result-content" style="display: none; padding: 1rem;">
+                <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; justify-content: flex-end;" id="export-actions-group">
+                  <button class="header-btn compact-btn" onclick="downloadGPng()"><i class="fa-solid fa-file-image" style="color: #00F2FE;"></i> Unduh Citra PNG</button>
+                  <button class="header-btn compact-btn" onclick="exportGExcel()"><i class="fa-solid fa-file-excel" style="color: #10B981;"></i> Ekspor Excel</button>
+                  <button class="header-btn compact-btn" onclick="exportGCSV()"><i class="fa-solid fa-file-csv" style="color: #3B82F6;"></i> Ekspor CSV</button>
+                  <button class="header-btn compact-btn" onclick="printGPDF()"><i class="fa-solid fa-file-pdf" style="color: #EF4444;"></i> Cetak Laporan PDF</button>
+                </div>
+                <div class="chart-container" style="height: 350px; margin-bottom: 2rem;">
+                  <canvas id="fc-chart"></canvas>
+                </div>
+                <h4 style="margin-bottom: 1rem; color: var(--text-accent);" data-i18n="ge_result_title">Tabel Hasil Ekspresi Gen (Relative Quantification)</h4>
+                <div style="overflow-x: auto; margin-bottom: 1.5rem;">
+                  <table class="qpcr-table" id="result-table">
+                    <thead>
+                      <tr>
+                        <th data-i18n="ge_th_sample">Sampel &amp; Gen</th>
+                        <th data-i18n="ge_th_ct_target">Mean Ct ± SD (Target)</th>
+                        <th data-i18n="ge_th_ct_ref">Mean Ct ± SD (Ref)</th>
+                        <th>ΔCt ± SD</th>
+                        <th>ΔΔCt ± SD</th>
+                        <th>Fold Change</th>
+                        <th data-i18n="ge_th_interp">Interpretasi</th>
+                      </tr>
+                    </thead>
+                    <tbody id="result-tbody"></tbody>
+                  </table>
+                </div>
+                
+                <!-- Final Conclusion Card -->
+                <div class="glass-panel" style="padding: 1.25rem; border: 1px solid var(--border-color); border-radius: 12px; margin-top: 1.5rem; background: rgba(255,255,255,0.01);">
+                  <h3 class="panel-section-title" style="color: var(--text-accent); margin-bottom: 0.75rem;"><i class="fa-solid fa-square-poll-vertical"></i> Kesimpulan Akhir</h3>
+                  <div id="conclusion-text" style="font-size: 0.85rem; line-height: 1.5; color: var(--text-secondary); white-space: pre-line;">
+                    <!-- Dinamis diisi oleh JS -->
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <footer class="app-footer">
+        <div data-i18n="txt_footer_copy">© 2026 Technology Division, PT Central Proteina Prima Tbk. Hak Cipta Dilindungi.</div>
+      </footer>
+    </main>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="../js/core/i18n.js"></script>
+  <script src="../js/core/modules.js"></script>
+  <script src="../js/main.js"></script>
+  <script src="../js/core/file-utils.js"></script>
+  <script src="../js/gene/gene-expression.js"></script>
+</body>
+</html>

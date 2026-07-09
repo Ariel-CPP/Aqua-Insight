@@ -1,0 +1,261 @@
+/* ==========================================================================
+   AQUA INSIGHT - STATISTICS ANALYZER MODUL STYLING
+   Handles: Spreadsheet-like input grid, visual layouts, and printable reports.
+   ========================================================================== */
+
+.workspace-grid {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 1.5rem;
+  align-items: stretch;
+}
+
+.panel-section-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.panel-divider {
+  border: 0;
+  border-top: 1px solid var(--border-color);
+  margin: 1.25rem 0;
+}
+
+/* Spreadsheet Grid Input Panel */
+.spreadsheet-container {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+  box-shadow: var(--card-shadow);
+}
+
+.spreadsheet-toolbar {
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid var(--border-color);
+  padding: 0.65rem 1rem;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.spreadsheet-toolbar button {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.75rem;
+}
+
+.spreadsheet-scroll {
+  overflow: auto;
+  max-height: 400px;
+}
+
+.spreadsheet-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.825rem;
+  text-align: left;
+}
+
+.spreadsheet-table th {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  font-family: var(--font-heading);
+  font-weight: 700;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid var(--border-color);
+  text-align: center;
+  user-select: none;
+  min-width: 80px;
+}
+
+.spreadsheet-table th.row-number-header {
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 0.7rem;
+  min-width: 40px;
+  width: 40px;
+}
+
+.spreadsheet-table td {
+  border: 1px solid var(--border-color);
+  padding: 0.35rem 0.65rem;
+  color: var(--text-secondary);
+  background: transparent;
+  outline: none;
+}
+
+.spreadsheet-table td.row-num {
+  background: rgba(255, 255, 255, 0.03);
+  font-weight: 600;
+  text-align: center;
+  color: var(--text-secondary);
+  user-select: none;
+}
+
+.spreadsheet-table td.editable-cell {
+  cursor: text;
+  background: rgba(255,255,255,0.01);
+  transition: background var(--transition-speed) ease;
+}
+
+.spreadsheet-table td.editable-cell:focus {
+  background: rgba(0, 242, 254, 0.05);
+  border: 1px solid var(--text-accent);
+  color: var(--text-primary);
+}
+
+.spreadsheet-table th.col-header-editable {
+  cursor: text;
+  outline: none;
+}
+
+.spreadsheet-table th.col-header-editable:focus {
+  background: rgba(0, 242, 254, 0.1);
+  border: 1.5px solid var(--text-accent);
+}
+
+/* Report Panel Styling */
+.results-area {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.report-card {
+  padding: 2rem;
+  border-radius: 16px;
+}
+
+.report-section-title {
+  font-size: 1.25rem;
+  margin-bottom: 1.25rem;
+  color: var(--text-accent);
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1.5rem;
+  font-size: 0.85rem;
+}
+
+.report-table th {
+  background: rgba(255, 255, 255, 0.03);
+  font-weight: 700;
+  padding: 0.65rem 0.85rem;
+  border-bottom: 2px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.report-table td {
+  padding: 0.65rem 0.85rem;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-secondary);
+}
+
+.report-table tbody tr:hover td {
+  background: rgba(255, 255, 255, 0.01);
+  color: var(--text-primary);
+}
+
+.sig-label {
+  font-weight: 700;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+}
+
+.sig-label.significant {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+.sig-label.not-significant {
+  background: rgba(156, 163, 175, 0.15);
+  color: #9ca3af;
+}
+
+/* Experimental Design Layout grid */
+.design-grid-viewport {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  background: rgba(0, 0, 0, 0.1);
+  padding: 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+}
+
+.design-tank-unit {
+  aspect-ratio: 1.5/1;
+  border-radius: 8px;
+  border: 1px dashed var(--border-color);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-heading);
+  text-align: center;
+  padding: 0.35rem;
+  transition: all var(--transition-speed) ease;
+}
+
+.design-tank-unit.filled {
+  border: 1.5px solid var(--text-accent);
+  background: linear-gradient(135deg, rgba(0, 242, 254, 0.12) 0%, rgba(79, 172, 254, 0.04) 100%);
+  box-shadow: 0 4px 10px rgba(0, 242, 254, 0.05);
+}
+
+.tank-treatment-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.15rem;
+}
+
+.tank-meta-label {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+}
+
+/* Print Layout configuration */
+@media print {
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  
+  aside.sidebar, .spreadsheet-container, .workspace-control, .header-actions {
+    display: none !important;
+  }
+  
+  #main-content {
+    margin-left: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+  
+  .glass-panel {
+    border: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+  }
+  
+  .report-card {
+    page-break-after: always;
+  }
+}

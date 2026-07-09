@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Particle Analyzer - Aqua Insight</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/particle-counter.css">
+</head>
+<body class="subpage">
+  <div id="app-layout">
+    <div id="sidebar-container"></div>
+    <main id="main-content">
+      <div id="header-container" data-page-title="Particle Analyzer" data-page-category="Imaging &amp; Vision"></div>
+
+      <div class="workspace-grid">
+
+        <!-- Left Panel -->
+        <section class="glass-panel workspace-control">
+          <h3 class="panel-section-title"><i class="fa-solid fa-camera-retro"></i> <span data-i18n="pc_input_image">Input Citra</span></h3>
+
+          <div class="tab-container" style="margin-bottom: 1rem;">
+            <button class="tab-btn active" onclick="switchInputTab('tab-upload', this)" data-i18n="pc_tab_file">File</button>
+            <button class="tab-btn" onclick="switchInputTab('tab-camera', this)" data-i18n="pc_tab_camera">Kamera Lab</button>
+          </div>
+
+          <div id="tab-upload" class="tab-pane active">
+            <div class="dropzone" id="image-dropzone">
+              <i class="fa-solid fa-cloud-arrow-up dropzone-icon"></i>
+              <p class="dropzone-text" data-i18n="pc_dropzone">Seret gambar ke sini atau klik untuk unggah</p>
+              <input type="file" id="image-upload-input" accept="image/*" style="display: none;">
+            </div>
+          </div>
+
+          <div id="tab-camera" class="tab-pane">
+            <div class="camera-viewport-container">
+              <video id="camera-stream" autoplay playsinline muted></video>
+              <div id="camera-placeholder" class="camera-placeholder">
+                <i class="fa-solid fa-video-slash" style="font-size: 1.5rem; margin-bottom: 0.5rem;"></i>
+                <p style="font-size: 0.8rem; text-align: center;" data-i18n="pc_cam_inactive">Kamera belum diaktifkan</p>
+              </div>
+            </div>
+            <div class="form-row" style="margin-top: 0.5rem; gap: 0.5rem;">
+              <button class="header-btn" style="flex: 1;" onclick="startCamera()"><i class="fa-solid fa-video"></i> <span data-i18n="pc_btn_activate">Aktifkan</span></button>
+              <button class="header-btn" style="flex: 1;" onclick="captureSnapshot()"><i class="fa-solid fa-camera"></i> <span data-i18n="pc_btn_snapshot">Snapshot</span></button>
+            </div>
+          </div>
+
+          <div class="form-row" style="margin-bottom: 1rem;">
+            <div class="form-group" style="flex: 1;">
+              <label for="detection-method" data-i18n="pc_method">Metode Pendeteksian</label>
+              <select id="detection-method" class="custom-select" onchange="updateDetectionMethod(this.value)">
+                <option value="binary" data-i18n="pc_method_binary">Threshold Biner (Standar)</option>
+                <option value="color_region" data-i18n="pc_method_color">Kemiripan Warna (Super Detail)</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="binary-settings-group">
+            <h3 class="panel-section-title"><i class="fa-solid fa-layer-group"></i> <span data-i18n="pc_channel">Pemilihan Kanal Warna (Channel)</span></h3>
+            <div class="channel-selector" style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+              <button class="channel-btn active" style="flex: 1; padding: 0.5rem; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-hover); cursor: pointer;" data-channel="gray" onclick="setChannel('gray', this)" data-i18n="pc_ch_gray">Grayscale</button>
+              <button class="channel-btn" style="flex: 1; padding: 0.5rem; border-radius: 6px; border: 1px solid var(--border-color); background: none; cursor: pointer; color: #ef4444;" data-channel="red" onclick="setChannel('red', this)" data-i18n="pc_ch_red">Merah</button>
+              <button class="channel-btn" style="flex: 1; padding: 0.5rem; border-radius: 6px; border: 1px solid var(--border-color); background: none; cursor: pointer; color: #22c55e;" data-channel="green" onclick="setChannel('green', this)" data-i18n="pc_ch_green">Hijau</button>
+              <button class="channel-btn" style="flex: 1; padding: 0.5rem; border-radius: 6px; border: 1px solid var(--border-color); background: none; cursor: pointer; color: #3b82f6;" data-channel="blue" onclick="setChannel('blue', this)" data-i18n="pc_ch_blue">Biru</button>
+            </div>
+            <hr class="panel-divider">
+            <h3 class="panel-section-title"><i class="fa-solid fa-sliders"></i> <span data-i18n="pc_param_seg">Parameter Segmentasi (Grayscale)</span></h3>
+
+            <div class="switch-control">
+              <label for="toggle-auto-threshold" data-i18n="pc_auto_thresh">Ambang Batas Otomatis (Otsu)</label>
+              <button id="toggle-auto-threshold" class="toggle-switch-btn active" onclick="toggleAutoThreshold()"></button>
+            </div>
+
+            <div class="form-row" id="manual-thresh-group" style="display: none; margin-top: 1rem;">
+              <div class="form-group" style="flex: 1;">
+                <div style="display: flex; justify-content: space-between;">
+                  <label for="manual-threshold" data-i18n="pc_manual_thresh">Ambang Batas (Threshold)</label>
+                  <span id="manual-threshold-val" style="font-size: 0.8rem; font-weight: 700; color: var(--text-accent);">128</span>
+                </div>
+                <input type="range" id="manual-threshold" class="custom-slider" min="0" max="255" value="128" oninput="updateManualThreshold(this.value)">
+              </div>
+            </div>
+
+            <div class="form-row" style="margin-top: 1rem;">
+              <div class="form-group" style="flex: 1;">
+                <div style="display: flex; justify-content: space-between;">
+                  <label for="erosion-slider" data-i18n="pc_erosion">Iterasi Erosi (Pisahkan Objek Menyatu)</label>
+                  <span id="erosion-val" style="font-size: 0.8rem; font-weight: 700; color: var(--text-accent);">0</span>
+                </div>
+                <input type="range" id="erosion-slider" class="custom-slider" min="0" max="5" value="0" oninput="updateErosion(this.value)">
+                <p style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0;" data-i18n="pc_erosion_tip">Gunakan fitur ini untuk memisahkan partikel yang saling berdempetan.</p>
+              </div>
+            </div>
+          </div>
+
+          <div id="color-settings-group" style="display: none;">
+            <hr class="panel-divider">
+            <h3 class="panel-section-title"><i class="fa-solid fa-palette"></i> <span data-i18n="pc_color_tol">Toleransi Warna</span></h3>
+            <div class="form-row" style="margin-top: 1rem;">
+              <div class="form-group" style="flex: 1;">
+                <div style="display: flex; justify-content: space-between;">
+                  <label for="color-region-tolerance" data-i18n="pc_color_tol_label">Toleransi Perbedaan Warna</label>
+                  <span id="color-region-val" style="font-size: 0.8rem; font-weight: 700; color: var(--text-accent);">20</span>
+                </div>
+                <input type="range" id="color-region-tolerance" class="custom-slider" min="1" max="100" value="20" oninput="updateColorRegionTolerance(this.value)">
+                <p style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0;" data-i18n="pc_color_tol_tip">Semakin kecil nilai ini, semakin sensitif sistem membedakan setiap gradasi warna.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="switch-control">
+            <label for="toggle-bg-correction" data-i18n="pc_bg_corr">Koreksi Latar Belakang Terang</label>
+            <button id="toggle-bg-correction" class="toggle-switch-btn active" onclick="toggleBackgroundCorrection()"></button>
+          </div>
+          <div class="switch-control">
+            <label for="toggle-edge-exclusion" data-i18n="pc_edge_exc">Eksklusi Partikel Menyentuh Tepi</label>
+            <button id="toggle-edge-exclusion" class="toggle-switch-btn" onclick="toggleEdgeExclusion()"></button>
+          </div>
+          <div class="switch-control">
+            <label for="toggle-fill-holes" data-i18n="pc_fill_holes">Isi Rongga Sel (Fill Holes)</label>
+            <button id="toggle-fill-holes" class="toggle-switch-btn" onclick="toggleFillHoles()"></button>
+          </div>
+
+          <hr class="panel-divider">
+          <h3 class="panel-section-title"><i class="fa-solid fa-filter"></i> <span data-i18n="pc_morph_filter">Penyaringan Morfometrik</span></h3>
+
+          <div class="form-group">
+            <div style="display: flex; justify-content: space-between;">
+              <label data-i18n="pc_min_size">Ukuran Partikel Minimum (pixel)</label>
+              <span id="min-size-val" style="font-size: 0.8rem; font-weight: 700; color: var(--text-accent);">10 px</span>
+            </div>
+            <input type="range" id="min-size-slider" class="custom-slider" min="1" max="500" value="10" oninput="updateMinSizeFilter(this.value)">
+          </div>
+          <div class="form-group">
+            <div style="display: flex; justify-content: space-between;">
+              <label data-i18n="pc_max_size">Ukuran Partikel Maksimum (pixel)</label>
+              <span id="max-size-val" style="font-size: 0.8rem; font-weight: 700; color: var(--text-accent);" data-i18n="pc_unlimited">Tanpa Batas</span>
+            </div>
+            <input type="range" id="max-size-slider" class="custom-slider" min="100" max="500000" value="500000" oninput="updateMaxSizeFilter(this.value)">
+          </div>
+          <div class="form-group">
+            <div style="display: flex; justify-content: space-between;">
+              <label data-i18n="pc_min_circ">Sirkularitas Minimum (0.0 - 1.0)</label>
+              <span id="min-circ-val" style="font-size: 0.8rem; font-weight: 700; color: var(--text-accent);">0.00</span>
+            </div>
+            <input type="range" id="min-circ-slider" class="custom-slider" min="0" max="100" value="0" oninput="updateMinCircFilter(this.value)">
+          </div>
+
+          <hr class="panel-divider">
+          <h3 class="panel-section-title"><i class="fa-solid fa-ruler-combined"></i> <span data-i18n="pc_scale_calib">Kalibrasi Skala Riil</span></h3>
+          <div class="form-row">
+            <div class="form-group" style="flex: 2;">
+              <label for="scale-pixel" data-i18n="pc_pixel">Piksel</label>
+              <input type="number" id="scale-pixel" class="form-control" value="100" onchange="updateScaleCalibration()">
+            </div>
+            <div class="form-group" style="flex: 2;">
+              <label for="scale-unit-value" data-i18n="pc_real_val">Nilai Riil</label>
+              <input type="number" id="scale-unit-value" class="form-control" value="100" onchange="updateScaleCalibration()">
+            </div>
+            <div class="form-group" style="flex: 2;">
+              <label for="scale-unit" data-i18n="pc_unit">Unit</label>
+              <select id="scale-unit" class="form-control" onchange="updateScaleCalibration()">
+                <option value="px">px</option>
+                <option value="µm">µm</option>
+                <option value="mm">mm</option>
+              </select>
+            </div>
+          </div>
+          <p class="calibration-tip" id="calibration-summary" data-i18n="pc_ratio">Rasio: 1 px = 1.00 px</p>
+        </section>
+
+        <!-- Center Panel -->
+        <section class="glass-panel workspace-view">
+          <div class="viewport-header">
+            <h3 class="viewport-title"><i class="fa-solid fa-object-group"></i> <span data-i18n="pc_canvas_title">Layar Pemantau Kanvas</span></h3>
+            <div class="viewport-controls">
+              <button class="header-btn compact-btn" onclick="resetZoom()"><i class="fa-solid fa-arrows-to-eye"></i> <span data-i18n="btn_fit">Fit</span></button>
+              <button class="header-btn compact-btn" onclick="toggleOverlayOption('numbers')" id="btn-overlay-numbers"><i class="fa-solid fa-list-ol"></i></button>
+              <button class="header-btn compact-btn" onclick="toggleOverlayOption('contours')" id="btn-overlay-contours"><i class="fa-solid fa-bezier-curve"></i></button>
+              <button class="header-btn compact-btn" onclick="toggleOverlayOption('centroids')" id="btn-overlay-centroids"><i class="fa-solid fa-crosshairs"></i></button>
+            </div>
+          </div>
+          <div class="canvas-viewport" id="viewport-canvas-wrapper" style="overflow: hidden; position: relative;">
+            <canvas id="analysis-canvas" style="width: 100%; height: 100%; object-fit: contain;"></canvas>
+            <div id="canvas-loading-spinner" class="canvas-loader" style="display: none;">
+              <i class="fa-solid fa-spinner fa-spin" style="font-size: 2.5rem; color: var(--text-accent); margin-bottom: 0.5rem;"></i>
+              <p style="font-size: 0.9rem;" data-i18n="txt_processing">Memproses gambar...</p>
+            </div>
+            <div class="canvas-hud">
+              <span id="hud-zoom">Zoom: 100%</span>
+              <span id="hud-status" data-i18n="txt_no_image">Tidak ada gambar</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Right Panel -->
+        <section class="glass-panel workspace-summary">
+          <h3 class="panel-section-title"><i class="fa-solid fa-square-poll-vertical"></i> <span data-i18n="pc_summary_title">Ringkasan Hasil</span></h3>
+          <div class="summary-metric-card">
+            <div class="metric-label" data-i18n="pc_sum_count">Jumlah Partikel Terdeteksi</div>
+            <div class="metric-value" id="summary-count">0</div>
+          </div>
+          <div class="summary-grid">
+            <div class="summary-mini-card">
+              <div class="mini-label" data-i18n="pc_sum_cov">Area Coverage (%)</div>
+              <div class="mini-value" id="summary-coverage">0.00 %</div>
+            </div>
+            <div class="summary-mini-card">
+              <div class="mini-label" id="summary-size-label" data-i18n="pc_sum_avg">Rata-rata Ukuran</div>
+              <div class="mini-value" id="summary-avg-size">0 px²</div>
+            </div>
+          </div>
+          <hr class="panel-divider">
+          <h3 class="panel-section-title"><i class="fa-solid fa-chart-area"></i> <span data-i18n="pc_size_dist">Distribusi Ukuran</span></h3>
+          <div class="chart-container" style="position: relative; height: 180px; margin-bottom: 1rem;">
+            <canvas id="particle-dist-chart"></canvas>
+          </div>
+          <h3 class="panel-section-title"><i class="fa-solid fa-chart-scatter"></i> Scatter Plot Kluster (Area vs Circularity)</h3>
+          <div class="chart-container" style="position: relative; height: 220px;">
+            <canvas id="particle-scatter-chart"></canvas>
+          </div>
+          <div class="ai-hook-box">
+            <div class="ai-hook-header">
+              <span class="ai-hook-title"><i class="fa-solid fa-robot"></i> AI Deep Learning</span>
+              <button class="toggle-switch-btn" id="btn-ai-mode" onclick="toggleAIMode()"></button>
+            </div>
+            <p class="ai-hook-desc">Activate AI segmentation model to identify larvae or plankton at species level directly in-browser (Future).</p>
+          </div>
+        </section>
+      </div>
+
+      <!-- Results Table -->
+      <section class="glass-panel table-section" style="margin-top: 1.5rem;">
+        <div class="table-header">
+          <h3 class="viewport-title"><i class="fa-solid fa-table-list"></i> <span data-i18n="pc_table_title">Lembar Data Morfometri Partikel</span></h3>
+          <div class="table-actions">
+            <div class="sidebar-search" style="margin-bottom: 0; width: 220px;">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="table-search" data-i18n-placeholder="pc_search_idx" placeholder="Cari indeks partikel..." oninput="filterTable(this.value)">
+            </div>
+            <button class="header-btn" onclick="exportParticlePNG()"><i class="fa-solid fa-image"></i> <span data-i18n="btn_export_png">Ekspor PNG</span></button>
+            <button class="header-btn" style="background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #fff; border-color: transparent;" onclick="exportParticleExcel()"><i class="fa-solid fa-file-excel"></i> <span data-i18n="btn_export_excel">Ekspor Excel</span></button>
+          </div>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table" id="particle-table">
+            <thead>
+              <tr>
+                <th onclick="sortTable(0)" data-i18n="pc_th_idx">Indeks <i class="fa-solid fa-sort"></i></th>
+                <th onclick="sortTable(1)" data-i18n="pc_th_center">Titik Pusat (X, Y) <i class="fa-solid fa-sort"></i></th>
+                <th onclick="sortTable(2)" id="th-area" data-i18n="pc_th_area">Luas (px²) <i class="fa-solid fa-sort"></i></th>
+                <th onclick="sortTable(3)" id="th-perimeter" data-i18n="pc_th_perimeter">Keliling (px) <i class="fa-solid fa-sort"></i></th>
+                <th onclick="sortTable(10)">Lebar (W) <i class="fa-solid fa-sort"></i></th>
+                <th onclick="sortTable(11)">Tinggi (H) <i class="fa-solid fa-sort"></i></th>
+                <th onclick="sortTable(4)" data-i18n="pc_th_circ">Sirkularitas <i class="fa-solid fa-sort"></i></th>
+                <th onclick="sortTable(5)" data-i18n="pc_th_aspect">Aspect Ratio <i class="fa-solid fa-sort"></i></th>
+                <th onclick="sortTable(6)" data-i18n="pc_th_solidity">Solidity <i class="fa-solid fa-sort"></i></th>
+                <th onclick="sortTable(7)" data-i18n="pc_th_glcm">Kontras GLCM <i class="fa-solid fa-sort"></i></th>
+                <th onclick="sortTable(8)" data-i18n="pc_th_rgb">Profil Warna RGB <i class="fa-solid fa-sort"></i></th>
+                <th onclick="sortTable(9)" data-i18n="pc_th_edge">Tepi <i class="fa-solid fa-sort"></i></th>
+              </tr>
+            </thead>
+            <tbody id="particle-table-body">
+              <tr><td colspan="12" style="text-align: center; color: var(--text-secondary); padding: 2rem;" data-i18n="pc_empty_table">Silakan unggah citra untuk memulai analisis.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <footer class="app-footer">
+        <div data-i18n="txt_footer_copy">© 2026 Technology Division, PT Central Proteina Prima Tbk. Hak Cipta Dilindungi.</div>
+        <div class="footer-links">
+          <a href="contact.html" data-i18n="sb_support">Bantuan</a>
+          <a href="#" data-i18n="txt_privacy">Privasi</a>
+          <a href="#" data-i18n="txt_terms">Syarat &amp; Ketentuan</a>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="../js/core/cv-engine.js?v=4"></script>
+  <script src="../js/core/i18n.js?v=4"></script>
+  <script src="../js/core/modules.js?v=4"></script>
+  <script src="../js/main.js?v=4"></script>
+  <script src="../js/core/math-utils.js?v=4"></script>
+  <script src="../js/core/file-utils.js?v=4"></script>
+  <script src="../js/core/chart-utils.js?v=4"></script>
+  <script src="../js/particle/zoom-pan.js?v=4"></script>
+  <script src="../js/particle/detection.js?v=4"></script>
+  <script src="../js/particle/export.js?v=4"></script>
+  <script src="../js/particle/particle-analysis.js?v=4"></script>
+</body>
+</html>

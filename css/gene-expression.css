@@ -1,0 +1,84 @@
+/* Gene Expression qPCR CSS */
+
+.qpcr-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1.5rem;
+  font-size: 0.85rem;
+}
+
+.qpcr-table th, .qpcr-table td {
+  padding: 0.5rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.qpcr-table th {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: rgba(0,0,0,0.2);
+}
+
+.qpcr-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.control-row {
+  background: rgba(0, 242, 254, 0.05);
+}
+
+.cell-input {
+  width: 100%;
+  min-width: 60px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-primary);
+  padding: 0.25rem;
+  border-radius: 4px;
+  font-family: var(--font-body);
+}
+
+.cell-input:focus {
+  border-color: var(--text-accent);
+  background: rgba(0,0,0,0.3);
+  outline: none;
+}
+
+.badge {
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badge-up {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10B981;
+}
+
+.badge-down {
+  background: rgba(239, 68, 68, 0.15);
+  color: #EF4444;
+}
+
+.badge-ns {
+  background: rgba(156, 163, 175, 0.15);
+  color: #9CA3AF;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.empty-state i {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  opacity: 0.3;
+}

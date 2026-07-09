@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Epidemiology GIS - Aqua Insight</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    #map {
+      height: 600px;
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      z-index: 1; /* Keep map below modals/sidebar */
+    }
+    .leaflet-popup-content-wrapper {
+      background: var(--bg-card);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+    }
+    .leaflet-popup-tip {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+    }
+  </style>
+</head>
+<body class="subpage">
+
+  <div id="app-layout">
+    <div id="sidebar-container"></div>
+    
+    <main id="main-content">
+      <div id="header-container" data-page-title="Epidemiological Spread Map" data-page-category="Decision Support"></div>
+      
+      <div class="workspace-grid" style="grid-template-columns: 350px 1fr;">
+        <!-- Left Panel: Controls & Data Input -->
+        <section class="glass-panel workspace-control">
+          <h3 class="panel-section-title"><i class="fa-solid fa-map-location-dot"></i> <span data-i18n="epi_data_source">Sumber Data Geospasial</span></h3>
+          
+          <div class="form-group">
+            <label data-i18n="epi_upload_csv">Unggah Data CSV (Lat, Lng, Kasus)</label>
+            <input type="file" id="csv-upload" class="form-control" accept=".csv" onchange="loadCSVData(event)">
+            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.5rem;" data-i18n="epi_csv_format">Format: Latitude, Longitude, Status (Aman/WSSV/AHPND), Radius</p>
+          </div>
+          
+          <button class="header-btn" style="width: 100%; justify-content: center; background: linear-gradient(135deg, var(--text-accent) 0%, #4FACFE 100%); color: #070e1b; border: none; margin-bottom: 1.5rem;" onclick="loadDemoMapData()">
+            <i class="fa-solid fa-database"></i> <span data-i18n="epi_load_demo">Muat Data Demo</span>
+          </button>
+          
+          <hr class="panel-divider">
+          
+          <h3 class="panel-section-title"><i class="fa-solid fa-layer-group"></i> <span data-i18n="epi_map_layers">Lapisan Peta (Layers)</span></h3>
+          <div class="form-group">
+            <label class="switch-control" style="justify-content: space-between; margin-bottom: 0.5rem;">
+              <span data-i18n="epi_layer_markers">Titik Lokasi Tambak (Markers)</span>
+              <input type="checkbox" id="layer-markers" checked onchange="toggleLayer('markers')">
+            </label>
+            <label class="switch-control" style="justify-content: space-between; margin-bottom: 0.5rem;">
+              <span data-i18n="epi_layer_heatmap">Heatmap Persebaran</span>
+              <input type="checkbox" id="layer-heatmap" onchange="toggleLayer('heatmap')">
+            </label>
+            <label class="switch-control" style="justify-content: space-between;">
+              <span data-i18n="epi_layer_radius">Radius Penularan (Buffer Zone)</span>
+              <input type="checkbox" id="layer-radius" checked onchange="toggleLayer('radius')">
+            </label>
+          </div>
+          
+          <hr class="panel-divider">
+          
+          <h3 class="panel-section-title"><i class="fa-solid fa-chart-pie"></i> <span data-i18n="epi_stats">Statistik Kawasan</span></h3>
+          <ul style="list-style: none; padding: 0; font-size: 0.9rem;">
+            <li style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+              <span data-i18n="epi_stat_total">Total Titik:</span> <span id="stat-total" style="font-weight: bold;">0</span>
+            </li>
+            <li style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+              <span data-i18n="epi_stat_safe">Status Aman:</span> <span id="stat-safe" style="color: #10B981; font-weight: bold;">0</span>
+            </li>
+            <li style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+              <span data-i18n="epi_stat_wssv">Wabah WSSV:</span> <span id="stat-wssv" style="color: #EF4444; font-weight: bold;">0</span>
+            </li>
+            <li style="display: flex; justify-content: space-between;">
+              <span data-i18n="epi_stat_ahpnd">Wabah AHPND:</span> <span id="stat-ahpnd" style="color: #F59E0B; font-weight: bold;">0</span>
+            </li>
+          </ul>
+          
+          <hr class="panel-divider">
+          
+          <h3 class="panel-section-title"><i class="fa-solid fa-pen-to-square"></i> <span data-i18n="epi_manual_input">Input Kasus Manual</span></h3>
+          <div class="form-row">
+            <div class="form-group"><input type="number" id="inp-lat" class="form-control" placeholder="Lat (e.g. -7.45)" step="0.001"></div>
+            <div class="form-group"><input type="number" id="inp-lng" class="form-control" placeholder="Lng (e.g. 112.71)" step="0.001"></div>
+          </div>
+          <div class="form-group">
+            <select id="inp-status" class="form-control">
+              <option value="Aman">Aman / Negatif</option>
+              <option value="WSSV">WSSV (Positif)</option>
+              <option value="AHPND">AHPND (Positif)</option>
+              <option value="EHP">EHP (Positif)</option>
+              <option value="IMNV">IMNV (Positif)</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><input type="text" id="inp-pcr" class="form-control" placeholder="Hasil PCR (CT Value)"></div>
+            <div class="form-group"><input type="text" id="inp-remarks" class="form-control" placeholder="Keterangan"></div>
+          </div>
+          <button class="header-btn compact-btn" style="width:100%; justify-content:center; background:#10B981; color:#fff; border:none;" onclick="addManualEntry()"><i class="fa-solid fa-plus"></i> Tambah Data ke Peta</button>
+          
+        </section>
+        
+        <!-- Right Panel: Map View -->
+        <section style="display: flex; flex-direction: column; gap: 1rem;">
+          <div class="glass-panel" style="padding: 0;">
+            <div id="map"></div>
+          </div>
+          
+          <div class="glass-panel">
+            <h3 class="panel-section-title"><i class="fa-solid fa-table"></i> <span data-i18n="epi_table_data">Tabel Data Geospasial</span></h3>
+            <div style="overflow-x: auto; max-height: 250px; overflow-y: auto;">
+              <table class="plankton-table" style="width: 100%; text-align: left;">
+                <thead>
+                  <tr>
+                    <th>Koordinat (Lat, Lng)</th>
+                    <th>Penyakit/Status</th>
+                    <th>Hasil PCR</th>
+                    <th>Keterangan</th>
+                    <th>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="epi-table-body">
+                  <tr><td colspan="5" style="text-align:center; padding:1rem; color:var(--text-secondary);">Belum ada data</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </div>
+      
+      <footer class="app-footer">
+        <div data-i18n="txt_footer_copy">© 2026 Technology Division, PT Central Proteina Prima Tbk. Hak Cipta Dilindungi.</div>
+      </footer>
+    </main>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Optional Heatmap plugin (we will mock it for now or load external) -->
+  <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+  <script src="../js/core/i18n.js"></script>
+  <script src="../js/core/modules.js"></script>
+  <script src="../js/main.js"></script>
+  <script src="../js/epidemiology/epidemiology-map.js"></script>
+</body>
+</html>

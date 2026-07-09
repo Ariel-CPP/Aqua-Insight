@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Microbiology Colony Counter - Aqua Insight</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/colony-counter.css">
+</head>
+<body class="subpage">
+  <div id="app-layout">
+    <div id="sidebar-container"></div>
+    <main id="main-content">
+      <div id="header-container" data-page-title="Microbiology Colony Counter" data-page-category="Imaging &amp; Vision"></div>
+      <div class="workspace-grid">
+
+        <!-- Left Panel -->
+        <section class="glass-panel workspace-control">
+          <h3 class="panel-section-title"><i class="fa-solid fa-camera"></i> <span data-i18n="cc_petri_image">Citra Cawan Petri</span></h3>
+          <div class="form-group" style="text-align: center; margin-bottom: 1rem;">
+            <div id="image-dropzone" style="border: 2px dashed rgba(0, 242, 254, 0.5); padding: 1rem; border-radius: 8px; cursor: pointer; transition: all 0.3s; margin-bottom: 10px;" onclick="document.getElementById('image-upload-input').click()">
+              <i class="fa-solid fa-cloud-arrow-up" style="font-size: 2rem; color: var(--text-accent); margin-bottom: 0.5rem;"></i>
+              <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 0;" data-i18n="cc_click_upload">Klik untuk unggah foto cawan</p>
+            </div>
+            <input type="file" id="image-upload-input" style="display: none;" accept="image/*" onchange="handleImageUpload(event)">
+            <button class="header-btn compact-btn" style="width: 100%; justify-content: center; margin-bottom: 5px;" onclick="startCamera()">
+              <i class="fa-solid fa-camera"></i> <span data-i18n="cc_use_camera">Gunakan Kamera Ponsel</span>
+            </button>
+            <video id="camera-stream" style="width: 100%; display: none; border-radius: 8px; margin-bottom: 5px;" autoplay playsinline></video>
+            <button id="snap-btn" class="header-btn compact-btn" style="width: 100%; justify-content: center; background: #10B981; color: white; border: none; display: none;" onclick="captureSnapshot()">
+              <i class="fa-solid fa-camera-retro"></i> <span data-i18n="cc_take_photo">Ambil Foto</span>
+            </button>
+          </div>
+
+          <div class="form-group">
+            <label for="media-type" data-i18n="cc_media_type">Jenis Media Agar</label>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <select id="media-type" class="form-control" style="flex: 1;" onchange="updateMediaMode()">
+                <option value="tcbs" data-i18n="cc_tcbs">TCBS (Vibrio spesifik)</option>
+                <option value="tsa" data-i18n="cc_tsa">TSA / NA (Total Plate Count)</option>
+                <option value="custom" data-i18n="cc_custom">Kustom (Pilih Warna Target)</option>
+              </select>
+              <button id="btn-colony-eyedropper" class="header-btn compact-btn" onclick="toggleColonyEyedropper()" style="display: none;"><i class="fa-solid fa-eye-dropper"></i></button>
+            </div>
+          </div>
+
+          <div class="form-group" id="custom-color-group" style="display: none;">
+            <label data-i18n="cc_target_color">Warna Target (Auto/Klik Kanvas)</label>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div id="target-color-preview" style="width: 30px; height: 30px; border-radius: 50%; background: #ffffff; border: 1px solid var(--border-color);"></div>
+              <span id="target-color-text" style="font-size: 0.8rem; color: var(--text-accent);">RGB(255,255,255)</span>
+            </div>
+            <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 5px;" data-i18n="cc_eyedropper_hint">*Klik pada bagian paling intens dari koloni samar agar sistem menyesuaikan deteksinya.</p>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="dilution-factor" data-i18n="cc_dilution">Faktor Pengenceran</label>
+              <select id="dilution-factor" class="form-control">
+                <option value="1">10^0</option><option value="10">10^1 (1:10)</option>
+                <option value="100">10^2 (1:100)</option><option value="1000">10^3 (1:1,000)</option>
+                <option value="10000">10^4 (1:10,000)</option><option value="100000">10^5 (1:100,000)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="plating-vol" data-i18n="cc_plating_vol">Volume Tanam (mL)</label>
+              <input type="number" id="plating-vol" class="form-control" value="0.1" step="0.01">
+            </div>
+          </div>
+
+          <hr class="panel-divider">
+          <h3 class="panel-section-title"><i class="fa-solid fa-sliders"></i> <span data-i18n="cc_param_title">Parameter Deteksi</span></h3>
+          <div class="form-group">
+            <div style="display: flex; justify-content: space-between;">
+              <label for="cc-sensitivity" data-i18n="cc_sensitivity">Sensitivitas Deteksi</label>
+              <span id="cc-sensitivity-val" style="font-size: 0.8rem; font-weight: 700; color: var(--text-accent);">50</span>
+            </div>
+            <input type="range" id="cc-sensitivity" class="custom-slider" min="10" max="90" value="50" oninput="updateCcSensitivity(this.value)">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="cc-min-size" data-i18n="cc_min_size">Ukuran Min (px)</label>
+              <input type="number" id="cc-min-size" class="form-control" value="20" min="2" onchange="analyzeColonies()">
+            </div>
+            <div class="form-group">
+              <label for="cc-max-size" data-i18n="cc_max_size">Ukuran Maks (px)</label>
+              <input type="number" id="cc-max-size" class="form-control" value="1000" min="10" onchange="analyzeColonies()">
+            </div>
+          </div>
+          
+          <hr class="panel-divider">
+          <h3 class="panel-section-title"><i class="fa-solid fa-circle-dot"></i> <span data-i18n="cc_roi_title">Batas Cawan Petri (ROI)</span></h3>
+          <div class="form-group" style="margin-bottom: 0.5rem;">
+            <div style="display: flex; justify-content: space-between;">
+              <label for="cc-roi-radius" data-i18n="cc_roi_size">Ukuran Area Cawan</label>
+              <span id="cc-roi-radius-val" style="font-size: 0.8rem; font-weight: 700; color: var(--text-accent);">90%</span>
+            </div>
+            <input type="range" id="cc-roi-radius" class="custom-slider" min="20" max="100" value="90" oninput="updateCcRoiRadius(this.value)">
+          </div>
+          <div class="form-row" style="gap: 5px;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label for="cc-roi-x" style="font-size: 0.71rem;" data-i18n="cc_roi_x">Geser ROI X</label>
+              <input type="range" id="cc-roi-x" class="custom-slider" min="-100" max="100" value="0" oninput="updateCcRoiX(this.value)" style="height: 4px; padding: 0;">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label for="cc-roi-y" style="font-size: 0.71rem;" data-i18n="cc_roi_y">Geser ROI Y</label>
+              <input type="range" id="cc-roi-y" class="custom-slider" min="-100" max="100" value="0" oninput="updateCcRoiY(this.value)" style="height: 4px; padding: 0;">
+            </div>
+          </div>
+
+          <button class="header-btn" style="width: 100%; justify-content: center; background: linear-gradient(135deg, var(--text-accent) 0%, #4FACFE 100%); color: #070e1b; border-color: transparent; margin-top: 1.2rem;" onclick="analyzeColonies()">
+            <i class="fa-solid fa-brain"></i> <span data-i18n="cc_analyze_btn">Hitung Koloni Otomatis</span>
+          </button>
+        </section>
+
+        <!-- Center/Right Panel -->
+        <section class="results-area" style="display: flex; flex-direction: column; gap: 1rem;">
+          <div class="canvas-container" style="background: #000; border-radius: 12px; border: 1px solid var(--border-color); overflow: hidden; display: flex; justify-content: center; align-items: center; min-height: 400px; padding: 10px;">
+            <canvas id="colony-canvas" width="600" height="400" style="max-width: 100%; height: auto; border-radius: 8px;"></canvas>
+          </div>
+          <div class="glass-panel">
+            <h3 class="panel-section-title"><i class="fa-solid fa-chart-pie"></i> <span data-i18n="cc_result_title">Hasil Kalkulasi (CFU/mL)</span></h3>
+            <div id="results-placeholder" class="empty-state">
+              <p data-i18n="cc_empty">Belum ada analisis dilakukan.</p>
+            </div>
+            <div id="results-content" style="display: none;">
+              <div class="colony-stats">
+                <div id="card-yellow" class="stat-card" style="border-left-color: #FBBF24;">
+                  <h4 data-i18n="cc_yellow_col">Koloni Warna Kuning (TCBS)</h4>
+                  <div class="stat-value" id="val-yellow">0</div>
+                  <div class="stat-cfu" id="cfu-yellow">0 CFU/mL</div>
+                </div>
+                <div id="card-green" class="stat-card" style="border-left-color: #10B981;">
+                  <h4 data-i18n="cc_green_col">Koloni Warna Hijau (TCBS)</h4>
+                  <div class="stat-value" id="val-green">0</div>
+                  <div class="stat-cfu" id="cfu-green">0 CFU/mL</div>
+                </div>
+                <div class="stat-card" style="border-left-color: #4FACFE;">
+                  <h4 data-i18n="cc_total_col">Total Koloni Terdeteksi</h4>
+                  <div class="stat-value" id="val-total">0</div>
+                  <div class="stat-cfu" id="cfu-total">0 CFU/mL</div>
+                </div>
+              </div>
+              <p id="tcbs-note" style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.5rem; display: none;" data-i18n="cc_tcbs_note">* Diferensiasi warna hanya berlaku untuk media TCBS.</p>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <footer class="app-footer">
+        <div data-i18n="txt_footer_copy">© 2026 Technology Division, PT Central Proteina Prima Tbk. Hak Cipta Dilindungi.</div>
+      </footer>
+    </main>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+  <script src="../js/core/cv-engine.js"></script>
+  <script src="../js/core/i18n.js"></script>
+  <script src="../js/core/modules.js"></script>
+  <script src="../js/main.js"></script>
+  <script src="../js/colony/colony-counter.js?v=5"></script>
+</body>
+</html>

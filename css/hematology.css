@@ -1,0 +1,259 @@
+/* ====================================================
+   Hematology Analyzer - Module CSS
+   ==================================================== */
+
+.workspace-grid {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 1.5rem;
+  align-items: stretch;
+}
+
+@media (max-width: 1024px) {
+  .workspace-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.workspace-control {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  height: fit-content;
+}
+
+/* Dropzone styling */
+.dropzone-area {
+  border: 2px dashed rgba(0, 242, 254, 0.2);
+  background: rgba(255, 255, 255, 0.01);
+  border-radius: 12px;
+  padding: 1.75rem 1rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dropzone-area:hover, .dropzone-area.dragover {
+  border-color: var(--text-accent);
+  background: rgba(0, 242, 254, 0.03);
+}
+
+.dropzone-icon {
+  font-size: 2.25rem;
+  color: var(--text-accent);
+  opacity: 0.8;
+}
+
+.dropzone-text {
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.dropzone-hint {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
+/* Accordion for Threshold Settings */
+.settings-accordion {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.accordion-header {
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-accent);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  user-select: none;
+}
+
+.accordion-header:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.accordion-content {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.range-input-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.range-input-label {
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.25rem;
+  display: block;
+}
+
+/* Canvas Microscope Frame */
+.canvas-wrapper {
+  position: relative;
+  background: #050508;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  box-shadow: inset 0 0 40px rgba(0,0,0,0.8);
+}
+
+.micro-canvas {
+  max-width: 100%;
+  max-height: 500px;
+  display: block;
+  image-rendering: -webkit-optimize-contrast;
+  cursor: crosshair;
+}
+
+.canvas-overlay-text {
+  position: absolute;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-style: italic;
+  pointer-events: none;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.canvas-overlay-text i {
+  font-size: 3rem;
+  opacity: 0.2;
+  color: var(--text-accent);
+}
+
+/* Legend and count card */
+.micro-stats-bar {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  margin-top: 1rem;
+}
+
+.stat-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.stat-pill.rbc { border-color: rgba(239, 68, 68, 0.3); color: #EF4444; }
+.stat-pill.wbc { border-color: rgba(168, 85, 247, 0.3); color: #A855F7; }
+.stat-pill.plt { border-color: rgba(6, 182, 212, 0.3); color: #06B6D4; }
+
+/* Diagnostic and differential tables */
+.hematology-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  margin-top: 0.5rem;
+}
+
+.hematology-table th, .hematology-table td {
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+  text-align: center;
+}
+
+.hematology-table th {
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text-accent);
+  font-weight: 700;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.hematology-table td.param-name {
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.hematology-table tr:hover {
+  background: rgba(255, 255, 255, 0.01);
+}
+
+/* Status Badges */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 20px;
+  text-transform: uppercase;
+}
+
+.status-badge.normal { background: rgba(16, 185, 129, 0.12); color: #10B981; }
+.status-badge.low    { background: rgba(59, 130, 246, 0.12);  color: #3B82F6; }
+.status-badge.high   { background: rgba(239, 68, 68, 0.12);   color: #EF4444; }
+
+/* Eyedropper & Point click card */
+.selected-cell-card {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background: rgba(0, 242, 254, 0.03);
+  border: 1px solid rgba(0, 242, 254, 0.15);
+  border-radius: 10px;
+}
+
+.selected-cell-header {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-accent);
+  margin-bottom: 0.4rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.selected-cell-body {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* Grid layout for report columns */
+.report-grid {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: 1.5rem;
+}
+
+@media (max-width: 900px) {
+  .report-grid {
+    grid-template-columns: 1fr;
+  }
+}

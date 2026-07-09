@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aqua Insight Ecosystem - Platform Analitik Ilmiah Akuakultur</title>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Stylesheets & Manifest -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    /* Antigravity Animation Canvas */
+    #antigravity-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0.6;
+    }
+    
+    /* Dashboard specific layout styling */
+    .hero-banner {
+      background: linear-gradient(135deg, rgba(0, 242, 254, 0.1) 0%, rgba(79, 172, 254, 0.02) 100%);
+      border: 1px solid rgba(0, 242, 254, 0.15);
+      border-radius: 20px;
+      padding: 3.5rem 3rem;
+      margin-bottom: 3rem;
+      position: relative;
+      overflow: hidden;
+      animation: heroFadeIn 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    
+    /* Antigravity glowing orbs */
+    .hero-banner::before {
+      content: '';
+      position: absolute;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(0,242,254,0.15) 0%, rgba(0,242,254,0) 70%);
+      border-radius: 50%;
+      top: -150px;
+      left: -150px;
+      z-index: 1;
+      animation: pulseGlow 8s infinite alternate;
+    }
+
+    .hero-banner::after {
+      content: '';
+      position: absolute;
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(16,185,129,0.1) 0%, rgba(16,185,129,0) 70%);
+      border-radius: 50%;
+      bottom: -100px;
+      right: -50px;
+      z-index: 1;
+      animation: pulseGlow 6s infinite alternate-reverse;
+    }
+    
+    .hero-content {
+      position: relative;
+      z-index: 2; /* Above the glowing orbs and canvas */
+    }
+
+    .hero-title {
+      font-size: 2.75rem;
+      font-weight: 800;
+      margin-bottom: 1.25rem;
+      background: linear-gradient(135deg, var(--text-primary) 30%, var(--text-accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.02em;
+    }
+    
+    .hero-desc {
+      font-size: 1.15rem;
+      color: var(--text-secondary);
+      max-width: 800px;
+      line-height: 1.7;
+      margin-bottom: 0;
+      font-weight: 400;
+    }
+    
+    .filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.85rem;
+      margin-bottom: 2.5rem;
+      animation: slideUpFade 0.8s 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    
+    .filter-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      padding: 0.65rem 1.35rem;
+      border-radius: 30px;
+      cursor: pointer;
+      font-family: var(--font-heading);
+      font-size: 0.85rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      transition: all var(--transition-speed) ease;
+    }
+    
+    .filter-btn:hover, .filter-btn.active {
+      color: var(--text-primary);
+      border-color: var(--text-accent);
+      background: var(--bg-hover);
+      box-shadow: 0 0 15px rgba(0, 242, 254, 0.1);
+    }
+    
+    .filter-btn.active {
+      background: linear-gradient(135deg, var(--text-accent) 0%, #4FACFE 100%);
+      -webkit-text-fill-color: initial;
+      color: #070e1b !important;
+      border-color: transparent;
+      box-shadow: 0 4px 15px rgba(0, 242, 254, 0.25);
+    }
+    
+    .modules-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1.75rem;
+      margin-bottom: 3.5rem;
+    }
+    
+    .module-card {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    
+    /* Staggered animation delays for cards */
+    .module-card:nth-child(1) { animation-delay: 0.3s; }
+    .module-card:nth-child(2) { animation-delay: 0.4s; }
+    .module-card:nth-child(3) { animation-delay: 0.5s; }
+    .module-card:nth-child(4) { animation-delay: 0.6s; }
+    .module-card:nth-child(5) { animation-delay: 0.7s; }
+    .module-card:nth-child(6) { animation-delay: 0.8s; }
+    .module-card:nth-child(n+7) { animation-delay: 0.9s; }
+    
+    .module-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 1.25rem;
+    }
+    
+    .module-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      background: rgba(0, 242, 254, 0.08);
+      border: 1px solid rgba(0, 242, 254, 0.15);
+      color: var(--text-accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      transition: transform var(--transition-speed) ease, background var(--transition-speed) ease;
+    }
+    
+    .module-card:hover .module-icon {
+      transform: scale(1.05) translateY(-2px);
+      background: rgba(0, 242, 254, 0.15);
+      box-shadow: 0 0 15px rgba(0, 242, 254, 0.2);
+    }
+    
+    .module-badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.3rem 0.7rem;
+      border-radius: 20px;
+      color: #030712;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    
+    .module-name {
+      font-size: 1.3rem;
+      margin-bottom: 0.5rem;
+      color: var(--text-primary);
+      transition: color var(--transition-speed) ease;
+    }
+    
+    .module-category-tag {
+      font-size: 0.75rem;
+      color: var(--text-accent);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.85rem;
+    }
+    
+    .module-desc {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      margin-bottom: 1.75rem;
+      flex-grow: 1;
+    }
+    
+    .module-action {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      color: var(--text-accent);
+      text-decoration: none;
+      font-size: 0.95rem;
+      font-weight: 700;
+      transition: gap var(--transition-speed) ease;
+    }
+    
+    .module-card:hover .module-action {
+      gap: 0.85rem;
+    }
+    
+    /* Animations */
+    @keyframes heroFadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes slideUpFade {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes pulseGlow {
+      from { transform: scale(0.9); opacity: 0.8; }
+      to { transform: scale(1.1); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="app-layout">
+    <!-- Dynamic Sidebar (Injected by main.js) -->
+    <div id="sidebar-container"></div>
+    
+    <!-- Main Content Area -->
+    <main id="main-content">
+      <!-- Dynamic Header (Injected by main.js) -->
+      <div id="header-container" data-page-title="Dashboard Utama" data-page-category="Scientific Platform"></div>
+      
+      <!-- Hero Banner -->
+      <div class="hero-banner">
+        <canvas id="antigravity-canvas"></canvas>
+        <div class="hero-content">
+          <h2 class="hero-title" data-i18n="dash_title">Aqua Insight Scientific Ecosystem</h2>
+          <p class="hero-desc" data-i18n="dash_welcome">
+            Platform analitik saintifik tingkat lanjut yang mengintegrasikan visi komputer, bioinformatika, statistika inferensial, dan pemodelan epidemiologis ke dalam satu ekosistem komputasi klien tanpa batas. Dirancang untuk percepatan penemuan diagnostik dan analisis data akuakultur berpresisi tinggi.
+          </p>
+        </div>
+      </div>
+      
+      <!-- Filter Bar -->
+      <div class="filter-bar" id="category-filter-bar">
+        <!-- Rendered dynamically by script -->
+      </div>
+      
+      <!-- Modules Grid -->
+      <div class="modules-grid" id="modules-cards-container">
+        <!-- Rendered dynamically from window.AQUA_INSIGHT_MODULES -->
+      </div>
+      
+      <!-- Shared Footer -->
+      <footer class="app-footer">
+        <div>© 2026 Technology Division, PT Central Proteina Prima Tbk. Hak Cipta Dilindungi.</div>
+        <div class="footer-links">
+          <a href="pages/contact.html" data-i18n="sb_support">Bantuan</a>
+          <a href="#">Privasi</a>
+          <a href="#">Syarat & Ketentuan</a>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <!-- Core Scripts -->
+  <script src="js/core/i18n.js"></script>
+  <script src="js/core/modules.js"></script>
+  <script src="js/main.js"></script>
+  
+  <script>
+    // Inisialisasi Rendering Dasbor Utama secara dinamis
+    document.addEventListener("DOMContentLoaded", () => {
+      // Re-trigger language update for static tags
+      if(window.AQUA_GET_LANG) {
+        window.dispatchEvent(new Event('languageChanged'));
+      }
+      initAntigravityAnimation();
+      renderFilterBar();
+      renderModuleCards("all");
+    });
+    
+    function renderFilterBar() {
+      const filterBar = document.getElementById("category-filter-bar");
+      const categories = window.AQUA_INSIGHT_CATEGORIES || [];
+      const lang = typeof window.AQUA_GET_LANG === "function" ? window.AQUA_GET_LANG() : "id";
+      
+      if (filterBar && categories.length > 0) {
+        filterBar.innerHTML = categories.map((cat, idx) => `
+          <button class="filter-btn ${idx === 0 ? 'active' : ''}" onclick="applyCategoryFilter('${cat.id}', this)">
+            <i class="fa-solid ${cat.icon}"></i>
+            <span>${cat['name_' + lang] || cat.name_id}</span>
+          </button>
+        `).join("");
+      }
+    }
+    
+    function renderModuleCards(categoryId) {
+      const container = document.getElementById("modules-cards-container");
+      const modules = window.AQUA_INSIGHT_MODULES || [];
+      const lang = typeof window.AQUA_GET_LANG === "function" ? window.AQUA_GET_LANG() : "id";
+      const T = window.AQUA_T || (k => k);
+      
+      if (!container) return;
+      
+      // Map category back to ID mapping for filtering since categoryId passed is the actual object ID
+      const filtered = categoryId === "all" 
+        ? modules 
+        : modules.filter(m => m.category_id === categoryId || m.category === categoryId);
+        
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="glass-panel" style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--text-secondary);">
+            <i class="fa-solid fa-circle-info" style="font-size: 2rem; margin-bottom: 1rem; color: var(--text-accent);"></i>
+            <p>${T('dash_empty')}</p>
+          </div>
+        `;
+        return;
+      }
+      
+      container.innerHTML = filtered.map(mod => {
+        const modName = mod['name_' + lang] || mod.name_id || mod.name;
+        const modCat = mod['category_' + lang] || mod.category_id || mod.category;
+        const modDesc = mod['description_' + lang] || mod.description_id || mod.description;
+        
+        return `
+        <div class="glass-panel module-card clickable" onclick="window.location.href='${mod.url}'">
+          <div class="module-header">
+            <div class="module-icon">
+              <i class="fa-solid ${mod.icon}"></i>
+            </div>
+            <span class="module-badge" style="background-color: ${mod.badgeColor || '#3B82F6'}">${mod.badge}</span>
+          </div>
+          <div class="module-category-tag">${modCat}</div>
+          <h3 class="module-name">${modName}</h3>
+          <p class="module-desc">${modDesc}</p>
+          <a href="${mod.url}" class="module-action">
+            <span>${T('dash_btn_open')}</span>
+            <i class="fa-solid fa-arrow-right-long"></i>
+          </a>
+        </div>
+      `}).join("");
+    }
+    
+    window.applyCategoryFilter = function(categoryId, btn) {
+      // Toggle active class
+      document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      
+      // Filter modules cards
+      renderModuleCards(categoryId);
+    }
+    
+    // Antigravity Canvas Animation Logic
+    function initAntigravityAnimation() {
+      const canvas = document.getElementById("antigravity-canvas");
+      if (!canvas) return;
+      
+      const ctx = canvas.getContext("2d");
+      let width, height;
+      let particles = [];
+      
+      function resize() {
+        width = canvas.offsetWidth;
+        height = canvas.offsetHeight;
+        canvas.width = width;
+        canvas.height = height;
+      }
+      
+      window.addEventListener("resize", resize);
+      resize();
+      
+      class Particle {
+        constructor() {
+          this.x = Math.random() * width;
+          this.y = Math.random() * height;
+          this.size = Math.random() * 2 + 0.5;
+          this.speedY = (Math.random() - 0.5) * 0.5 - 0.2; // Slow drift upward
+          this.speedX = (Math.random() - 0.5) * 0.4;
+          this.opacity = Math.random() * 0.5 + 0.1;
+          this.pulseSpeed = Math.random() * 0.02 + 0.005;
+          this.pulseAngle = Math.random() * Math.PI * 2;
+        }
+        
+        update() {
+          this.x += this.speedX;
+          this.y += this.speedY;
+          
+          if (this.y < -10) this.y = height + 10;
+          if (this.y > height + 10) this.y = -10;
+          if (this.x < -10) this.x = width + 10;
+          if (this.x > width + 10) this.x = -10;
+          
+          this.pulseAngle += this.pulseSpeed;
+        }
+        
+        draw() {
+          // Calculate pulsing opacity
+          const currentOpacity = this.opacity + Math.sin(this.pulseAngle) * 0.2;
+          
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+          const isLight = document.documentElement.getAttribute("data-theme") === "light";
+          const color = isLight ? "2, 132, 199" : "0, 242, 254";
+          
+          ctx.fillStyle = `rgba(${color}, ${Math.max(0.05, currentOpacity)})`;
+          ctx.fill();
+        }
+      }
+      
+      function initParticles() {
+        particles = [];
+        const numParticles = Math.min(width * height / 10000, 50); // Scale with size
+        for (let i = 0; i < numParticles; i++) {
+          particles.push(new Particle());
+        }
+      }
+      
+      function animate() {
+        ctx.clearRect(0, 0, width, height);
+        particles.forEach(p => {
+          p.update();
+          p.draw();
+        });
+        requestAnimationFrame(animate);
+      }
+      
+      initParticles();
+      animate();
+    }
+  </script>
+</body>
+</html>

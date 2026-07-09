@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plankton Analyzer - Aqua Insight</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/plankton-analysis.css">
+</head>
+<body class="subpage">
+  <div id="app-layout">
+    <div id="sidebar-container"></div>
+    <main id="main-content">
+      <div id="header-container" data-page-title="Plankton Analyzer" data-page-category="Imaging &amp; Vision"></div>
+
+      <div class="workspace-grid">
+        <!-- Left Panel -->
+        <section class="glass-panel workspace-control">
+          <h3 class="panel-section-title"><i class="fa-solid fa-microscope"></i> <span data-i18n="pl_add_obs">Tambah Pengamatan</span></h3>
+
+          <div class="form-group" style="text-align: center; margin-bottom: 1rem;">
+            <div id="image-dropzone" style="border: 2px dashed rgba(0, 242, 254, 0.5); padding: 1rem; border-radius: 8px; cursor: pointer; transition: all 0.3s; margin-bottom: 10px;" onclick="document.getElementById('image-upload-input').click()">
+              <i class="fa-solid fa-cloud-arrow-up" style="font-size: 2rem; color: var(--text-accent); margin-bottom: 0.5rem;"></i>
+              <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 0;" data-i18n="pc_dropzone">Seret gambar ke sini atau klik untuk unggah</p>
+            </div>
+            <input type="file" id="image-upload-input" style="display: none;" accept="image/*" onchange="handleImageUpload(event)">
+            <button class="header-btn compact-btn" style="width: 100%; justify-content: center; margin-bottom: 5px;" onclick="startCamera()">
+              <i class="fa-solid fa-camera"></i> <span data-i18n="cc_use_camera">Gunakan Kamera Ponsel</span>
+            </button>
+            <video id="camera-stream" style="width: 100%; display: none; border-radius: 8px; margin-bottom: 5px;" autoplay playsinline></video>
+            <button id="snap-btn" class="header-btn compact-btn" style="width: 100%; justify-content: center; background: #10B981; color: white; border: none; display: none;" onclick="captureSnapshot()">
+              <i class="fa-solid fa-camera-retro"></i> <span data-i18n="cc_take_photo">Ambil Foto</span>
+            </button>
+          </div>
+
+          <canvas id="plankton-canvas" width="400" height="300" style="width: 100%; background: #111; border-radius: 8px; border: 1px solid #333; margin-bottom: 1rem;"></canvas>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="dilution-factor" data-i18n="pl_dilution">Faktor Pengenceran (D)</label>
+              <input type="number" id="dilution-factor" class="form-control" value="1" min="1">
+            </div>
+            <div class="form-group">
+              <label for="sample-volume" data-i18n="pl_volume">Volume (mL)</label>
+              <input type="number" id="sample-volume" class="form-control" value="1" min="0.1" step="0.1">
+            </div>
+            <div class="form-group">
+              <label for="squares-counted" data-i18n="pl_grid_count">Jumlah Kotak (n)</label>
+              <input type="number" id="squares-counted" class="form-control" value="5" min="1" max="25">
+            </div>
+          </div>
+
+          <button class="header-btn" style="width: 100%; justify-content: center; background: linear-gradient(135deg, var(--text-accent) 0%, #4FACFE 100%); color: #070e1b; border-color: transparent;" onclick="analyzePlanktonImage()">
+            <i class="fa-solid fa-brain"></i> <span data-i18n="pl_auto_analyze">Analisis Gambar Otomatis</span>
+          </button>
+
+          <hr class="panel-divider">
+
+          <h3 class="panel-section-title"><i class="fa-solid fa-pen-to-square"></i> <span data-i18n="pl_add_obs">Tambah Pengamatan Manual</span></h3>
+          <div class="form-group">
+            <label for="manual-species" data-i18n="pl_genus">Genus / Spesies</label>
+            <select id="manual-species" class="custom-select"></select>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="manual-cells" data-i18n="pl_cell_count">Jumlah Sel (N)</label>
+              <input type="number" id="manual-cells" class="form-control" value="25" min="1">
+            </div>
+            <div class="form-group">
+              <label for="manual-date" data-i18n="pl_date">Tanggal Sampel</label>
+              <input type="date" id="manual-date" class="form-control">
+            </div>
+          </div>
+          <button class="header-btn" style="width: 100%; justify-content: center; background: rgba(0, 242, 254, 0.15); color: var(--text-accent); border-color: rgba(0, 242, 254, 0.3); margin-bottom: 0.5rem;" onclick="addManualObservation()">
+            <i class="fa-solid fa-plus"></i> <span data-i18n="pl_btn_add">Tambahkan Data</span>
+          </button>
+
+
+          <h3 class="panel-section-title"><i class="fa-solid fa-database"></i> <span data-i18n="pl_training_db">Training Database</span></h3>
+          <p style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.5rem;" data-i18n="pl_training_desc">Latih model pengenalan dengan foto referensi baru. (Akses Terbatas)</p>
+          <button class="header-btn compact-btn" style="width: 100%; justify-content: center; border-color: #F59E0B; color: #F59E0B;" onclick="openTrainModal()">
+            <i class="fa-solid fa-lock"></i> <span data-i18n="pl_manage_db">Kelola Database Plankton</span>
+          </button>
+        </section>
+
+        <!-- Training Modal -->
+        <div id="train-modal" class="modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center;">
+          <div class="glass-panel" style="width: 90%; max-width: 500px; padding: 2rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+              <h3 style="margin: 0;"><i class="fa-solid fa-shield-halved"></i> <span data-i18n="pl_admin_auth">Otentikasi Admin</span></h3>
+              <button class="compact-btn" style="background: none; border: none; color: white; cursor: pointer;" onclick="document.getElementById('train-modal').style.display='none'"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="auth-section">
+              <div class="form-group">
+                <label data-i18n="pl_enter_pwd">Masukkan Password</label>
+                <input type="password" id="admin-pwd" class="form-control" placeholder="Password...">
+              </div>
+              <button class="header-btn" style="width: 100%; justify-content: center;" onclick="verifyAdmin()" data-i18n="pl_verify">Verifikasi</button>
+            </div>
+            <div id="train-section" style="display: none; padding-top: 1rem; border-top: 1px solid var(--border-color); margin-top: 1rem;">
+              <h3 class="panel-section-title"><i class="fa-solid fa-database"></i> <span data-i18n="pl_add_ref">Tambah Spesies Referensi</span></h3>
+              <div class="form-group">
+                <label data-i18n="pl_genus">Nama Genus / Spesies</label>
+                <input type="text" id="train-species-name" class="form-control" placeholder="Contoh: Chlorella">
+              </div>
+              <div class="form-group">
+                <label data-i18n="pl_cat_type">Kategori (Tipe)</label>
+                <select id="train-species-type" class="custom-select">
+                  <option value="Beneficial" data-i18n="pl_phytoplankton">Fitoplankton (Beneficial)</option>
+                  <option value="HABs" data-i18n="pl_habs">Harmful Algal Blooms (HABs)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label data-i18n="pl_min_size_px">Ukuran Minimum Partikel (px)</label>
+                <input type="number" id="train-species-minsize" class="form-control" value="10">
+              </div>
+              <div class="form-group">
+                <label data-i18n="pl_upload_ref">Unggah Gambar Referensi (Jelas &amp; Bersih)</label>
+                <input type="file" id="train-img-input" class="form-control" accept="image/*">
+              </div>
+              <button class="header-btn" style="width: 100%; justify-content: center; background: #10B981; color: white; border: none; margin-top: 0.5rem;" onclick="saveToIndexedDB()" data-i18n="pl_save_db">Simpan ke Database Spesies</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Panel -->
+        <section class="results-area">
+          <div class="glass-panel" style="height: 100%; display: flex; flex-direction: column;">
+            <div class="tab-container">
+              <button class="tab-btn active" onclick="switchTab('density-tab', this)" data-i18n="pl_tab_density">Kepadatan &amp; Klasifikasi</button>
+              <button class="tab-btn" onclick="switchTab('diversity-tab', this)" data-i18n="pl_tab_div">Indeks Keanekaragaman</button>
+              <button class="tab-btn" onclick="switchTab('database-tab', this)" data-i18n="pl_tab_db">Database Kolam</button>
+              <button class="tab-btn" onclick="switchTab('species-db-tab', this)" data-i18n="pl_tab_species_db">Database Spesies</button>
+            </div>
+
+            <!-- Tab 1: Kepadatan -->
+            <div id="density-tab" class="tab-pane active" style="flex-grow: 1; overflow-y: auto;">
+              <table class="plankton-table">
+                <thead>
+                  <tr>
+                    <th>Genus</th>
+                    <th data-i18n="pl_th_type">Tipe</th>
+                    <th data-i18n="pl_th_density">Kepadatan (sel/mL)</th>
+                    <th data-i18n="pl_th_status">Status</th>
+                    <th data-i18n="pl_th_action">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="density-table-body"></tbody>
+              </table>
+              <div id="density-empty-state" class="empty-state">
+                <i class="fa-solid fa-flask"></i>
+                <p data-i18n="pl_empty_data">Belum ada data pengamatan sesi ini.</p>
+              </div>
+            </div>
+
+            <!-- Tab 2: Indeks Keanekaragaman -->
+            <div id="diversity-tab" class="tab-pane" style="flex-grow: 1; overflow-y: auto;">
+              <div class="diversity-grid">
+                <div class="diversity-card">
+                  <h4 data-i18n="pl_shannon">Shannon-Wiener (H')</h4>
+                  <div class="index-value" id="shannon-val">0.00</div>
+                  <div class="index-interp" id="shannon-interp">-</div>
+                </div>
+                <div class="diversity-card">
+                  <h4 data-i18n="pl_simpson">Simpson Index (D)</h4>
+                  <div class="index-value" id="simpson-val">0.00</div>
+                  <div class="index-interp" id="simpson-interp">-</div>
+                </div>
+                <div class="diversity-card">
+                  <h4 data-i18n="pl_evenness">Evenness (J')</h4>
+                  <div class="index-value" id="evenness-val">0.00</div>
+                  <div class="index-interp" id="evenness-interp">-</div>
+                </div>
+              </div>
+              <div class="chart-container" style="margin-top: 2rem; height: 300px;">
+                <canvas id="compositionChart"></canvas>
+              </div>
+            </div>
+
+            <!-- Tab 3: Database Kolam -->
+            <div id="database-tab" class="tab-pane" style="flex-grow: 1; overflow-y: auto;">
+              <div class="db-save-panel glass-card" style="padding: 1rem; margin-bottom: 1.5rem; border: 1px solid var(--border-color); border-radius: 8px;">
+                <h4 style="margin-top: 0; margin-bottom: 0.8rem; font-size: 0.9rem; color: var(--text-accent);"><i class="fa-solid fa-floppy-disk"></i> <span data-i18n="pl_save_session_title">Simpan Sesi Pengamatan</span></h4>
+                <div class="form-row" style="gap: 0.5rem; margin-bottom: 0.8rem;">
+                  <div class="form-group" style="flex: 2;">
+                    <label for="db-pond-name" style="font-size: 0.75rem;" data-i18n="pl_pond_name">Nama Kolam</label>
+                    <input type="text" id="db-pond-name" class="form-control compact" placeholder="Contoh: Kolam A1">
+                  </div>
+                  <div class="form-group" style="flex: 3;">
+                    <label for="db-notes" style="font-size: 0.75rem;" data-i18n="pl_notes">Catatan / Deskripsi</label>
+                    <input type="text" id="db-notes" class="form-control compact" placeholder="Contoh: Kecerahan 30cm">
+                  </div>
+                </div>
+                <button class="header-btn compact-btn" style="width: 100%; justify-content: center; background: #10B981; border: none; color: white;" onclick="saveCurrentSession()">
+                  <i class="fa-solid fa-check"></i> <span data-i18n="pl_btn_save_db">Simpan ke Database</span>
+                </button>
+              </div>
+              
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+                <h4 style="margin: 0; font-size: 0.95rem; color: var(--text-secondary);"><i class="fa-solid fa-clock-rotate-left"></i> <span data-i18n="pl_history_title">Riwayat Sesi Tersimpan</span></h4>
+                <div style="display: flex; gap: 0.5rem;">
+                  <button class="header-btn compact-btn" onclick="exportDatabaseJSON()"><i class="fa-solid fa-download"></i> JSON</button>
+                  <button class="header-btn compact-btn" onclick="exportDatabaseCSV()"><i class="fa-solid fa-file-csv"></i> CSV</button>
+                  <button class="header-btn compact-btn" style="border-color: #EF4444; color: #EF4444;" onclick="clearDatabase()"><i class="fa-solid fa-trash"></i> <span data-i18n="st_clear">Bersihkan</span></button>
+                </div>
+              </div>
+              <ul id="database-list" class="db-list"></ul>
+            </div>
+
+            <!-- Tab 4: Database Spesies -->
+            <div id="species-db-tab" class="tab-pane" style="flex-grow: 1; overflow-y: auto;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 style="margin: 0; font-size: 1.1rem;" data-i18n="pl_tab_species_db">Daftar Referensi Spesies</h3>
+                <button class="header-btn compact-btn" onclick="clearSpeciesDB()"><i class="fa-solid fa-trash"></i> <span data-i18n="st_del_sel_row">Hapus Semua Data</span></button>
+              </div>
+              <table class="plankton-table">
+                <thead>
+                  <tr>
+                    <th>Gambar</th>
+                    <th>Genus</th>
+                    <th data-i18n="pl_th_type">Tipe</th>
+                    <th>RGB</th>
+                    <th data-i18n="pl_th_action">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="species-table-body"></tbody>
+              </table>
+              <div id="species-empty-state" class="empty-state">
+                <i class="fa-solid fa-database"></i>
+                <p data-i18n="pl_empty_data">Belum ada referensi spesies di database.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <footer class="app-footer">
+        <div data-i18n="txt_footer_copy">© 2026 Technology Division, PT Central Proteina Prima Tbk. Hak Cipta Dilindungi.</div>
+        <div class="footer-links">
+          <a href="contact.html" data-i18n="sb_support">Bantuan</a>
+          <a href="#" data-i18n="txt_privacy">Privasi</a>
+          <a href="#" data-i18n="txt_terms">Syarat &amp; Ketentuan</a>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="../js/core/cv-engine.js"></script>
+  <script src="../js/core/i18n.js"></script>
+  <script src="../js/core/modules.js"></script>
+  <script src="../js/main.js"></script>
+  <script src="../js/plankton/plankton-analysis.js?v=5"></script>
+</body>
+</html>

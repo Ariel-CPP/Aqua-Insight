@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Statistics Analyzer - Aqua Insight</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="../css/style.css?v=1.0.1">
+  <link rel="stylesheet" href="../css/statistics.css?v=1.0.1">
+  <style>
+    .col-header-editable.col-selected, .editable-cell.col-selected { background-color: rgba(0, 242, 254, 0.12) !important; outline: 1px solid rgba(0, 242, 254, 0.4); }
+    .col-header-editable.col-selected { outline: 2px solid rgba(0, 242, 254, 0.6); }
+    td.row-num.row-selected { background-color: rgba(0, 242, 254, 0.12) !important; color: #00f2fe; font-weight: 700; }
+    td.row-num { cursor: pointer; }
+    td.row-num:hover { background: rgba(255,255,255,0.06); }
+  </style>
+</head>
+<body class="subpage">
+  <div id="app-layout">
+    <div id="sidebar-container"></div>
+    <main id="main-content">
+      <div id="header-container" data-page-title="Statistics Analyzer" data-page-category="Data &amp; Analytics"></div>
+      <div class="workspace-grid">
+
+        <!-- Left Panel -->
+        <section class="glass-panel workspace-control">
+          <h3 class="panel-section-title"><i class="fa-solid fa-folder-open"></i> <span data-i18n="st_preset_data">Preset Data</span></h3>
+          <div class="form-group">
+            <label for="dataset-preset" data-i18n="st_choose_preset">Pilih Contoh Dataset (Berdasarkan Tujuan Analisa)</label>
+            <select id="dataset-preset" class="form-control" onchange="loadPresetDataset(this.value)">
+              <option value="" data-i18n="st_empty_table">-- Buat Tabel Kosong --</option>
+              <option value="feed_trials" data-i18n="st_preset_anova1">Tujuan: Uji ANOVA 1-Way (Contoh Uji Pakan)</option>
+              <option value="temp_salinity" data-i18n="st_preset_anova2">Tujuan: Uji ANOVA 2-Way (Suhu &amp; Salinitas)</option>
+              <option value="growth_curve" data-i18n="st_preset_reg_exp">Tujuan: Regresi Eksponensial (Kurva Pertumbuhan)</option>
+              <option value="salinity_survival" data-i18n="st_preset_reg_lin">Tujuan: Regresi Linear (Korelasi Survival)</option>
+              <option value="ttest_paired_sample" data-i18n="st_preset_ttest">Tujuan: Uji-t Berpasangan (Sebelum vs Sesudah)</option>
+              <option value="chisquare_indep_preset" data-i18n="st_preset_chisquare_indep">Tujuan: Uji Chi-Square Independensi (Prevalensi Penyakit)</option>
+              <option value="chisquare_gof_preset" data-i18n="st_preset_chisquare_gof">Tujuan: Uji Chi-Square Goodness-of-Fit (Rasio Fenotipe)</option>
+            </select>
+          </div>
+          <hr class="panel-divider">
+          <h3 class="panel-section-title"><i class="fa-solid fa-calculator"></i> <span data-i18n="st_stat_analysis">Analisis Statistik</span></h3>
+          <div class="form-group">
+            <label for="analysis-type" data-i18n="st_test_type">Jenis Pengujian</label>
+            <select id="analysis-type" class="form-control" onchange="switchAnalysisSettings(this.value)">
+              <option value="descriptive" data-i18n="st_descriptive">Statistik Deskriptif</option>
+              <option value="ttest_1" data-i18n="st_ttest1">Uji-t Satu Sampel (One-Sample t-Test)</option>
+              <option value="ttest_2" data-i18n="st_ttest2">Uji-t Dua Sampel Independen</option>
+              <option value="ttest_paired" data-i18n="st_ttest_paired">Uji-t Berpasangan (Paired t-Test)</option>
+              <option value="ttest_wilcoxon" data-i18n="st_ttest_wilcoxon">Uji Wilcoxon Signed-Rank</option>
+              <option value="anova_1" data-i18n="st_anova1">ANOVA Satu Arah &amp; Tukey HSD</option>
+              <option value="anova_2" data-i18n="st_anova2">ANOVA Dua Arah (Faktorial)</option>
+              <option value="chisquare_indep" data-i18n="st_chisquare_indep">Uji Chi-Square Independensi (Tabel Kontingensi)</option>
+              <option value="chisquare_gof" data-i18n="st_chisquare_gof">Uji Chi-Square Goodness-of-Fit</option>
+              <option value="regression" data-i18n="st_regression">Analisis Regresi &amp; Korelasi</option>
+              <option value="design_crd" data-i18n="st_design">Rancangan Percobaan (CRD/RCBD Layout)</option>
+              <option value="sample_size" data-i18n="st_sample_size">Kalkulator Ukuran Sampel (Power)</option>
+            </select>
+          </div>
+          <div id="param-ttest-1" class="form-group" style="display: none;">
+            <label for="ttest-1-target" data-i18n="st_reference_mean">Rata-rata Acuan (H0)</label>
+            <input type="number" id="ttest-1-target" class="form-control" value="50">
+          </div>
+          <div id="param-anova-2" class="form-group" style="display: none;">
+            <div class="switch-control">
+              <label for="toggle-anova-2-interaction" data-i18n="st_interaction">Hitung Interaksi Faktor</label>
+              <button id="toggle-anova-2-interaction" class="toggle-switch-btn active" onclick="this.classList.toggle('active')"></button>
+            </div>
+          </div>
+          <div id="param-regression" class="form-group" style="display: none;">
+            <label for="regression-model-type" data-i18n="st_reg_model">Model Fitting Regresi</label>
+            <select id="regression-model-type" class="form-control">
+              <option value="linear" data-i18n="st_linear">Linear: y = mx + c</option>
+              <option value="exponential" data-i18n="st_exponential">Eksponensial: y = a * e^(bx)</option>
+              <option value="logarithmic" data-i18n="st_logarithmic">Logaritmik: y = a * ln(x) + b</option>
+              <option value="quadratic" data-i18n="st_quadratic">Kuadratik (Orde 2): y = ax² + bx + c</option>
+              <option value="power" data-i18n="st_power">Pangkat (Power): y = a * x^b</option>
+            </select>
+          </div>
+          <div id="param-design" style="display: none;">
+            <div class="form-group">
+              <label for="design-mode" data-i18n="st_design_model">Model Rancangan</label>
+              <select id="design-mode" class="form-control" onchange="switchDesignMode(this.value)">
+                <option value="crd" data-i18n="st_crd">CRD (Acak Lengkap)</option>
+                <option value="rcbd" data-i18n="st_rcbd">RCBD (Acak Kelompok)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="design-treatments" data-i18n="st_treatments">Nama Perlakuan (pisahkan koma)</label>
+              <input type="text" id="design-treatments" class="form-control" value="Pakan_A, Pakan_B, Pakan_C">
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label id="lbl-reps-blocks" data-i18n="st_reps">Ulangan (Reps)</label>
+                <input type="number" id="design-reps" class="form-control" value="4" min="2">
+              </div>
+              <div class="form-group">
+                <label data-i18n="st_grid_cols">Grid Kolom</label>
+                <input type="number" id="design-cols" class="form-control" value="4" min="1">
+              </div>
+            </div>
+          </div>
+          <div id="param-sample-size" style="display: none;">
+            <div class="form-group">
+              <label for="sample-calc-type" data-i18n="st_calc_model">Model Kalkulasi</label>
+              <select id="sample-calc-type" class="form-control" onchange="switchSampleCalc(this.value)">
+                <option value="single" data-i18n="st_single_mean">Estimasi Rata-rata Satu Kelompok</option>
+                <option value="double" data-i18n="st_two_group">Perbandingan Dua Kelompok (t-Test)</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="sample-alpha">Alpha (α)</label>
+                <select id="sample-alpha" class="form-control">
+                  <option value="0.05">0.05 (95%)</option>
+                  <option value="0.01">0.01 (99%)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="sample-power" data-i18n="st_power_test">Daya Uji (Power)</label>
+                <select id="sample-power" class="form-control">
+                  <option value="0.80">0.80 (80%)</option>
+                  <option value="0.90">0.90 (90%)</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group" id="group-sample-sd">
+              <label for="sample-sd" data-i18n="st_std_dev">Standar Deviasi (σ)</label>
+              <input type="number" id="sample-sd" class="form-control" value="10" step="any">
+            </div>
+            <div class="form-group" id="group-sample-margin">
+              <label for="sample-margin" data-i18n="st_error_margin">Batas Toleransi Error (E)</label>
+              <input type="number" id="sample-margin" class="form-control" value="2" step="any">
+            </div>
+            <div class="form-group" id="group-sample-effect" style="display: none;">
+              <label for="sample-effect" data-i18n="st_effect_size">Ukuran Efek (Cohen's d)</label>
+              <input type="number" id="sample-effect" class="form-control" value="0.5" step="0.1">
+            </div>
+          </div>
+          <hr class="panel-divider">
+          <div id="general-stat-settings">
+            <div class="switch-control">
+              <label for="toggle-levene-assumption" data-i18n="st_levene">Cek Homogenitas (Uji Levene)</label>
+              <button id="toggle-levene-assumption" class="toggle-switch-btn active" onclick="this.classList.toggle('active')"></button>
+            </div>
+          </div>
+          <button class="header-btn" style="width: 100%; justify-content: center; background: linear-gradient(135deg, var(--text-accent) 0%, #4FACFE 100%); color: #070e1b; border-color: transparent;" onclick="executeAnalysis()">
+            <i class="fa-solid fa-play"></i> <span data-i18n="st_run_analysis">Jalankan Uji Statistik</span>
+          </button>
+          <button class="header-btn" style="width: 100%; justify-content: center; margin-top: 10px; border-color: var(--text-accent); color: var(--text-accent);" onclick="window.exportReportPDF()">
+            <i class="fa-solid fa-file-pdf"></i> <span data-i18n="st_export_pdf">Ekspor Laporan PDF</span>
+          </button>
+        </section>
+
+        <!-- Right Panel -->
+        <section class="results-area">
+          <div class="spreadsheet-container" id="grid-box-container">
+            <div class="spreadsheet-toolbar">
+              <button class="header-btn compact-btn" onclick="addGridRow()"><i class="fa-solid fa-plus"></i> <span data-i18n="st_row">Baris</span></button>
+              <button class="header-btn compact-btn" onclick="addGridCol()"><i class="fa-solid fa-plus"></i> <span data-i18n="st_col">Kolom</span></button>
+              <button class="header-btn compact-btn" onclick="removeGridCol()"><i class="fa-solid fa-minus"></i> <span data-i18n="st_del_col">Hapus Kolom</span></button>
+              <button class="header-btn compact-btn" onclick="clearSpreadsheet()"><i class="fa-solid fa-trash-can"></i> <span data-i18n="st_clear">Bersihkan</span></button>
+              <button class="header-btn compact-btn" style="border-color: #F43F5E; color: #F43F5E;" onclick="deleteSelectedCols()"><i class="fa-solid fa-table-columns"></i> <span data-i18n="st_del_sel_col">Hapus Kolom Dipilih</span></button>
+              <button class="header-btn compact-btn" style="border-color: #F43F5E; color: #F43F5E;" onclick="deleteSelectedRows()"><i class="fa-solid fa-trash-arrow-up"></i> <span data-i18n="st_del_sel_row">Hapus Baris Dipilih</span></button>
+              <div style="flex-grow: 1;"></div>
+              <button class="header-btn compact-btn" onclick="triggerCSVImport()"><i class="fa-solid fa-file-import"></i> <span data-i18n="st_import_csv">Impor CSV</span></button>
+            </div>
+            <div class="spreadsheet-scroll">
+              <table class="spreadsheet-table" id="data-grid"></table>
+            </div>
+          </div>
+          <div id="analysis-report-container">
+            <div class="glass-panel" style="text-align: center; padding: 4rem; color: var(--text-secondary);">
+              <i class="fa-solid fa-chart-line" style="font-size: 3rem; color: var(--text-accent); margin-bottom: 1.5rem;"></i>
+              <h3>Aqua Insight Statistics Platform</h3>
+              <p style="font-size: 0.85rem; max-width: 500px; margin: 0.5rem auto 0 auto; line-height: 1.5;" data-i18n="st_empty_hint">Silakan isi data ke dalam tabel di atas lalu klik tombol "Jalankan Uji Statistik" untuk memunculkan laporan ilmiah terstandarisasi.</p>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <footer class="app-footer">
+        <div data-i18n="txt_footer_copy">© 2026 Technology Division, PT Central Proteina Prima Tbk. Hak Cipta Dilindungi.</div>
+        <div class="footer-links">
+          <a href="contact.html" data-i18n="sb_support">Bantuan</a>
+          <a href="#" data-i18n="txt_privacy">Privasi</a>
+          <a href="#" data-i18n="txt_terms">Syarat &amp; Ketentuan</a>
+        </div>
+      </footer>
+    </main>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="../js/core/i18n.js?v=1.0.1"></script>
+  <script src="../js/core/modules.js?v=1.0.1"></script>
+  <script src="../js/main.js?v=1.0.1"></script>
+  <script src="../js/core/math-utils.js?v=1.0.1"></script>
+  <script src="../js/core/file-utils.js?v=1.0.1"></script>
+  <script src="../js/core/chart-utils.js?v=1.0.1"></script>
+  <script src="../js/statistics/anova.js?v=1.0.1"></script>
+  <script src="../js/statistics/regression.js?v=1.0.1"></script>
+  <script src="../js/statistics/design.js?v=1.0.1"></script>
+  <script src="../js/statistics/statistics.js?v=1.0.1"></script>
+</body>
+</html>

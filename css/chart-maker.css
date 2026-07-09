@@ -1,0 +1,175 @@
+/* ============================================
+   Chart Maker - Module-Specific Styles
+   (Base styles come from style.css)
+   ============================================ */
+
+/* Workspace Layout */
+.cm-workspace {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 1.5rem;
+  align-items: start;
+  margin-bottom: 2rem;
+}
+
+@media (max-width: 900px) {
+  .cm-workspace {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Control Panel */
+.cm-control-panel {
+  position: sticky;
+  top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* Results Area */
+.cm-results-area {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-width: 0;
+}
+
+/* Panel Headers */
+.cm-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* Table Panel */
+.cm-table-scroll {
+  overflow: auto;
+  max-height: 280px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+#data-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 400px;
+}
+
+#data-table th,
+#data-table td {
+  border: 1px solid var(--border-color);
+  padding: 0.55rem 0.8rem;
+  text-align: left;
+  min-width: 90px;
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+#data-table th {
+  background: rgba(0, 242, 254, 0.08);
+  color: var(--text-accent);
+  font-weight: 700;
+  font-family: var(--font-heading);
+  font-size: 0.8rem;
+  letter-spacing: 0.03em;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+#data-table td {
+  color: var(--text-primary);
+  background: transparent;
+  transition: background 0.15s;
+}
+
+#data-table td:focus,
+#data-table th:focus {
+  outline: 2px solid var(--text-accent);
+  background: rgba(0, 242, 254, 0.06);
+}
+
+#data-table tr:hover td {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* Selected rows/cols highlight */
+#data-table td.cm-selected,
+#data-table th.cm-selected {
+  background: rgba(0, 242, 254, 0.12) !important;
+  outline: 1px solid rgba(0, 242, 254, 0.4);
+}
+
+/* Chart Panel */
+.cm-chart-panel {
+  flex: 1;
+}
+
+.cm-canvas-wrap {
+  position: relative;
+  width: 100%;
+  height: 400px;
+}
+
+#chart-canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Chart type badge */
+.cm-type-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.25rem 0.7rem;
+  border-radius: 20px;
+  background: rgba(0, 242, 254, 0.12);
+  color: var(--text-accent);
+  border: 1px solid rgba(0, 242, 254, 0.25);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Spreadsheet Grid Enhancements */
+#data-table th.row-number-header {
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 0.7rem;
+  min-width: 40px;
+  width: 40px;
+  text-align: center;
+  user-select: none;
+}
+
+#data-table td.row-num {
+  background: rgba(255, 255, 255, 0.03);
+  font-weight: 600;
+  text-align: center;
+  color: var(--text-secondary);
+  user-select: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+#data-table td.row-num:hover,
+#data-table th.col-header-editable:hover,
+#data-table th.col-header:hover {
+  background: rgba(0, 242, 254, 0.08) !important;
+  color: var(--text-accent) !important;
+}
+
+#data-table td.editable-cell {
+  cursor: text;
+}
+
+#data-table td.editable-cell:focus {
+  background: rgba(0, 242, 254, 0.05) !important;
+  outline: 2px solid var(--text-accent);
+}
+
+#data-table th.col-header-editable:focus {
+  background: rgba(0, 242, 254, 0.1) !important;
+  outline: 2px solid var(--text-accent);
+}

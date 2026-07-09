@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Aqua Insight - Test Harness</title>
+  <style>
+    body { font-family: monospace; background: #111; color: #fff; padding: 20px; }
+    h1 { color: #00F2FE; }
+    .test-block { background: #222; padding: 15px; margin-bottom: 15px; border-left: 4px solid #555; }
+    .pass { border-color: #10B981; }
+    .pass-text { color: #10B981; font-weight: bold; }
+    .fail { border-color: #EF4444; }
+    .fail-text { color: #EF4444; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <h1>Aqua Insight - Math & Statistics Validation Test</h1>
+  <div id="results"></div>
+
+  <!-- Load Core Math Library -->
+  <script src="js/core/math-utils.js"></script>
+  
+  <script>
+    const resDiv = document.getElementById('results');
+    
+    function assert(name, condition, expected, actual) {
+      const isPass = condition;
+      const cls = isPass ? 'pass' : 'fail';
+      const textCls = isPass ? 'pass-text' : 'fail-text';
+      const statusText = isPass ? 'PASS' : 'FAIL';
+      
+      resDiv.innerHTML += `
+        <div class="test-block ${cls}">
+          <h3>${name}</h3>
+          <p>Status: <span class="${textCls}">${statusText}</span></p>
+          ${!isPass ? `<p>Expected: ${expected}<br>Actual: ${actual}</p>` : ''}
+        </div>
+      `;
+    }
+
+    function runTests() {
+      // Test 1: Mean & StdDev
+      const data1 = [2, 4, 4, 4, 5, 5, 7, 9];
+      const mean1 = statUtils.mean(data1);
+      const sd1 = statUtils.standardDeviation(data1);
+      assert("Test 1: Mean Calculation", mean1 === 5, 5, mean1);
+      assert("Test 2: Standard Deviation", Math.abs(sd1 - 2.138) < 0.01, 2.138, sd1);
+      
+      // Test 2: t-Distribution (CDF)
+      // For t=2.0, df=10, 1-tailed p should be ~0.0367
+      const p1 = statUtils.tDistributionCDF(2.0, 10);
+      assert("Test 3: t-Distribution CDF (t=2.0, df=10)", Math.abs(p1 - 0.9633) < 0.01, 0.9633, p1);
+      
+      // Test 3: F-Distribution (CDF)
+      // For F=3.0, df1=2, df2=10, p-value (1-cdf) should be ~0.095
+      const cdfF = statUtils.fDistributionCDF(3.0, 2, 10);
+      const pF = 1 - cdfF;
+      assert("Test 4: F-Distribution CDF (F=3.0, df1=2, df2=10)", Math.abs(pF - 0.095) < 0.01, 0.095, pF);
+      
+      // Test 4: Levene's Test
+      const groups = [
+        [1, 2, 3],
+        [4, 5, 6],
+        [7, 8, 9]
+      ];
+      const levene = statUtils.leveneTest(groups);
+      // Variances are all exactly equal, so p-value should be 1.0 (perfectly homogeneous)
+      assert("Test 5: Levene's Test (Perfectly Homogeneous)", levene.pValue === 1.0, 1.0, levene.pValue);
+      
+      // Test 5: Linear Regression
+      const x = [1, 2, 3, 4, 5];
+      const y = [2, 4, 5, 4, 5]; // y = 0.6x + 2.2
+      const reg = statUtils.linearRegression(x, y);
+      assert("Test 6: Linear Regression Slope", Math.abs(reg.slope - 0.6) < 0.01, 0.6, reg.slope);
+      assert("Test 7: Linear Regression Intercept", Math.abs(reg.intercept - 2.2) < 0.01, 2.2, reg.intercept);
+    }
+    
+    // Run after load
+    window.onload = runTests;
+  </script>
+</body>
+</html>

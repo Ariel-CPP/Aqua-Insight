@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Electrophoresis Gel Analyzer - Aqua Insight</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/electrophoresis.css">
+</head>
+<body class="subpage">
+  <div id="app-layout">
+    <div id="sidebar-container"></div>
+    <main id="main-content">
+      <div id="header-container" data-page-title="Electrophoresis Gel Analyzer" data-page-category="Imaging &amp; Vision"></div>
+      <div class="workspace-grid" style="grid-template-columns: 250px 1fr 300px;">
+
+        <!-- Left Panel: Controls -->
+        <section class="glass-panel workspace-control">
+          <h3 class="panel-section-title"><i class="fa-solid fa-sliders"></i> <span data-i18n="elec_settings">Pengaturan Gel</span></h3>
+          <div class="form-group">
+            <label for="ladder-type" data-i18n="elec_ladder">Standar DNA Marker</label>
+            <select id="ladder-type" class="form-control" onchange="changeLadder()">
+              <option value="100bp">100 bp Ladder</option>
+              <option value="1kb">1 kb Ladder</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="lane-count" data-i18n="elec_lanes">Jumlah Sumur (Lanes)</label>
+            <input type="number" id="lane-count" class="form-control" value="6" min="3" max="15" onchange="initGel()">
+          </div>
+          <hr class="panel-divider">
+          <h3 class="panel-section-title"><i class="fa-solid fa-image"></i> <span data-i18n="elec_real_gel">Gambar Gel Sungguhan</span></h3>
+          <p style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.5rem;" data-i18n="elec_upload_hint">Unggah foto gel untuk dianalisis di atas kanvas.</p>
+          <input type="file" id="gel-image-upload" style="display: none;" accept="image/*" onchange="handleGelImageUpload(event)">
+          <button class="header-btn compact-btn" style="width: 100%; justify-content: center; margin-bottom: 5px; border-color: var(--text-accent); color: var(--text-accent);" onclick="document.getElementById('gel-image-upload').click()">
+            <i class="fa-solid fa-upload"></i> <span data-i18n="elec_upload_btn">Unggah Foto Gel</span>
+          </button>
+          
+          <!-- Image Position Controls -->
+          <div id="image-adjustments" style="display: none; margin-top: 10px;">
+            <div class="form-group" style="margin-bottom: 8px;">
+              <div style="display: flex; justify-content: space-between;">
+                <label style="font-size: 0.75rem; color: var(--text-secondary);">Skala Gambar (Zoom)</label>
+                <span id="img-zoom-val" style="font-size: 0.75rem; font-weight: 700; color: var(--text-accent);">100%</span>
+              </div>
+              <input type="range" id="img-zoom" class="custom-slider" min="50" max="250" value="100" oninput="updateImageZoom(this.value)" style="height: 4px; padding: 0;">
+            </div>
+            <div class="form-row" style="gap: 5px; margin-bottom: 5px;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="img-offset-x" style="font-size: 0.71rem; color: var(--text-secondary);">Geser X</label>
+                <input type="range" id="img-offset-x" class="custom-slider" min="-300" max="300" value="0" oninput="updateImageOffsetX(this.value)" style="height: 4px; padding: 0;">
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="img-offset-y" style="font-size: 0.71rem; color: var(--text-secondary);">Geser Y</label>
+                <input type="range" id="img-offset-y" class="custom-slider" min="-300" max="300" value="0" oninput="updateImageOffsetY(this.value)" style="height: 4px; padding: 0;">
+              </div>
+            </div>
+            <p style="font-size: 0.68rem; color: var(--text-secondary); margin-top: 5px; margin-bottom: 0; line-height: 1.25;">*Anda juga dapat menggeser gambar dengan klik-drag kanvas saat "Mode Tambah Pita" dinonaktifkan.</p>
+          </div>
+          <hr class="panel-divider">
+          <h3 class="panel-section-title"><i class="fa-solid fa-pen-nib"></i> <span data-i18n="elec_interact_mode">Mode Interaksi</span></h3>
+          <div class="form-group">
+            <div class="switch-control" style="margin-bottom: 0;">
+              <label data-i18n="elec_add_band">Mode Tambah Pita</label>
+              <button id="toggle-add-mode" class="toggle-switch-btn active" onclick="toggleAddMode(this)"></button>
+            </div>
+            <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.5rem;" data-i18n="elec_click_hint">Klik di area lajur sampel pada canvas untuk menambahkan pita (band) dan mengestimasi ukuran secara instan.</p>
+          </div>
+          <button class="header-btn compact-btn" style="width: 100%; justify-content: center; border-color: #F59E0B; color: #F59E0B; margin-bottom: 5px;" onclick="resetLadder()">
+            <i class="fa-solid fa-rotate-left"></i> <span data-i18n="elec_reset_ladder">Reset Posisi Ladder</span>
+          </button>
+          <button class="header-btn" style="width: 100%; justify-content: center;" onclick="clearSamples()">
+            <i class="fa-solid fa-trash-can"></i> <span data-i18n="elec_clear">Bersihkan Sampel</span>
+          </button>
+        </section>
+
+        <!-- Center Panel: Gel Canvas -->
+        <section class="canvas-area" style="display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 1rem;">
+          <div class="gel-container" style="position: relative; background: #111; padding: 20px; border-radius: 12px; border: 2px solid #333;">
+            <canvas id="gel-canvas" width="600" height="400" style="cursor: crosshair; background: #0a0a0a; border-radius: 4px; box-shadow: inset 0 0 20px rgba(0,0,0,0.8);"></canvas>
+            <div style="position: absolute; left: 5px; top: 20px; bottom: 20px; width: 10px; border-right: 1px solid #555; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-end; padding-right: 2px; font-size: 10px; color: #888;">
+              <span>0.0</span><span>0.2</span><span>0.4</span><span>0.6</span><span>0.8</span><span>1.0</span>
+            </div>
+          </div>
+          <div class="glass-panel" style="width: 100%; height: 250px; padding: 1rem;">
+            <canvas id="calibration-chart"></canvas>
+          </div>
+        </section>
+
+        <!-- Right Panel: Results Table -->
+        <section class="glass-panel workspace-control">
+          <h3 class="panel-section-title"><i class="fa-solid fa-table"></i> <span data-i18n="elec_result_title">Hasil Estimasi bp</span></h3>
+          <div style="flex-grow: 1; overflow-y: auto;">
+            <table class="band-table" id="results-table">
+              <thead>
+                <tr>
+                  <th data-i18n="elec_th_lane">Lajur</th>
+                  <th>Rf</th>
+                  <th data-i18n="elec_th_est">Estimasi</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="results-tbody"></tbody>
+            </table>
+            <div id="no-bands-state" class="empty-state" style="padding: 2rem 0;">
+              <i class="fa-solid fa-mouse-pointer"></i>
+              <p data-i18n="elec_empty">Klik pada canvas gel untuk menambahkan pita sampel.</p>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <footer class="app-footer">
+        <div data-i18n="txt_footer_copy">© 2026 Technology Division, PT Central Proteina Prima Tbk. Hak Cipta Dilindungi.</div>
+      </footer>
+    </main>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="../js/core/i18n.js"></script>
+  <script src="../js/core/modules.js"></script>
+  <script src="../js/main.js"></script>
+  <script src="../js/core/math-utils.js"></script>
+  <script src="../js/electrophoresis/electrophoresis.js?v=5"></script>
+</body>
+</html>

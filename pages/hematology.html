@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fish Hematology Analyzer - Aqua Insight</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="../css/style.css?v=1.0.3">
+  <link rel="stylesheet" href="../css/hematology.css?v=1.0.3">
+</head>
+<body class="subpage">
+  <div id="app-layout">
+    <div id="sidebar-container"></div>
+    <main id="main-content">
+      <div id="header-container" data-page-title="Hematology Analyzer" data-page-category="Biological Diagnostics"></div>
+      
+      <div class="workspace-grid">
+        <!-- Left Panel: Control & Thresholds -->
+        <section class="glass-panel workspace-control">
+          <!-- Dropzone -->
+          <div class="dropzone-area" id="dropzone" onclick="document.getElementById('file-input').click()">
+            <i class="fa-solid fa-cloud-arrow-up dropzone-icon"></i>
+            <div class="dropzone-text">Unggah Usap Darah</div>
+            <div class="dropzone-hint">Drag &amp; drop atau klik untuk memuat gambar</div>
+            <input type="file" id="file-input" style="display: none;" accept="image/*">
+          </div>
+
+          <div style="display: flex; gap: 0.5rem;">
+            <button class="header-btn compact-btn" style="flex: 1; justify-content: center;" onclick="loadDemoSmear()">
+              <i class="fa-solid fa-flask"></i> Sampel Demo
+            </button>
+            <button class="header-btn compact-btn" style="flex: 1; justify-content: center; border-color: rgba(244,63,94,0.3); color: #F43F5E; background: rgba(244,63,94,0.05);" id="clear-btn" onclick="clearSmear()" disabled>
+              <i class="fa-solid fa-trash-can"></i> Hapus
+            </button>
+          </div>
+
+          <div class="form-group" style="margin-top: 0.5rem; margin-bottom: 0.5rem;">
+            <label for="blood-type-select">Kategori Darah (Spesies)</label>
+            <select id="blood-type-select" class="form-control" onchange="changeBloodType()">
+              <option value="fish">Ikan / Fish (RBC Oval &amp; Berinti)</option>
+              <option value="mammal">Mamalia &amp; Manusia (RBC Bulat, Non-Inti)</option>
+            </select>
+          </div>
+
+          <hr class="panel-divider" style="margin: 0.25rem 0;">
+
+          <!-- Input Pengamatan Laboratorium -->
+          <div>
+            <h3 class="panel-section-title" style="margin-bottom: 0.5rem;"><i class="fa-solid fa-vial"></i> Data Laboratorium</h3>
+            <div class="form-row">
+              <div class="form-group" style="flex: 1;">
+                <label for="hb-input">Hemoglobin (Hb) - g/dL</label>
+                <input type="number" id="hb-input" class="form-control" value="8.0" step="0.1" min="1.0" max="30.0">
+              </div>
+              <div class="form-group" style="flex: 1;">
+                <label for="ht-input">Hematokrit (Ht) - %</label>
+                <input type="number" id="ht-input" class="form-control" value="30.0" step="0.5" min="5.0" max="80.0">
+              </div>
+            </div>
+          </div>
+
+          <hr class="panel-divider" style="margin: 0.25rem 0;">
+
+          <!-- Parameter Deteksi Sel Darah -->
+          <div>
+            <h3 class="panel-section-title" style="margin-bottom: 0.5rem;"><i class="fa-solid fa-magnifying-glass-chart"></i> Parameter Deteksi</h3>
+            <div class="form-group">
+              <label for="detect-method">Metode Segmentasi</label>
+              <select id="detect-method" class="form-control" onchange="updateDetectionParams()">
+                <option value="rb-ratio">Rasio Merah-Biru (Wright-Giemsa)</option>
+                <option value="grayscale">Skala Abu-Abu (Brightness)</option>
+                <option value="saturation">Saturasi Warna (Kromatik)</option>
+                <option value="custom-color">Warna Latar Kustom (Eyedropper)</option>
+              </select>
+            </div>
+            <div class="form-group" id="eyedropper-group" style="display: none; align-items: center; gap: 0.5rem; margin-top: 0.5rem;">
+              <button class="header-btn compact-btn" id="eyedropper-btn" onclick="activateEyedropper()" style="flex: 1; justify-content: center; height: 32px; padding: 0 8px;">
+                <i class="fa-solid fa-eye-dropper"></i> Ambil Warna Latar
+              </button>
+              <div id="custom-color-indicator" style="width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--border-color); background-color: #f0eaf2;" title="Warna Latar Aktif"></div>
+            </div>
+            <div class="form-group">
+              <div style="display: flex; justify-content: space-between;">
+                <label for="detect-threshold">Ambang Batas (Threshold)</label>
+                <span id="detect-threshold-val" style="font-size: 0.8rem; font-weight: 700; color: var(--text-accent);">120</span>
+              </div>
+              <input type="range" id="detect-threshold" class="custom-slider" min="0" max="255" value="120" oninput="updateThresholdVal(this.value)">
+            </div>
+            <div class="form-row">
+              <div class="form-group" style="flex: 1;">
+                <div style="display: flex; justify-content: space-between;">
+                  <label for="detect-min-size">Min Size (px)</label>
+                  <span id="detect-min-size-val" style="font-size: 0.75rem; font-weight: 700; color: var(--text-accent);">40</span>
+                </div>
+                <input type="range" id="detect-min-size" class="custom-slider" min="5" max="250" value="40" oninput="updateMinSizeVal(this.value)">
+              </div>
+              <div class="form-group" style="flex: 1;">
+                <div style="display: flex; justify-content: space-between;">
+                  <label for="detect-max-size">Max Size (px)</label>
+                  <span id="detect-max-size-val" style="font-size: 0.75rem; font-weight: 700; color: var(--text-accent);">1500</span>
+                </div>
+                <input type="range" id="detect-max-size" class="custom-slider" min="100" max="4000" value="1500" oninput="updateMaxSizeVal(this.value)">
+              </div>
+            </div>
+          </div>
+
+
+          <!-- Accordion Rujukan Normal -->
+          <div class="settings-accordion">
+            <div class="accordion-header" onclick="toggleAccordion()">
+              <span><i class="fa-solid fa-sliders"></i> Rentang Rujukan Normal</span>
+              <i class="fa-solid fa-chevron-down" id="accordion-icon"></i>
+            </div>
+            <div class="accordion-content" id="accordion-content" style="display: none;">
+              <div class="form-group">
+                <label class="range-input-label">Eritrosit / RBC (10⁶ sel/µL)</label>
+                <div class="range-input-grid">
+                  <input type="number" id="ref-rbc-min" class="form-control" value="1.0" step="0.1" style="height: 30px; font-size: 0.75rem;">
+                  <input type="number" id="ref-rbc-max" class="form-control" value="3.0" step="0.1" style="height: 30px; font-size: 0.75rem;">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="range-input-label">Leukosit / WBC (sel/µL)</label>
+                <div class="range-input-grid">
+                  <input type="number" id="ref-wbc-min" class="form-control" value="20000" step="1000" style="height: 30px; font-size: 0.75rem;">
+                  <input type="number" id="ref-wbc-max" class="form-control" value="150000" step="1000" style="height: 30px; font-size: 0.75rem;">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="range-input-label">Hemoglobin (g/dL)</label>
+                <div class="range-input-grid">
+                  <input type="number" id="ref-hb-min" class="form-control" value="5.0" step="0.1" style="height: 30px; font-size: 0.75rem;">
+                  <input type="number" id="ref-hb-max" class="form-control" value="12.0" step="0.1" style="height: 30px; font-size: 0.75rem;">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="range-input-label">Hematokrit (%)</label>
+                <div class="range-input-grid">
+                  <input type="number" id="ref-ht-min" class="form-control" value="20.0" step="0.5" style="height: 30px; font-size: 0.75rem;">
+                  <input type="number" id="ref-ht-max" class="form-control" value="45.0" step="0.5" style="height: 30px; font-size: 0.75rem;">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="range-input-label">Limfosit (%)</label>
+                <div class="range-input-grid">
+                  <input type="number" id="ref-lym-min" class="form-control" value="60.0" step="1.0" style="height: 30px; font-size: 0.75rem;">
+                  <input type="number" id="ref-lym-max" class="form-control" value="85.0" step="1.0" style="height: 30px; font-size: 0.75rem;">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="range-input-label">Neutrofil (%)</label>
+                <div class="range-input-grid">
+                  <input type="number" id="ref-neu-min" class="form-control" value="5.0" step="1.0" style="height: 30px; font-size: 0.75rem;">
+                  <input type="number" id="ref-neu-max" class="form-control" value="25.0" step="1.0" style="height: 30px; font-size: 0.75rem;">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="range-input-label">Monosit (%)</label>
+                <div class="range-input-grid">
+                  <input type="number" id="ref-mon-min" class="form-control" value="1.0" step="0.5" style="height: 30px; font-size: 0.75rem;">
+                  <input type="number" id="ref-mon-max" class="form-control" value="5.0" step="0.5" style="height: 30px; font-size: 0.75rem;">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="range-input-label">Eosinofil (%)</label>
+                <div class="range-input-grid">
+                  <input type="number" id="ref-eos-min" class="form-control" value="0.0" step="0.1" style="height: 30px; font-size: 0.75rem;">
+                  <input type="number" id="ref-eos-max" class="form-control" value="2.0" step="0.1" style="height: 30px; font-size: 0.75rem;">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <button class="header-btn" id="run-btn" style="width: 100%; justify-content: center; background: linear-gradient(135deg, var(--text-accent) 0%, #4FACFE 100%); color: #070e1b; border-color: transparent;" onclick="runHematologyAnalysis()">
+            <i class="fa-solid fa-play"></i> Jalankan Analisis
+          </button>
+        </section>
+
+        <!-- Right Panel: Tabs, Canvas & Reports -->
+        <section style="display: flex; flex-direction: column; gap: 1.5rem;">
+          <div class="glass-panel" style="display: flex; flex-direction: column; height: 100%;">
+            <!-- Navigation -->
+            <div class="tab-container" style="margin-bottom: 1rem;">
+              <button class="tab-btn active" id="btn-tab-micro" onclick="switchHemaTab('micro-tab', this)">
+                <i class="fa-solid fa-eye"></i> 1. Citra &amp; Deteksi Mikroskop
+              </button>
+              <button class="tab-btn" id="btn-tab-report" onclick="switchHemaTab('report-tab', this)">
+                <i class="fa-solid fa-file-invoice"></i> 2. Laporan &amp; Profil Hematologi
+              </button>
+            </div>
+
+            <!-- TAB 1: Microscope View -->
+            <div id="micro-tab" class="tab-pane active" style="display: flex; flex-direction: column; gap: 1rem;">
+              <div class="canvas-wrapper">
+                <canvas id="microscope-canvas" class="micro-canvas" width="650" height="450"></canvas>
+                <div id="canvas-placeholder" class="canvas-overlay-text">
+                  <i class="fa-solid fa-microscope"></i>
+                  <span>Unggah foto usap darah mikroskopis ikan atau klik tombol <b>Sampel Demo</b> di kiri untuk memulai.</span>
+                </div>
+              </div>
+
+              <!-- Pili-pili hitungan mikroskopis -->
+              <div class="micro-stats-bar" id="stats-bar" style="display: none;">
+                <div class="stat-pill rbc">
+                  <i class="fa-solid fa-circle"></i>
+                  <span>Eritrosit (RBC) di Lapang Pandang: <strong id="lbl-rbc-count">0</strong></span>
+                </div>
+                <div class="stat-pill wbc">
+                  <i class="fa-solid fa-circle"></i>
+                  <span>Leukosit (WBC) di Lapang Pandang: <strong id="lbl-wbc-count">0</strong></span>
+                </div>
+                <div class="stat-pill plt">
+                  <i class="fa-solid fa-circle"></i>
+                  <span>Trombosit di Lapang Pandang: <strong id="lbl-plt-count">0</strong></span>
+                </div>
+              </div>
+
+              <!-- Detail Sel Terpilih (Click-to-inspect) -->
+              <div class="selected-cell-card" id="selection-card" style="display: none;">
+                <div class="selected-cell-header">
+                  <i class="fa-solid fa-circle-info"></i> Detail Sel Terpilih (Indeks #<span id="inspect-idx">0</span>)
+                </div>
+                <div class="selected-cell-body">
+                  Jenis Sel: <strong id="inspect-type" style="color: var(--text-accent);">—</strong><br>
+                  Luas Area: <span id="inspect-area">—</span> px² | Sirkularitas: <span id="inspect-circ">—</span><br>
+                  <div style="margin-top: 0.5rem; display: flex; align-items: center; gap: 0.5rem; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                      <span>Koreksi:</span>
+                      <select id="inspect-reclassify-select" class="form-control" style="width: auto; height: 26px; padding: 2px 6px; font-size: 0.75rem;" onchange="reclassifySelectedCell(this.value)">
+                        <option value="RBC">Eritrosit (RBC)</option>
+                        <option value="Lymphocyte">Limfosit (WBC)</option>
+                        <option value="Neutrophil">Neutrofil (WBC)</option>
+                        <option value="Monocyte">Monosit (WBC)</option>
+                        <option value="Eosinophil">Eosinofil (WBC)</option>
+                        <option value="Thrombocyte">Trombosit</option>
+                      </select>
+                    </div>
+                    <button class="header-btn compact-btn" onclick="deleteSelectedCell()" style="border-color: rgba(244,63,94,0.3); color: #F43F5E; background: rgba(244,63,94,0.05); height: 26px; padding: 0 8px;">
+                      <i class="fa-solid fa-trash-can"></i> Hapus Sel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Pop-up Menu untuk Tambah Sel (Klik Ganda) -->
+            <div id="cell-add-popup" style="display: none; position: absolute; z-index: 1000; background: rgba(18, 18, 24, 0.95); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); backdrop-filter: blur(8px); padding: 0.5rem; flex-direction: column; gap: 0.25rem; min-width: 140px;">
+              <div style="font-size: 0.7rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 0.25rem; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.25rem;">Tambah Sel Baru</div>
+              <button class="header-btn compact-btn" onclick="addManualCell('RBC')" style="justify-content: flex-start; gap: 0.5rem; width: 100%; border: none; background: none; font-size: 0.75rem; padding: 4px 8px;"><i class="fa-solid fa-circle" style="color: #EF4444; font-size: 0.55rem;"></i> Eritrosit (RBC)</button>
+              <button class="header-btn compact-btn" onclick="addManualCell('Lymphocyte')" style="justify-content: flex-start; gap: 0.5rem; width: 100%; border: none; background: none; font-size: 0.75rem; padding: 4px 8px;"><i class="fa-solid fa-circle" style="color: #A855F7; font-size: 0.55rem;"></i> Limfosit (WBC)</button>
+              <button class="header-btn compact-btn" onclick="addManualCell('Neutrophil')" style="justify-content: flex-start; gap: 0.5rem; width: 100%; border: none; background: none; font-size: 0.75rem; padding: 4px 8px;"><i class="fa-solid fa-circle" style="color: #A855F7; font-size: 0.55rem;"></i> Neutrofil (WBC)</button>
+              <button class="header-btn compact-btn" onclick="addManualCell('Monocyte')" style="justify-content: flex-start; gap: 0.5rem; width: 100%; border: none; background: none; font-size: 0.75rem; padding: 4px 8px;"><i class="fa-solid fa-circle" style="color: #A855F7; font-size: 0.55rem;"></i> Monosit (WBC)</button>
+              <button class="header-btn compact-btn" onclick="addManualCell('Eosinophil')" style="justify-content: flex-start; gap: 0.5rem; width: 100%; border: none; background: none; font-size: 0.75rem; padding: 4px 8px;"><i class="fa-solid fa-circle" style="color: #A855F7; font-size: 0.55rem;"></i> Eosinofil (WBC)</button>
+              <button class="header-btn compact-btn" onclick="addManualCell('Thrombocyte')" style="justify-content: flex-start; gap: 0.5rem; width: 100%; border: none; background: none; font-size: 0.75rem; padding: 4px 8px;"><i class="fa-solid fa-circle" style="color: #06B6D4; font-size: 0.55rem;"></i> Trombosit</button>
+            </div>
+
+            <!-- TAB 2: Laporan & Hasil -->
+            <div id="report-tab" class="tab-pane" style="display: none; flex-direction: column; gap: 1rem;">
+              <div id="no-report-state" class="empty-state" style="padding: 5rem 2rem;">
+                <i class="fa-solid fa-file-invoice" style="font-size: 3rem; opacity: 0.2; margin-bottom: 1rem;"></i>
+                <p>Belum ada data analisis. Silakan jalankan analisis darah terlebih dahulu.</p>
+              </div>
+
+              <div id="report-content" style="display: none; flex-direction: column; gap: 1.25rem;">
+                <!-- Export actions -->
+                <div style="display: flex; gap: 0.5rem; justify-content: flex-end;" id="export-actions-group">
+                  <button class="header-btn compact-btn" onclick="downloadSmearPng()"><i class="fa-solid fa-file-image" style="color: #00F2FE;"></i> Unduh Citra PNG</button>
+                  <button class="header-btn compact-btn" onclick="exportHematologyExcel()"><i class="fa-solid fa-file-excel" style="color: #10B981;"></i> Ekspor Excel</button>
+                  <button class="header-btn compact-btn" onclick="exportHematologyCSV()"><i class="fa-solid fa-file-csv" style="color: #3B82F6;"></i> Ekspor CSV</button>
+                  <button class="header-btn compact-btn" onclick="printHematologyPDF()"><i class="fa-solid fa-file-pdf" style="color: #EF4444;"></i> Cetak PDF</button>
+                </div>
+
+                <!-- Report Grid -->
+                <div class="report-grid">
+                  <!-- Left: Parameter Tables -->
+                  <div style="display: flex; flex-direction: column; gap: 1rem;">
+                    <!-- Indeks Eritrosit -->
+                    <div class="glass-panel" style="padding: 1rem;">
+                      <h4 style="font-size: 0.85rem; color: var(--text-accent); margin-bottom: 0.5rem;"><i class="fa-solid fa-calculator"></i> Indeks Eritrosit (Erythrocyte Indices)</h4>
+                      <table class="hematology-table" id="indices-table">
+                        <thead>
+                          <tr>
+                            <th>Parameter</th>
+                            <th>Nilai Observasi</th>
+                            <th>Nilai Rujukan Normal</th>
+                            <th>Interpretasi</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <!-- Diisi oleh JS -->
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <!-- Histogram Distribusi Ukuran Eritrosit -->
+                    <div class="glass-panel" style="padding: 1rem;">
+                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                        <h4 style="font-size: 0.85rem; color: var(--text-accent); margin: 0;"><i class="fa-solid fa-chart-bar"></i> Distribusi Ukuran Eritrosit (RBC Size)</h4>
+                        <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary);">RDW: <strong id="lbl-rdw-val" style="color: #00F2FE;">—</strong></span>
+                      </div>
+                      <div style="height: 180px; position: relative;">
+                        <canvas id="rbc-histogram"></canvas>
+                      </div>
+                      <p style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 0.5rem; margin-bottom: 0;">RDW (Red Cell Distribution Width) mengukur variasi ukuran eritrosit (normal: &lt;15%). RDW tinggi menunjukkan Anisositosis.</p>
+                    </div>
+
+                    <!-- Hitung Jenis Leukosit -->
+                    <div class="glass-panel" style="padding: 1rem;">
+                      <h4 style="font-size: 0.85rem; color: var(--text-accent); margin-bottom: 0.5rem;"><i class="fa-solid fa-bacteria"></i> Diferensiasi Leukosit (Differential WBC Count)</h4>
+                      <table class="hematology-table" id="diff-wbc-table">
+                        <thead>
+                          <tr>
+                            <th>Jenis Sel</th>
+                            <th>Persentase (%)</th>
+                            <th>Kisaran Rujukan Normal</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <!-- Diisi oleh JS -->
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <!-- Right: Diagnostic Overview -->
+                  <div style="display: flex; flex-direction: column; gap: 1rem;">
+                    <!-- Profil Utama -->
+                    <div class="glass-panel" style="padding: 1rem;">
+                      <h4 style="font-size: 0.85rem; color: var(--text-accent); margin-bottom: 0.5rem;"><i class="fa-solid fa-clipboard-list"></i> Profil Hematologi Utama</h4>
+                      <table class="hematology-table" id="main-profile-table">
+                        <thead>
+                          <tr>
+                            <th>Parameter</th>
+                            <th>Observasi</th>
+                            <th>Batas Rujukan</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <!-- Diisi oleh JS -->
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <!-- Laporan Kesimpulan -->
+                    <div class="glass-panel" style="padding: 1.25rem; background: rgba(255,255,255,0.01);">
+                      <h4 style="font-size: 0.85rem; color: var(--text-accent); margin-bottom: 0.5rem;"><i class="fa-solid fa-circle-check"></i> Kesimpulan Akhir</h4>
+                      <div id="clinical-report-text" style="font-size: 0.78rem; line-height: 1.5; color: var(--text-secondary); white-space: pre-line;">
+                        <!-- Dinamis diisi oleh JS -->
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+        </section>
+      </div>
+
+      <footer class="app-footer">
+        <div data-i18n="txt_footer_copy">© 2026 Technology Division, PT Central Proteina Prima Tbk. Hak Cipta Dilindungi.</div>
+      </footer>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="../js/core/i18n.js?v=1.0.3"></script>
+  <script src="../js/core/modules.js?v=1.0.3"></script>
+  <script src="../js/main.js?v=1.0.3"></script>
+  <script src="../js/core/cv-engine.js?v=1.0.3"></script>
+  <script src="../js/core/file-utils.js?v=1.0.3"></script>
+  <script src="../js/particle/detection.js?v=1.0.3"></script>
+  <script src="../js/hematology/hematology.js?v=1.0.3"></script>
+</body>
+</html>

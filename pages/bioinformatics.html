@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bioinformatics - Aqua Insight</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    .workspace-grid {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 1.5rem;
+      align-items: stretch;
+    }
+    .sequence-input {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.85rem;
+      letter-spacing: 1px;
+      resize: vertical;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+    }
+    .alignment-scroll-wrap {
+      overflow-x: auto;
+      overflow-y: auto;
+      max-height: 500px;
+      background: #070709;
+      padding: 1.25rem;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .alignment-result-pre {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.85rem;
+      line-height: 1.4;
+      white-space: pre;
+      margin: 0;
+      color: #94A3B8;
+    }
+    .base-a { color: #10B981; background: rgba(16, 185, 129, 0.12); padding: 0 1px; font-weight: bold; }
+    .base-t { color: #EF4444; background: rgba(239, 68, 68, 0.12); padding: 0 1px; font-weight: bold; }
+    .base-c { color: #3B82F6; background: rgba(59, 130, 246, 0.12); padding: 0 1px; font-weight: bold; }
+    .base-g { color: #F59E0B; background: rgba(245, 158, 11, 0.12); padding: 0 1px; font-weight: bold; }
+    .base-gap { color: rgba(255, 255, 255, 0.25); background: rgba(255,255,255,0.03); padding: 0 1px; }
+    
+    .phylo-container {
+      position: relative;
+      background: #09090b;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.05);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .phylo-canvas-wrap {
+      overflow: auto;
+      flex-grow: 1;
+      min-height: 400px;
+    }
+    canvas#phylo-canvas {
+      display: block;
+      background: #09090b;
+      cursor: grab;
+    }
+    canvas#phylo-canvas:active {
+      cursor: grabbing;
+    }
+    .molecular-report {
+      font-size: 0.85rem;
+      line-height: 1.6;
+      color: var(--text-secondary);
+    }
+    .molecular-report h4 {
+      color: var(--text-accent);
+      margin-top: 1rem;
+      margin-bottom: 0.5rem;
+      font-size: 0.95rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      padding-bottom: 0.25rem;
+    }
+    .molecular-report ul {
+      margin: 0.5rem 0 1rem 0;
+      padding-left: 1.25rem;
+      list-style-type: square;
+    }
+    .molecular-report li {
+      margin-bottom: 0.4rem;
+    }
+    .molecular-report p {
+      margin-bottom: 0.75rem;
+    }
+    .tab-container {
+      display: flex;
+      gap: 0.5rem;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 1.25rem;
+    }
+    .tab-btn {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      padding: 0.5rem 1rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s ease;
+    }
+    .tab-btn.active {
+      color: var(--text-accent);
+      border-bottom-color: var(--text-accent);
+    }
+    .tab-pane {
+      display: none;
+    }
+    .tab-pane.active {
+      display: block;
+    }
+    .ncbi-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 6px;
+      padding: 0.75rem;
+      margin-bottom: 1rem;
+    }
+  </style>
+</head>
+<body class="subpage">
+
+  <div id="app-layout">
+    <div id="sidebar-container"></div>
+    
+    <main id="main-content">
+      <div id="header-container" data-page-title="Sequence Alignment &amp; Phylogeny" data-page-category="Biological Diagnostics"></div>
+      
+      <div class="workspace-grid">
+        <!-- Left Panel: Control and Inputs -->
+        <section class="glass-panel workspace-control" style="display: flex; flex-direction: column; gap: 0.75rem;">
+          <h3 class="panel-section-title"><i class="fa-solid fa-dna"></i> Input Sekuens</h3>
+          
+          <div class="ncbi-card">
+            <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-accent); display: block; margin-bottom: 0.4rem;">Ambil dari NCBI GenBank</label>
+            <div style="display: flex; gap: 0.4rem;">
+              <input type="text" id="ncbi-accession" class="form-control" placeholder="Akses, cth: MH152576" style="font-size: 0.75rem; height: 32px;">
+              <button class="header-btn compact-btn" onclick="fetchGenBankSequence()" style="height: 32px; font-size: 0.75rem; padding: 0 0.5rem;">
+                <i class="fa-solid fa-download"></i> Ambil
+              </button>
+            </div>
+            <span style="font-size: 0.65rem; color: var(--text-secondary); display: block; margin-top: 0.25rem;">Masukkan ID Accession terpisah koma.</span>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0.5rem;">
+            <label style="display: flex; justify-content: space-between; align-items: center;">
+              <span>Sekuens FASTA (Beberapa)</span>
+              <span style="font-size: 0.7rem; color: var(--text-accent); font-weight: 700;" id="sequence-count">0 Sekuens</span>
+            </label>
+            <textarea id="seqs-input" class="form-control sequence-input" rows="8" placeholder=">Sekuens_1&#10;ATGCGT...&#10;>Sekuens_2&#10;ATGCGT..."></textarea>
+          </div>
+
+          <div style="display: flex; gap: 0.4rem; margin-bottom: 0.5rem;">
+            <button class="header-btn compact-btn" onclick="loadDemoWSSV()" style="flex: 1; font-size: 0.75rem; justify-content: center;">
+              <i class="fa-solid fa-folder-open"></i> Demo WSSV
+            </button>
+            <button class="header-btn compact-btn" onclick="loadUserPhyloData()" style="flex: 1; font-size: 0.75rem; justify-content: center; border-color: var(--text-accent); color: var(--text-accent);">
+              <i class="fa-solid fa-virus"></i> Sekuens User
+            </button>
+          </div>
+
+          <hr class="panel-divider">
+          <h3 class="panel-section-title"><i class="fa-solid fa-gears"></i> Parameter Analisis</h3>
+
+          <div class="form-group">
+            <label for="align-method">Metode Alignment</label>
+            <select id="align-method" class="form-control">
+              <option value="star">Center Star MSA</option>
+              <option value="upgma">Progressive Guide-Tree (UPGMA)</option>
+              <option value="pairwise">Needleman-Wunsch Pairwise (2 Sekuens Teratas)</option>
+            </select>
+          </div>
+
+          <div class="form-group" id="use-prealigned-group" style="display:none; margin-bottom: 0.75rem;">
+            <div class="switch-control">
+              <label for="use-prealigned">Gunakan Alignment yang Ada</label>
+              <button id="use-prealigned" class="toggle-switch-btn active" onclick="this.classList.toggle('active')"></button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="distance-model">Model Evolusi Jarak</label>
+            <select id="distance-model" class="form-control">
+              <option value="jc69">Jukes-Cantor (JC69)</option>
+              <option value="k80">Kimura 2-Parameter (K80)</option>
+              <option value="hamming">p-Distance (Hamming)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="bootstrap-count">Replikasi Bootstrap</label>
+            <select id="bootstrap-count" class="form-control">
+              <option value="1000">1000x Bootstrap (Presisi Tinggi)</option>
+              <option value="500">500x Bootstrap</option>
+              <option value="100">100x Bootstrap (Cepat)</option>
+              <option value="0">Tanpa Bootstrap</option>
+            </select>
+          </div>
+
+          <div class="form-row" style="margin-top: 0.25rem;">
+            <div class="form-group" style="flex: 1;">
+              <label style="font-size: 0.7rem;">Match</label>
+              <input type="number" id="score-match" class="form-control" value="2" style="height: 32px;">
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label style="font-size: 0.7rem;">Mismatch</label>
+              <input type="number" id="score-mismatch" class="form-control" value="-1" style="height: 32px;">
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label style="font-size: 0.7rem;">Gap</label>
+              <input type="number" id="score-gap" class="form-control" value="-2" style="height: 32px;">
+            </div>
+          </div>
+          
+          <button class="header-btn" style="width: 100%; justify-content: center; background: linear-gradient(135deg, var(--text-accent) 0%, #4FACFE 100%); color: #070e1b; border: none; margin-top: 0.5rem;" onclick="runPhylogenyWorkflow()">
+            <i class="fa-solid fa-circle-play"></i> Jalankan Analisis
+          </button>
+        </section>
+        
+        <!-- Right Panel: Results Tab -->
+        <section class="glass-panel" style="display: flex; flex-direction: column;">
+          <div class="tab-container">
+            <button class="tab-btn active" onclick="switchBioTab('msa-tab', this)">
+              <i class="fa-solid fa-align-justify"></i> Multiple Alignment (MSA)
+            </button>
+            <button class="tab-btn" onclick="switchBioTab('tree-tab', this)">
+              <i class="fa-solid fa-diagram-project"></i> Pohon Filogenetik (ML)
+            </button>
+            <button class="tab-btn" onclick="switchBioTab('molecular-tab', this)">
+              <i class="fa-solid fa-circle-nodes"></i> Analisis Genetika Molekular
+            </button>
+          </div>
+
+          <!-- Tab 1: Alignment Result -->
+          <div id="msa-tab" class="tab-pane active" style="flex-grow: 1;">
+            <div class="diversity-grid" style="margin-bottom: 1.25rem;">
+              <div class="diversity-card">
+                <h4>Alignment Length</h4>
+                <div class="index-value" id="res-length">0 bp</div>
+              </div>
+              <div class="diversity-card">
+                <h4>Conserved Sites</h4>
+                <div class="index-value" id="res-conserved">0</div>
+              </div>
+              <div class="diversity-card">
+                <h4>Avg Identity</h4>
+                <div class="index-value" id="res-identity">0.0%</div>
+              </div>
+              <div class="diversity-card">
+                <h4>Tree Log-Likelihood</h4>
+                <div class="index-value" id="res-likelihood" style="font-size: 1.1rem; font-weight: 700;">-</div>
+              </div>
+            </div>
+
+            <div class="alignment-scroll-wrap">
+              <pre class="alignment-result-pre" id="alignment-output">Silakan input atau muat data sekuens FASTA di sebelah kiri lalu klik "Jalankan Analisis".</pre>
+            </div>
+          </div>
+
+          <!-- Tab 2: Phylogenetic Tree Canvas -->
+          <div id="tree-tab" class="tab-pane" style="flex-grow: 1;">
+            <div class="phylo-container">
+              <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.02); padding: 0.5rem 1rem; border-bottom:1px solid rgba(255,255,255,0.05);">
+                <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-accent);">
+                  Metode: Maximum Likelihood (NJ Topology Approximation)
+                </span>
+                <div style="display:flex; gap:0.5rem; align-items:center;">
+                  <button class="header-btn compact-btn" onclick="downloadTreePng()" style="font-size: 0.75rem; height:28px;">
+                    <i class="fa-solid fa-file-image"></i> Unduh PNG
+                  </button>
+                  <button class="header-btn compact-btn" onclick="resetTreeZoom()" style="font-size: 0.75rem; height:28px;">
+                    <i class="fa-solid fa-arrows-to-eye"></i> Reset View
+                  </button>
+                </div>
+              </div>
+              
+              <div class="phylo-canvas-wrap" id="canvas-container">
+                <canvas id="phylo-canvas" width="800" height="500"></canvas>
+              </div>
+              
+              <div style="background: rgba(255,255,255,0.02); padding: 0.4rem 1rem; display:flex; justify-content:space-between; align-items:center; font-size: 0.75rem; border-top:1px solid rgba(255,255,255,0.05); color: var(--text-secondary);">
+                <span>* Angka pada percabangan menunjukkan nilai <b>Bootstrap (1000x)</b>.</span>
+                <span>* Angka di atas garis cabang menunjukkan <b>Jarak Evolusioner (substitusi/situs)</b>.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 3: Molecular Genetics Report -->
+          <div id="molecular-tab" class="tab-pane" style="flex-grow: 1;">
+            <div class="glass-panel molecular-report" id="molecular-output" style="padding: 1.5rem; background: rgba(255,255,255,0.01); border: 1px solid var(--border-color); border-radius: 8px; max-height: 550px; overflow-y: auto;">
+              Belum ada hasil analisis. Lakukan perhitungan sekuens terlebih dahulu.
+            </div>
+          </div>
+        </section>
+      </div>
+      
+      <footer class="app-footer">
+        <div data-i18n="txt_footer_copy">© 2026 Technology Division, PT Central Proteina Prima Tbk. Hak Cipta Dilindungi.</div>
+      </footer>
+    </main>
+  </div>
+
+  <script src="../js/core/i18n.js"></script>
+  <script src="../js/core/modules.js"></script>
+  <script src="../js/main.js"></script>
+  <script src="../js/bio/bioinformatics.js"></script>
+</body>
+</html>

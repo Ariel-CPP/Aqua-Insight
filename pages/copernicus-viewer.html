@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Copernicus Marine Data Viewer - Aqua Insight</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    #iframe-container {
+      width: 100%;
+      height: 80vh;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+      box-shadow: var(--card-shadow);
+      background: #000;
+    }
+    #marine-viewer {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+    .warning-banner {
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      border-left: 4px solid #F59E0B;
+      color: var(--text-primary);
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+  </style>
+</head>
+<body class="subpage">
+
+  <div id="app-layout">
+    <div id="sidebar-container"></div>
+    
+    <main id="main-content">
+      <div id="header-container" data-page-title="Copernicus Marine Data Viewer" data-page-category="Decision Support"></div>
+      
+      <div class="warning-banner">
+        <i class="fa-solid fa-circle-info" style="color: #F59E0B; font-size: 1.5rem;"></i>
+        <div>
+          <h4 style="margin-bottom: 0.25rem;">Copernicus Marine Data Portal Integration</h4>
+          <p style="font-size: 0.85rem; color: var(--text-secondary);">Anda sedang mengakses portal publik pihak ketiga (data.marine.copernicus.eu). Interaksi di dalam peta ini memuat data satelit oseanografi eksternal yang di-hosting langsung oleh infrastruktur Copernicus Europa.</p>
+        </div>
+      </div>
+
+      <div id="iframe-container">
+        <!-- Iframe to Copernicus Viewer -->
+        <iframe id="marine-viewer" src="https://data.marine.copernicus.eu/viewer" allow="fullscreen"></iframe>
+      </div>
+      
+      <footer class="app-footer">
+        <div data-i18n="txt_footer_copy">© 2026 Technology Division, PT Central Proteina Prima Tbk. Hak Cipta Dilindungi.</div>
+      </footer>
+    </main>
+  </div>
+
+  <script src="../js/core/i18n.js"></script>
+  <script src="../js/core/modules.js"></script>
+  <script src="../js/main.js"></script>
+</body>
+</html>

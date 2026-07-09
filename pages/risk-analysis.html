@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Risk Analysis Dashboard - Aqua Insight</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="../css/style.css?v=1.0.3">
+  <link rel="stylesheet" href="../css/risk-analysis.css?v=1.0.3">
+</head>
+<body class="subpage">
+
+  <div id="app-layout">
+    <div id="sidebar-container"></div>
+
+    <main id="main-content">
+      <div id="header-container" data-page-title="Risk Analysis Dashboard" data-page-category="Decision Support"></div>
+
+      <!-- Tab Navigation at the top -->
+      <div class="tab-container" style="border-bottom: 1px solid var(--border-color); margin-bottom: 1.25rem; display: flex; gap: 0.5rem; padding: 0.25rem 0;">
+        <button class="tab-btn active" id="btn-tab-input" onclick="switchRiskTab('input-tab', this)">
+          <i class="fa-solid fa-table"></i> Tab Input Data
+        </button>
+        <button class="tab-btn" id="btn-tab-hasil" onclick="switchRiskTab('hasil-tab', this)">
+          <i class="fa-solid fa-square-poll-vertical"></i> Tab Hasil Analisis
+        </button>
+      </div>
+
+      <!-- Status bar -->
+      <div id="ra-status-bar" class="ra-status-bar" style="display:none">
+        <i class="fa-solid fa-circle-check" style="color:#10B981"></i>
+        <span id="ra-status-text"></span>
+        <button class="header-btn compact-btn" style="margin-left:auto" onclick="showDataPreview()">
+          <i class="fa-solid fa-table"></i> <span data-i18n="ra_preview">Preview Data</span>
+        </button>
+      </div>
+
+      <!-- Main Container for Active Workspace -->
+      <div id="ra-dashboard" style="display:none">
+
+        <!-- Tab 1: Tab Input Data -->
+        <div id="input-tab" class="tab-pane active workspace-grid">
+          <!-- Left Panel: Controls and Inputs -->
+          <section class="ra-controls-panel">
+            <input type="file" id="ra-file-input" style="display: none;" accept=".csv,.tsv">
+            
+            <!-- Panel 1: Kustomisasi Ambang Batas (Set Parameter) -->
+            <div class="glass-panel ra-control-group" style="display: flex; flex-direction: column; gap: 0.75rem;">
+              <div class="ra-control-group-title"><i class="fa-solid fa-sliders"></i> Pengaturan Ambang Batas</div>
+              <div style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 380px; overflow-y: auto; padding-right: 4px;">
+                <div class="ra-input-grid">
+                  <div>
+                    <span class="ra-input-label">Suhu Min (°C)</span>
+                    <input type="number" step="0.1" id="thresh-suhu-min" class="form-control" value="27" style="height:30px; font-size:0.75rem;">
+                  </div>
+                  <div>
+                    <span class="ra-input-label">Suhu Max (°C)</span>
+                    <input type="number" step="0.1" id="thresh-suhu-max" class="form-control" value="31" style="height:30px; font-size:0.75rem;">
+                  </div>
+                </div>
+                
+                <div class="ra-input-grid">
+                  <div>
+                    <span class="ra-input-label">DO Pagi Min (mg/L)</span>
+                    <input type="number" step="0.1" id="thresh-do-min" class="form-control" value="4" style="height:30px; font-size:0.75rem;">
+                  </div>
+                  <div>
+                    <span class="ra-input-label">pH Pagi Min</span>
+                    <input type="number" step="0.1" id="thresh-ph-min" class="form-control" value="7.5" style="height:30px; font-size:0.75rem;">
+                  </div>
+                </div>
+
+                <div class="ra-input-grid">
+                  <div>
+                    <span class="ra-input-label">pH Sore Max</span>
+                    <input type="number" step="0.1" id="thresh-ph-max" class="form-control" value="9.0" style="height:30px; font-size:0.75rem;">
+                  </div>
+                  <div>
+                    <span class="ra-input-label">TAN Max (ppm)</span>
+                    <input type="number" step="0.05" id="thresh-tan-max" class="form-control" value="0.5" style="height:30px; font-size:0.75rem;">
+                  </div>
+                </div>
+
+                <div class="ra-input-grid">
+                  <div>
+                    <span class="ra-input-label">NO2 Max (ppm)</span>
+                    <input type="number" step="0.05" id="thresh-no2-max" class="form-control" value="0.25" style="height:30px; font-size:0.75rem;">
+                  </div>
+                  <div>
+                    <span class="ra-input-label">FCR Max</span>
+                    <input type="number" step="0.05" id="thresh-fcr-max" class="form-control" value="1.6" style="height:30px; font-size:0.75rem;">
+                  </div>
+                </div>
+
+                <div class="ra-input-grid">
+                  <div>
+                    <span class="ra-input-label">Vibrio Ratio (%)</span>
+                    <input type="number" step="0.01" id="thresh-vibrio-max" class="form-control" value="0.1" style="height:30px; font-size:0.75rem;">
+                  </div>
+                  <div>
+                    <span class="ra-input-label">Plankton⁻ Max (%)</span>
+                    <input type="number" step="1" id="thresh-plankton-max" class="form-control" value="30" style="height:30px; font-size:0.75rem;">
+                  </div>
+                </div>
+              </div>
+              <hr style="border: none; border-top: 1px solid var(--border-color); margin: 0.4rem 0;">
+              <button class="header-btn" id="run-btn" style="width: 100%; justify-content: center; background: linear-gradient(135deg, var(--text-accent) 0%, #4FACFE 100%); color: #070e1b; border-color: transparent;" onclick="applySpreadsheetChanges()">
+                <i class="fa-solid fa-play"></i> Terapkan &amp; Analisis
+              </button>
+            </div>
+          </section>
+
+          <!-- Right Panel: Spreadsheet Editor Table -->
+          <section class="glass-panel" style="padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem; overflow: hidden;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+              <h3 class="panel-section-title" style="margin: 0;"><i class="fa-solid fa-pen-to-square"></i> Edit Data Monitoring &amp; Parameter</h3>
+              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <button class="header-btn compact-btn" onclick="loadDemoRiskData()" style="border-color: var(--text-accent); color: var(--text-accent); background: rgba(0, 242, 254, 0.05);">
+                  <i class="fa-solid fa-database"></i> Gunakan Data Demo
+                </button>
+                <button class="header-btn compact-btn" onclick="addSpreadsheetRow()">
+                  <i class="fa-solid fa-plus"></i> Tambah Baris (DOC)
+                </button>
+                <button class="header-btn compact-btn" onclick="addSpreadsheetColumn()">
+                  <i class="fa-solid fa-circle-plus"></i> Tambah Parameter Baru
+                </button>
+                <button class="header-btn compact-btn" onclick="resetRiskData()" style="border-color: rgba(244,63,94,0.3); color: #F43F5E; background: rgba(244,63,94,0.05);">
+                  <i class="fa-solid fa-trash-can"></i> Reset Data
+                </button>
+              </div>
+            </div>
+            
+            <p style="font-size: 0.78rem; color: var(--text-secondary); margin: 0;">
+              Ubah langsung nilai pada sel tabel di bawah. Anda dapat melakukan copy-paste data langsung dari Excel/Google Sheets ke dalam tabel ini. Tombol panah atas/bawah dapat digunakan untuk navigasi cepat. Klik <b>Terapkan &amp; Analisis</b> di sebelah kiri setelah selesai mengedit.
+            </p>
+
+            <div class="spreadsheet-container" style="flex: 1; min-height: 400px;">
+              <div class="spreadsheet-scroll" style="max-height: 600px;">
+                <table class="spreadsheet-table" id="ra-spreadsheet-table">
+                  <!-- Dinamik digambar oleh JS -->
+                </table>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- Tab 2: Tab Hasil Analisis -->
+        <div id="hasil-tab" class="tab-pane" style="display: none; flex-direction: column; gap: 1.5rem;">
+          
+          <!-- Top Bar: DOC Slider + Export Actions -->
+          <div id="doc-slider-panel" class="glass-panel ra-doc-panel" style="display: none; align-items: center; justify-content: space-between; gap: 2rem; flex-wrap: wrap; padding: 1rem 1.5rem; margin-bottom: 0;">
+            <div style="flex: 1; min-width: 280px; display: flex; flex-direction: column; gap: 0.5rem;">
+              <div class="ra-doc-header" style="margin-bottom: 0;">
+                <span class="panel-section-title" style="font-size: 0.9rem;"><i class="fa-solid fa-calendar-days"></i> Pilih DOC untuk Snapshot Analisis</span>
+                <div class="ra-doc-val-wrap">
+                  <span>DOC</span>
+                  <span id="doc-display" class="ra-doc-badge">1</span>
+                </div>
+              </div>
+              <input type="range" id="doc-slider" class="ra-slider" min="1" max="90" value="1">
+              <div class="ra-doc-ticks">
+                <span>DOC 1</span><span id="doc-slider-max-label">DOC 90</span>
+              </div>
+            </div>
+            
+            <div style="display: flex; gap: 0.5rem; align-items: center; height: fit-content;">
+              <button class="header-btn" onclick="exportExcelData()" id="export-excel-btn" disabled>
+                <i class="fa-solid fa-file-excel" style="color: #10B981;"></i> <span>Ekspor Excel</span>
+              </button>
+              <button class="header-btn" onclick="printPdfReport()" id="print-pdf-btn" disabled>
+                <i class="fa-solid fa-file-pdf" style="color: #F43F5E;"></i> <span>Cetak Laporan PDF</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Row 2: KPI Cards -->
+          <div class="ra-kpi-row" id="ra-kpi-row"></div>
+
+          <!-- Row 3: Main Results Workspace Grid -->
+          <div class="workspace-grid" style="grid-template-columns: 380px 1fr; align-items: flex-start;">
+            
+            <!-- Left Column: Risk gauges + Radar + Notes -->
+            <section style="display: flex; flex-direction: column; gap: 1.5rem;">
+              <!-- Panel Risiko & Radar -->
+              <div class="glass-panel ra-gauges-panel" style="padding: 1.25rem;">
+                <div class="ra-panel-head">
+                  <span class="panel-section-title"><i class="fa-solid fa-gauge-high"></i> Tingkat Risiko &amp; Profil Kualitas Air</span>
+                </div>
+                <div class="gauges-grid" style="grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                  <!-- Cumulative Mortality Gauge Card -->
+                  <div class="gauge-card mortality-gauge-card" style="grid-column: span 2; background: rgba(244,63,94,0.04); border-color: rgba(244,63,94,0.15); margin-bottom: 0.25rem;">
+                    <div class="gauge-title" style="color: #F43F5E; font-size: 1.05rem;">Risiko Kematian Kumulatif</div>
+                    <div class="gauge-subtitle">Cumulative Mortality Risk Estimation</div>
+                    <div class="gauge-wrapper" style="max-width: 140px; margin: 0 auto; padding-bottom: 45%;">
+                      <svg class="gauge-svg" viewBox="0 0 100 55">
+                        <path class="gauge-bg" d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#1e293b" stroke-width="12" stroke-linecap="round"/>
+                        <path class="gauge-fill" id="gauge-mortality" d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#F43F5E" stroke-width="12" stroke-linecap="round" stroke-dasharray="125.6" stroke-dashoffset="125.6"/>
+                      </svg>
+                      <div class="gauge-value" id="val-mortality" style="font-size: 1.4rem; color: #F43F5E;">0%</div>
+                    </div>
+                  </div>
+
+                  <div class="gauge-card">
+                    <div class="gauge-title">WSSV <span style="font-size:0.6rem; color:#F59E0B; font-weight:normal;">(Dev)</span></div>
+                    <div class="gauge-subtitle">White Spot Syndrome</div>
+                    <div class="gauge-wrapper">
+                      <svg class="gauge-svg" viewBox="0 0 100 55">
+                        <path class="gauge-bg" d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#1e293b" stroke-width="12" stroke-linecap="round"/>
+                        <path class="gauge-fill" id="gauge-wssv" d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#10B981" stroke-width="12" stroke-linecap="round" stroke-dasharray="125.6" stroke-dashoffset="125.6"/>
+                      </svg>
+                      <div class="gauge-value" id="val-wssv">0%</div>
+                    </div>
+                  </div>
+                  <div class="gauge-card">
+                    <div class="gauge-title">AHPND <span style="font-size:0.6rem; color:#F59E0B; font-weight:normal;">(Dev)</span></div>
+                    <div class="gauge-subtitle">Early Mortality Syndrome</div>
+                    <div class="gauge-wrapper">
+                      <svg class="gauge-svg" viewBox="0 0 100 55">
+                        <path class="gauge-bg" d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#1e293b" stroke-width="12" stroke-linecap="round"/>
+                        <path class="gauge-fill" id="gauge-ahpnd" d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#10B981" stroke-width="12" stroke-linecap="round" stroke-dasharray="125.6" stroke-dashoffset="125.6"/>
+                      </svg>
+                      <div class="gauge-value" id="val-ahpnd">0%</div>
+                    </div>
+                  </div>
+                  <div class="gauge-card">
+                    <div class="gauge-title">EHP <span style="font-size:0.6rem; color:#F59E0B; font-weight:normal;">(Dev)</span></div>
+                    <div class="gauge-subtitle">Enterocytozoon hepatopenaei</div>
+                    <div class="gauge-wrapper">
+                      <svg class="gauge-svg" viewBox="0 0 100 55">
+                        <path class="gauge-bg" d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#1e293b" stroke-width="12" stroke-linecap="round"/>
+                        <path class="gauge-fill" id="gauge-ehp" d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#10B981" stroke-width="12" stroke-linecap="round" stroke-dasharray="125.6" stroke-dashoffset="125.6"/>
+                      </svg>
+                      <div class="gauge-value" id="val-ehp">0%</div>
+                    </div>
+                  </div>
+                  <div class="gauge-card">
+                    <div class="gauge-title">IMNV <span style="font-size:0.6rem; color:#F59E0B; font-weight:normal;">(Dev)</span></div>
+                    <div class="gauge-subtitle">Infectious Myonecrosis</div>
+                    <div class="gauge-wrapper">
+                      <svg class="gauge-svg" viewBox="0 0 100 55">
+                        <path class="gauge-bg" d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#1e293b" stroke-width="12" stroke-linecap="round"/>
+                        <path class="gauge-fill" id="gauge-imnv" d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#10B981" stroke-width="12" stroke-linecap="round" stroke-dasharray="125.6" stroke-dashoffset="125.6"/>
+                      </svg>
+                      <div class="gauge-value" id="val-imnv">0%</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Radar Profile -->
+                <div class="ra-radar-wrap" style="margin-top: 1rem;">
+                  <canvas id="waterRadarChart"></canvas>
+                </div>
+              </div>
+
+              <!-- Catatan Pemodelan -->
+              <div class="glass-panel" style="padding: 1.25rem;">
+                <div class="ra-control-group-title" style="margin-bottom: 0.75rem;"><i class="fa-solid fa-circle-info"></i> Info Metode Pemodelan</div>
+                <div style="display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.72rem; line-height: 1.45; color: var(--text-secondary);">
+                  <div>
+                    <strong style="color: var(--text-accent);"><i class="fa-solid fa-calculator"></i> Risiko Kematian Kumulatif:</strong>
+                    <p style="margin: 0.15rem 0 0 0; text-align: justify;">
+                      Risiko kematian kumulatif dihitung menggunakan <b>Pemodelan Stres Kontinu (Continuous Stress Modeling)</b>. Setiap parameter kualitas air dipetakan ke tingkat stres (0-100%) menggunakan fungsi keanggotaan kontinu (piecewise linear interpolation) berdasarkan batas toleransi kritis udang. Stres tertinggi diidentifikasi menggunakan <b>operator fuzzy T-Conorm (Max-Aggregator)</b>. Kejadian penyakit historis diintegrasikan dengan <b>Model Peluruhan Waktu (Time-Decay Boost)</b> selama 14 hari.
+                    </p>
+                  </div>
+                  <div>
+                    <strong style="color: #F59E0B;"><i class="fa-solid fa-code"></i> Model Risiko Penyakit (Fuzzy):</strong>
+                    <p style="margin: 0.15rem 0 0 0; text-align: justify;">
+                      *Catatan: Model fuzzy penyakit spesifik (WSSV, AHPND, EHP, IMNV) saat ini masih <b>dalam pengembangan (in development)</b>. Model ini menggunakan pembobotan empiris parameter ekologi yang digabungkan dengan skor signifikansi klinis gejala fisik.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- Right Column: Graphs + Tables -->
+            <section style="display: flex; flex-direction: column; gap: 1.5rem;">
+              
+              <!-- Tren Parameter Waktu -->
+              <div class="glass-panel" style="padding: 1.25rem;">
+                <div class="ra-panel-head">
+                  <span class="panel-section-title"><i class="fa-solid fa-chart-line"></i> Tren Parameter Waktu</span>
+                  <div style="display:flex; gap:0.4rem; flex-wrap:wrap" id="trend-param-selector"></div>
+                </div>
+                <div class="ra-chart-wrap"><canvas id="trendChart"></canvas></div>
+              </div>
+
+              <!-- Row: Production Chart + Alerts (Side by Side) -->
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                <!-- Kurva Produksi -->
+                <div class="glass-panel" style="padding: 1.25rem;">
+                  <div class="ra-panel-head" style="margin-bottom: 0.75rem;">
+                    <span class="panel-section-title"><i class="fa-solid fa-shrimp"></i> Kurva Produksi &amp; FCR</span>
+                  </div>
+                  <div class="ra-chart-wrap"><canvas id="prodChart"></canvas></div>
+                </div>
+                
+                <!-- Peringatan & Rekomendasi -->
+                <div class="glass-panel" style="padding: 1.25rem;">
+                  <div class="ra-panel-head" style="margin-bottom: 0.75rem;">
+                    <span class="panel-section-title"><i class="fa-solid fa-bell"></i> Peringatan &amp; Rekomendasi</span>
+                  </div>
+                  <div id="ra-alerts-list" class="ra-alerts-list"></div>
+                </div>
+              </div>
+
+              <!-- Row: Microbiology + Correlation (Side by Side) -->
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                <!-- Tren Mikrobiologi -->
+                <div class="glass-panel" style="padding: 1.25rem;">
+                  <div class="ra-panel-head" style="margin-bottom: 0.75rem;">
+                    <span class="panel-section-title"><i class="fa-solid fa-bacterium"></i> Tren Mikrobiologi</span>
+                  </div>
+                  <div class="ra-chart-wrap"><canvas id="microChart"></canvas></div>
+                </div>
+                
+                <!-- Matriks Korelasi -->
+                <div class="glass-panel" style="padding: 1.25rem;">
+                  <div class="ra-panel-head" style="margin-bottom: 0.75rem;">
+                    <span class="panel-section-title"><i class="fa-solid fa-table-cells"></i> Matriks Korelasi (vs Populasi Sisa)</span>
+                  </div>
+                  <div id="corr-heatmap" class="ra-corr-heatmap"></div>
+                </div>
+              </div>
+
+              <!-- Sensitivity Table + Projections Table (Stacked) -->
+              <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                <!-- Analisis Sensitivitas -->
+                <div class="glass-panel" style="padding: 1.25rem;">
+                  <div class="ra-panel-head" style="margin-bottom: 0.5rem;">
+                    <span class="panel-section-title"><i class="fa-solid fa-calculator"></i> Analisis Sensitivitas Parameter (+1% Risiko Kematian)</span>
+                  </div>
+                  <div id="sensitivity-table-wrap">
+                    <div style="text-align:center; padding: 2.5rem; color: var(--text-secondary); font-style: italic;">Memuat analisis sensitivitas...</div>
+                  </div>
+                  <p style="font-size: 0.68rem; color: var(--text-secondary); margin-top: 0.75rem; line-height: 1.35; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 0.5rem; text-align: justify;">
+                    *Catatan: <b>Metode Pemodelan Sensitivitas (Global Delta Search)</b> mensimulasikan tingkat kerentanan tambak dengan menghitung jarak minimum perubahan fisik parameter (positif dan negatif) yang diperlukan untuk menaikkan risiko kematian kumulatif sebesar &ge; 1.0%.
+                  </p>
+                </div>
+
+                <!-- Proyeksi Risiko -->
+                <div class="glass-panel" style="padding: 1.25rem;">
+                  <div class="ra-panel-head" style="margin-bottom: 0.5rem;">
+                    <span class="panel-section-title"><i class="fa-solid fa-hourglass-half"></i> Proyeksi Risiko Penyakit (Hari Mendatang)</span>
+                  </div>
+                  <div id="projections-table-wrap">
+                    <div style="text-align:center; padding: 2.5rem; color: var(--text-secondary); font-style: italic;">Memuat proyeksi risiko...</div>
+                  </div>
+                  <p style="font-size: 0.68rem; color: var(--text-secondary); margin-top: 0.75rem; line-height: 1.35; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 0.5rem; text-align: justify;">
+                    *Catatan: <b>Metode Pemodelan Proyeksi (Ordinary Least Squares - OLS Regression)</b> memprediksi nilai parameter untuk 3, 7, dan 14 hari ke depan dengan melakukan fitting garis tren linear pada seluruh data historis dari DOC awal hingga DOC aktif.
+                  </p>
+                </div>
+              </div>
+
+            </section>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Empty State (Fallback jika data terhapus) -->
+      <div id="ra-empty" class="glass-panel ra-empty-state" style="display: none;">
+        <i class="fa-solid fa-gauge-high"></i>
+        <h3 data-i18n="ra_empty_title">Belum Ada Data</h3>
+        <p data-i18n="ra_empty_desc">Upload atau paste data monitoring tambak untuk memulai analisis risiko otomatis.</p>
+        <div style="margin-top: 1.5rem; display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">
+          <button class="header-btn" onclick="loadDemoRiskData()" style="background: linear-gradient(135deg, var(--text-accent) 0%, #4FACFE 100%); color: #070e1b; border-color: transparent;">
+            <i class="fa-solid fa-database"></i> Gunakan Data Demo
+          </button>
+          <button class="header-btn" onclick="document.getElementById('ra-file-input').click()">
+            <i class="fa-solid fa-upload"></i> Unggah File
+          </button>
+          <button class="header-btn" onclick="showPasteModal()">
+            <i class="fa-solid fa-paste"></i> Paste Data
+          </button>
+        </div>
+      </div>
+
+      <!-- Paste Modal -->
+      <div id="paste-modal" class="ra-modal-overlay" style="display:none" onclick="closePasteModal(event)">
+        <div class="ra-modal-box">
+          <div class="ra-modal-head">
+            <span class="panel-section-title"><i class="fa-solid fa-paste"></i> <span data-i18n="ra_paste_modal">Paste Data Monitoring</span></span>
+            <button class="header-btn compact-btn" onclick="closePasteModal()"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+          <p style="font-size:0.8rem; color:var(--text-secondary); margin-bottom:0.75rem" data-i18n="ra_paste_hint">Copy dari Excel/Google Sheets (header + data, tab-separated). Kolom pertama harus DOC.</p>
+          <textarea id="paste-area" class="form-control" rows="12" placeholder="Paste data di sini...&#10;DOC&#9;Total Plankton..."></textarea>
+          <div style="display:flex; gap:0.75rem; margin-top:1rem; justify-content:flex-end">
+            <button class="header-btn compact-btn" onclick="closePasteModal()" data-i18n="ra_cancel">Batal</button>
+            <button class="header-btn" style="background: linear-gradient(135deg, var(--text-accent) 0%, #4FACFE 100%); color: #070e1b; border-color: transparent;" onclick="processPasteData()">
+              <i class="fa-solid fa-check"></i> <span data-i18n="ra_process">Proses Data</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Data Preview Modal -->
+      <div id="preview-modal" class="ra-modal-overlay" style="display:none" onclick="closePreviewModal(event)">
+        <div class="ra-modal-box ra-modal-wide">
+          <div class="ra-modal-head">
+            <span class="panel-section-title"><i class="fa-solid fa-table"></i> <span data-i18n="ra_preview_modal">Preview Data</span></span>
+            <button class="header-btn compact-btn" onclick="closePreviewModal()"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+          <div id="preview-table-wrap" class="ra-preview-table-wrap"></div>
+        </div>
+      </div>
+
+      <!-- Add Parameter Modal -->
+      <div id="add-param-modal" class="ra-modal-overlay" style="display:none" onclick="closeAddParamModal(event)">
+        <div class="ra-modal-box">
+          <div class="ra-modal-head">
+            <span class="panel-section-title"><i class="fa-solid fa-circle-plus"></i> Tambah Parameter Kustom Baru</span>
+            <button class="header-btn compact-btn" onclick="closeAddParamModal()"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+          <p style="font-size:0.8rem; color:var(--text-secondary); margin-bottom:0.75rem">Tambahkan parameter monitoring baru. Parameter ini akan otomatis diintegrasikan ke dalam perhitungan risiko, analisis tren, analisis sensitivitas, dan proyeksi.</p>
+          
+          <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+            <div class="form-group">
+              <label for="new-param-name" class="ra-input-label" style="display: block; margin-bottom: 4px;">Nama Parameter</label>
+              <input type="text" id="new-param-name" class="form-control" placeholder="Contoh: H2S, Fosfat, Alkalinitas Bebas" style="width: 100%; height: 36px; padding: 6px 12px; box-sizing: border-box;">
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+              <div class="form-group">
+                <label for="new-param-unit" class="ra-input-label" style="display: block; margin-bottom: 4px;">Satuan</label>
+                <input type="text" id="new-param-unit" class="form-control" placeholder="Contoh: ppm, %, mg/L" style="width: 100%; height: 36px; padding: 6px 12px; box-sizing: border-box;">
+              </div>
+              <div class="form-group">
+                <label for="new-param-dec" class="ra-input-label" style="display: block; margin-bottom: 4px;">Desimal Display</label>
+                <select id="new-param-dec" class="form-control" style="width: 100%; height: 36px; padding: 6px 12px; box-sizing: border-box;">
+                  <option value="1">1 Desimal (0.0)</option>
+                  <option value="2">2 Desimal (0.00)</option>
+                  <option value="3" selected>3 Desimal (0.000)</option>
+                  <option value="0">0 Desimal (Bulat)</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+              <div class="form-group">
+                <label for="new-param-min" class="ra-input-label" style="display: block; margin-bottom: 4px;">Ambang Batas Minimum Aman</label>
+                <input type="number" step="any" id="new-param-min" class="form-control" placeholder="Kosongkan jika tidak ada" style="width: 100%; height: 36px; padding: 6px 12px; box-sizing: border-box;">
+              </div>
+              <div class="form-group">
+                <label for="new-param-max" class="ra-input-label" style="display: block; margin-bottom: 4px;">Ambang Batas Maksimum Aman</label>
+                <input type="number" step="any" id="new-param-max" class="form-control" placeholder="Kosongkan jika tidak ada" style="width: 100%; height: 36px; padding: 6px 12px; box-sizing: border-box;">
+              </div>
+            </div>
+          </div>
+          
+          <div style="display:flex; gap:0.75rem; margin-top:1.5rem; justify-content:flex-end">
+            <button class="header-btn compact-btn" onclick="closeAddParamModal()">Batal</button>
+            <button class="header-btn" style="background: linear-gradient(135deg, var(--text-accent) 0%, #4FACFE 100%); color: #070e1b; border-color: transparent;" onclick="submitNewParameter()">
+              <i class="fa-solid fa-check"></i> Tambah Parameter
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <footer class="app-footer">
+        <div data-i18n="txt_footer_copy">© 2026 Technology Division, PT Central Proteina Prima Tbk. Hak Cipta Dilindungi.</div>
+        <div class="footer-links">
+          <a href="contact.html" data-i18n="sb_support">Bantuan</a>
+          <a href="#" data-i18n="txt_privacy">Privasi</a>
+          <a href="#" data-i18n="txt_terms">Syarat &amp; Ketentuan</a>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="../js/core/i18n.js?v=1.0.3"></script>
+  <script src="../js/core/modules.js?v=1.0.3"></script>
+  <script src="../js/main.js?v=1.0.3"></script>
+  <script src="../js/risk/risk-analysis.js?v=1.0.3"></script>
+</body>
+</html>
